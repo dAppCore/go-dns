@@ -45,6 +45,7 @@ type Service struct {
 	records                      map[string]NameRecords
 	reverseIndex                 map[string][]string
 	treeRoot                     string
+	hsdClient                    *HSDClient
 	mainchainAliasClient         *MainchainAliasClient
 	discoverer                   func() (map[string]NameRecords, error)
 	fallbackDiscoverer           func() (map[string]NameRecords, error)
@@ -60,6 +61,7 @@ type ServiceOptions struct {
 	Discoverer                   func() (map[string]NameRecords, error)
 	FallbackDiscoverer           func() (map[string]NameRecords, error)
 	MainchainAliasClient          *MainchainAliasClient
+	HSDClient                    *HSDClient
 	ChainAliasDiscoverer         func(context.Context) ([]string, error)
 	FallbackChainAliasDiscoverer func(context.Context) ([]string, error)
 	TreeRootCheckInterval        time.Duration
@@ -80,6 +82,7 @@ func NewService(options ServiceOptions) *Service {
 		records:                      cached,
 		reverseIndex:                 buildReverseIndex(cached),
 		treeRoot:                     treeRoot,
+		hsdClient:                    options.HSDClient,
 		mainchainAliasClient:         options.MainchainAliasClient,
 		discoverer:                   options.Discoverer,
 		fallbackDiscoverer:           options.FallbackDiscoverer,
@@ -89,9 +92,20 @@ func NewService(options ServiceOptions) *Service {
 	}
 }
 
+func (service *Service) resolveHSDClient(client *HSDClient) (*HSDClient, error) {
+	if client != nil {
+		return client, nil
+	}
+	if service.hsdClient == nil {
+		return nil, fmt.Errorf("hsd client is required")
+	}
+	return service.hsdClient, nil
+}
+
 func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HSDClient) error {
-	if client == nil {
-		return fmt.Errorf("hsd client is required")
+	resolved, err := service.resolveHSDClient(client)
+	if err != nil {
+		return err
 	}
 
 	aliases, err := discoverAliasesWithFallback(
@@ -106,7 +120,7 @@ func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HS
 	if aliases == nil {
 		return nil
 	}
-	return service.discoverFromChainAliasesUsingTreeRoot(ctx, aliases, client)
+	return service.discoverFromChainAliasesUsingTreeRoot(ctx, aliases, resolved)
 }
 
 func discoverAliasesWithFallback(
@@ -161,6 +175,11 @@ func discoverAliasesWithFallback(
 //		URL: "http://127.0.0.1:14037",
 //	}))
 func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainClient *MainchainAliasClient, hsdClient *HSDClient) error {
+	resolvedHSDClient, err := service.resolveHSDClient(hsdClient)
+	if err != nil {
+		return err
+	}
+
 	aliases, err := discoverAliases(
 		ctx,
 		func(ctx context.Context) ([]string, error) {
@@ -188,7 +207,7 @@ func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainC
 	if len(aliases) == 0 {
 		return nil
 	}
-	return service.discoverFromChainAliasesUsingTreeRoot(ctx, aliases, hsdClient)
+	return service.discoverFromChainAliasesUsingTreeRoot(ctx, aliases, resolvedHSDClient)
 }
 
 func (service *Service) discoverFromChainAliasesUsingTreeRoot(ctx context.Context, aliases []string, client *HSDClient) error {
