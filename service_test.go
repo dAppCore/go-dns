@@ -274,6 +274,35 @@ func TestServiceResolveReverseUsesSetAndRemove(t *testing.T) {
 	}
 }
 
+func TestServiceRecordTTLExpiresForwardAndReverseLookups(t *testing.T) {
+	service := NewService(ServiceOptions{
+		RecordTTL: 25 * time.Millisecond,
+	})
+
+	service.SetRecord("gateway.charon.lthn", NameRecords{
+		A: []string{"10.10.10.10"},
+	})
+
+	if _, ok := service.Resolve("gateway.charon.lthn"); !ok {
+		t.Fatal("expected record to resolve before expiry")
+	}
+	if names, ok := service.ResolveReverse("10.10.10.10"); !ok || len(names) != 1 || names[0] != "gateway.charon.lthn" {
+		t.Fatalf("expected reverse record before expiry, got %#v (ok=%t)", names, ok)
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	if _, ok := service.Resolve("gateway.charon.lthn"); ok {
+		t.Fatal("expected forward record to expire")
+	}
+	if _, ok := service.ResolveReverse("10.10.10.10"); ok {
+		t.Fatal("expected reverse record to expire with the forward record")
+	}
+	if health := service.Health(); health.NamesCached != 0 {
+		t.Fatalf("expected expired record to be pruned from health, got %#v", health)
+	}
+}
+
 func TestServiceHealthUsesDeterministicTreeRootAndUpdatesOnMutations(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{
