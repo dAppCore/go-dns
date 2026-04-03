@@ -430,7 +430,7 @@ func TestServiceDiscoverReplacesRecordsFromDiscoverer(t *testing.T) {
 				A: []string{"10.11.11.11"},
 			},
 		},
-		Discoverer: func() (map[string]NameRecords, error) {
+		RecordDiscoverer: func() (map[string]NameRecords, error) {
 			next := records[index%len(records)]
 			index++
 			return next, nil
@@ -859,11 +859,11 @@ func TestServiceDiscoverFallsBackWhenPrimaryDiscovererFails(t *testing.T) {
 				A: []string{"10.11.11.11"},
 			},
 		},
-		Discoverer: func() (map[string]NameRecords, error) {
+		RecordDiscoverer: func() (map[string]NameRecords, error) {
 			primaryCalled = true
 			return nil, errors.New("chain service unavailable")
 		},
-		FallbackDiscoverer: func() (map[string]NameRecords, error) {
+		FallbackRecordDiscoverer: func() (map[string]NameRecords, error) {
 			fallbackCalled = true
 			return map[string]NameRecords{
 				"gateway.charon.lthn": {
@@ -904,7 +904,7 @@ func TestServiceDiscoverUsesFallbackOnlyWhenPrimaryMissing(t *testing.T) {
 				A: []string{"10.11.11.11"},
 			},
 		},
-		FallbackDiscoverer: func() (map[string]NameRecords, error) {
+		FallbackRecordDiscoverer: func() (map[string]NameRecords, error) {
 			fallbackCalled = true
 			return map[string]NameRecords{
 				"gateway.charon.lthn": {

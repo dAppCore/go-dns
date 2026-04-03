@@ -79,8 +79,8 @@ type Service struct {
 
 type ServiceOptions struct {
 	Records                      map[string]NameRecords
-	Discoverer                   func() (map[string]NameRecords, error)
-	FallbackDiscoverer           func() (map[string]NameRecords, error)
+	RecordDiscoverer             func() (map[string]NameRecords, error)
+	FallbackRecordDiscoverer     func() (map[string]NameRecords, error)
 	MainchainAliasClient         *MainchainAliasClient
 	HSDClient                    *HSDClient
 	ChainAliasActionCaller       ActionCaller
@@ -126,8 +126,8 @@ func NewService(options ServiceOptions) *Service {
 		mainchainAliasClient:         options.MainchainAliasClient,
 		chainAliasActionCaller:       options.ChainAliasActionCaller,
 		chainAliasAction:             options.ChainAliasAction,
-		recordDiscoverer:             options.Discoverer,
-		fallbackRecordDiscoverer:     options.FallbackDiscoverer,
+		recordDiscoverer:             options.RecordDiscoverer,
+		fallbackRecordDiscoverer:     options.FallbackRecordDiscoverer,
 		chainAliasDiscoverer:         options.ChainAliasDiscoverer,
 		fallbackChainAliasDiscoverer: options.FallbackChainAliasDiscoverer,
 		treeRootCheckInterval:        checkInterval,
