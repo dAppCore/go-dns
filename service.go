@@ -48,6 +48,7 @@ type Service struct {
 	zoneApex                     string
 	hsdClient                    *HSDClient
 	mainchainAliasClient         *MainchainAliasClient
+	chainAliasAction             func(context.Context) ([]string, error)
 	discoverer                   func() (map[string]NameRecords, error)
 	fallbackDiscoverer           func() (map[string]NameRecords, error)
 	chainAliasDiscoverer         func(context.Context) ([]string, error)
@@ -63,6 +64,7 @@ type ServiceOptions struct {
 	FallbackDiscoverer           func() (map[string]NameRecords, error)
 	MainchainAliasClient         *MainchainAliasClient
 	HSDClient                    *HSDClient
+	ChainAliasAction             func(context.Context) ([]string, error)
 	ChainAliasDiscoverer         func(context.Context) ([]string, error)
 	FallbackChainAliasDiscoverer func(context.Context) ([]string, error)
 	TreeRootCheckInterval        time.Duration
@@ -102,6 +104,7 @@ func NewService(options ServiceOptions) *Service {
 		zoneApex:                     computeZoneApex(cached),
 		hsdClient:                    options.HSDClient,
 		mainchainAliasClient:         options.MainchainAliasClient,
+		chainAliasAction:             options.ChainAliasAction,
 		discoverer:                   options.Discoverer,
 		fallbackDiscoverer:           options.FallbackDiscoverer,
 		chainAliasDiscoverer:         options.ChainAliasDiscoverer,
@@ -126,8 +129,9 @@ func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HS
 		return err
 	}
 
-	aliases, err := discoverAliasesWithFallback(
+	aliases, err := service.discoverAliasesFromSources(
 		ctx,
+		service.chainAliasAction,
 		service.chainAliasDiscoverer,
 		service.fallbackChainAliasDiscoverer,
 		service.mainchainAliasClient,
@@ -141,12 +145,20 @@ func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HS
 	return service.discoverFromChainAliasesUsingTreeRoot(ctx, aliases, resolved)
 }
 
-func discoverAliasesWithFallback(
+func (service *Service) discoverAliasesFromSources(
 	ctx context.Context,
+	action func(context.Context) ([]string, error),
 	discoverer func(context.Context) ([]string, error),
 	fallback func(context.Context) ([]string, error),
 	mainchainClient *MainchainAliasClient,
 ) ([]string, error) {
+	if action != nil {
+		aliases, err := action(ctx)
+		if err == nil {
+			return aliases, nil
+		}
+	}
+
 	if discoverer == nil {
 		if fallback != nil {
 			aliases, err := fallback(ctx)
@@ -203,8 +215,9 @@ func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainC
 		effectiveChainClient = service.mainchainAliasClient
 	}
 
-	aliases, err := discoverAliasesWithFallback(
+	aliases, err := service.discoverAliasesFromSources(
 		ctx,
+		nil,
 		func(ctx context.Context) ([]string, error) {
 			if service.chainAliasDiscoverer != nil {
 				return service.chainAliasDiscoverer(ctx)
@@ -292,31 +305,6 @@ func (service *Service) recordTreeRootState(now time.Time, treeRoot string) {
 	defer service.mu.Unlock()
 	service.lastTreeRootCheck = now
 	service.chainTreeRoot = treeRoot
-}
-
-func discoverAliases(ctx context.Context, discoverer func(context.Context) ([]string, error), fallback func(context.Context) ([]string, error)) ([]string, error) {
-	if discoverer == nil {
-		if fallback == nil {
-			return nil, nil
-		}
-		aliases, err := fallback(ctx)
-		if err != nil {
-			return nil, err
-		}
-		return aliases, nil
-	}
-
-	aliases, err := discoverer(ctx)
-	if err != nil {
-		if fallback == nil {
-			return nil, err
-		}
-		aliases, err = fallback(ctx)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return aliases, nil
 }
 
 func (service *Service) Discover() error {
