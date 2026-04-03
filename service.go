@@ -180,7 +180,7 @@ func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainC
 		return err
 	}
 
-	aliases, err := discoverAliases(
+	aliases, err := discoverAliasesWithFallback(
 		ctx,
 		func(ctx context.Context) ([]string, error) {
 			if service.chainAliasDiscoverer != nil {
@@ -200,6 +200,7 @@ func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainC
 			}
 			return nil, nil
 		},
+		chainClient,
 	)
 	if err != nil {
 		return err
