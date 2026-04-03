@@ -1848,6 +1848,38 @@ func TestServiceServeAnswersSOAForDerivedZoneApexWithoutExactRecord(t *testing.T
 	}
 }
 
+func TestServiceServeAnswersSOAForWildcardOnlyDerivedZoneApex(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"*.charon.lthn": {
+				A: []string{"10.0.0.1"},
+			},
+		},
+	})
+
+	srv, err := service.Serve("127.0.0.1", 0)
+	if err != nil {
+		t.Fatalf("expected server to start: %v", err)
+	}
+	defer func() {
+		_ = srv.Close()
+	}()
+
+	client := dnsprotocol.Client{}
+	request := new(dnsprotocol.Msg)
+	request.SetQuestion("charon.lthn.", dnsprotocol.TypeSOA)
+	response := exchangeWithRetry(t, client, request, srv.Address())
+	if response.Rcode != dnsprotocol.RcodeSuccess {
+		t.Fatalf("expected SOA query for wildcard-derived apex to succeed, got %d", response.Rcode)
+	}
+	if len(response.Answer) != 1 {
+		t.Fatalf("expected one SOA answer for wildcard-derived apex, got %d", len(response.Answer))
+	}
+	if _, ok := response.Answer[0].(*dnsprotocol.SOA); !ok {
+		t.Fatalf("expected SOA answer for wildcard-derived apex, got %#v", response.Answer[0])
+	}
+}
+
 func TestServiceServeAnswersNSForDerivedZoneApexWithoutExactRecord(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{
@@ -1885,6 +1917,42 @@ func TestServiceServeAnswersNSForDerivedZoneApexWithoutExactRecord(t *testing.T)
 	}
 }
 
+func TestServiceServeAnswersNSForWildcardOnlyDerivedZoneApex(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"*.gateway.charon.lthn": {
+				A: []string{"10.0.0.1"},
+			},
+		},
+	})
+
+	srv, err := service.Serve("127.0.0.1", 0)
+	if err != nil {
+		t.Fatalf("expected server to start: %v", err)
+	}
+	defer func() {
+		_ = srv.Close()
+	}()
+
+	client := dnsprotocol.Client{}
+	request := new(dnsprotocol.Msg)
+	request.SetQuestion("gateway.charon.lthn.", dnsprotocol.TypeNS)
+	response := exchangeWithRetry(t, client, request, srv.Address())
+	if response.Rcode != dnsprotocol.RcodeSuccess {
+		t.Fatalf("expected NS query for wildcard-derived apex to succeed, got %d", response.Rcode)
+	}
+	if len(response.Answer) != 1 {
+		t.Fatalf("expected one NS answer for wildcard-derived apex, got %d", len(response.Answer))
+	}
+	ns, ok := response.Answer[0].(*dnsprotocol.NS)
+	if !ok {
+		t.Fatalf("expected NS answer for wildcard-derived apex, got %#v", response.Answer[0])
+	}
+	if ns.Ns != "ns.gateway.charon.lthn." {
+		t.Fatalf("expected synthesized wildcard-derived apex NS, got %q", ns.Ns)
+	}
+}
+
 func TestServiceResolveAllSynthesizesNSForDerivedZoneApex(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{
@@ -1903,6 +1971,27 @@ func TestServiceResolveAllSynthesizesNSForDerivedZoneApex(t *testing.T) {
 	}
 	if len(result.NS) != 1 || result.NS[0] != "ns.charon.lthn" {
 		t.Fatalf("expected synthesized apex NS, got %#v", result.NS)
+	}
+}
+
+func TestServiceResolveAllSynthesizesNSForWildcardOnlyDerivedZoneApex(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"*.charon.lthn": {
+				A: []string{"10.0.0.1"},
+			},
+		},
+	})
+
+	result, ok := service.ResolveAll("charon.lthn")
+	if !ok {
+		t.Fatal("expected wildcard-derived zone apex to resolve")
+	}
+	if len(result.A) != 0 || len(result.AAAA) != 0 || len(result.TXT) != 0 {
+		t.Fatalf("expected no A/AAAA/TXT values for derived wildcard apex, got %#v", result)
+	}
+	if len(result.NS) != 1 || result.NS[0] != "ns.charon.lthn" {
+		t.Fatalf("expected synthesized NS from wildcard-derived apex, got %#v", result.NS)
 	}
 }
 

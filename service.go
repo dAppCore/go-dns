@@ -1045,6 +1045,11 @@ func computeZoneApex(records map[string]NameRecords) string {
 	names := make([]string, 0, len(records))
 	for name := range records {
 		if strings.HasPrefix(name, "*.") {
+			suffix := strings.TrimPrefix(name, "*.")
+			if suffix == "" {
+				continue
+			}
+			names = append(names, suffix)
 			continue
 		}
 		names = append(names, name)
