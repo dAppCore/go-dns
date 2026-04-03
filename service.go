@@ -93,6 +93,28 @@ func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HS
 	return service.discoverFromChainAliasesUsingTreeRoot(ctx, aliases, client)
 }
 
+// DiscoverFromMainchainAliases updates records from main-chain aliases resolved through HSD.
+//
+//	service.DiscoverFromMainchainAliases(context.Background(), dns.NewMainchainAliasClient(dns.MainchainClientOptions{
+//		URL: "http://127.0.0.1:14037",
+//	}), dns.NewHSDClient(dns.HSDClientOptions{
+//		URL: "http://127.0.0.1:14037",
+//	}))
+func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainClient *MainchainAliasClient, hsdClient *HSDClient) error {
+	if chainClient == nil {
+		return fmt.Errorf("mainchain alias client is required")
+	}
+
+	aliases, err := chainClient.GetAllAliasDetails(ctx)
+	if err != nil {
+		return err
+	}
+	if len(aliases) == 0 {
+		return nil
+	}
+	return service.discoverFromChainAliasesUsingTreeRoot(ctx, aliases, hsdClient)
+}
+
 func (service *Service) discoverFromChainAliasesUsingTreeRoot(ctx context.Context, aliases []string, client *HSDClient) error {
 	if len(aliases) == 0 {
 		return nil
