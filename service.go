@@ -672,9 +672,12 @@ func (service *Service) ResolveReverse(ip string) ([]string, bool) {
 }
 
 // ResolveAll returns the full record set for a name, including synthesized apex NS data.
-// Missing names still return empty arrays so the action payload stays stable.
 //
 //	result, ok := service.ResolveAll("charon.lthn")
+//	// result = dns.ResolveAllResult{A: nil, AAAA: nil, TXT: nil, NS: []string{"ns.charon.lthn"}}
+//	// ok = true
+//
+// Missing names still return empty arrays so the action payload stays stable.
 func (service *Service) ResolveAll(name string) (ResolveAllResult, bool) {
 	record, ok := service.findRecord(name)
 	if !ok {
@@ -703,7 +706,7 @@ func (service *Service) ResolveAll(name string) (ResolveAllResult, bool) {
 // Health reports the live cache size and tree root.
 //
 //	health := service.Health()
-//	fmt.Println(health.TreeRoot)
+//	fmt.Println(health.Status, health.NamesCached, health.TreeRoot)
 func (service *Service) Health() HealthResult {
 	service.mu.RLock()
 	defer service.mu.RUnlock()
@@ -723,6 +726,7 @@ func (service *Service) Health() HealthResult {
 // ZoneApex returns the computed apex for the current record set.
 //
 //	apex := service.ZoneApex()
+//	// "charon.lthn"
 func (service *Service) ZoneApex() string {
 	service.mu.RLock()
 	defer service.mu.RUnlock()

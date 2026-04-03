@@ -112,14 +112,14 @@ func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
 		return nil, err
 	}
 
-	handler := &dnsRequestHandler{service: service}
-	mux := dnsprotocol.NewServeMux()
-	mux.HandleFunc(".", handler.ServeDNS)
+	requestHandler := &dnsRequestHandler{service: service}
+	serveMux := dnsprotocol.NewServeMux()
+	serveMux.HandleFunc(".", requestHandler.ServeDNS)
 
-	udpServer := &dnsprotocol.Server{Net: "udp", PacketConn: udpListener, Handler: mux}
-	tcpServer := &dnsprotocol.Server{Net: "tcp", Listener: tcpListener, Handler: mux}
+	udpServer := &dnsprotocol.Server{Net: "udp", PacketConn: udpListener, Handler: serveMux}
+	tcpServer := &dnsprotocol.Server{Net: "tcp", Listener: tcpListener, Handler: serveMux}
 
-	run := &DNSServer{
+	dnsServer := &DNSServer{
 		udpListener: udpListener,
 		tcpListener: tcpListener,
 		udpServer:   udpServer,
@@ -133,7 +133,7 @@ func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
 		_ = tcpServer.ActivateAndServe()
 	}()
 
-	return run, nil
+	return dnsServer, nil
 }
 
 // ServeAll starts DNS and health together.
