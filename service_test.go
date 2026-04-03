@@ -346,6 +346,54 @@ func TestServiceServeHTTPHealthReturnsJSON(t *testing.T) {
 	}
 }
 
+func TestServiceServeAllStartsDNSAndHTTPTogether(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	runtime, err := service.ServeAll("127.0.0.1", 0, 0)
+	if err != nil {
+		t.Fatalf("expected combined runtime to start: %v", err)
+	}
+	defer func() {
+		_ = runtime.Close()
+	}()
+
+	if runtime.DNSAddress() == "" {
+		t.Fatal("expected DNS address from combined runtime")
+	}
+	if runtime.HTTPAddress() == "" {
+		t.Fatal("expected HTTP address from combined runtime")
+	}
+
+	response, err := http.Get("http://" + runtime.HTTPAddress() + "/health")
+	if err != nil {
+		t.Fatalf("expected combined HTTP health endpoint to respond: %v", err)
+	}
+	defer func() {
+		_ = response.Body.Close()
+	}()
+
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected combined health status: %d", response.StatusCode)
+	}
+
+	client := dnsprotocol.Client{}
+	request := new(dnsprotocol.Msg)
+	request.SetQuestion("gateway.charon.lthn.", dnsprotocol.TypeA)
+	dnsResponse := exchangeWithRetry(t, client, request, runtime.DNSAddress())
+	if dnsResponse.Rcode != dnsprotocol.RcodeSuccess {
+		t.Fatalf("unexpected combined DNS rcode: %d", dnsResponse.Rcode)
+	}
+	if len(dnsResponse.Answer) != 1 {
+		t.Fatalf("expected one DNS answer from combined runtime, got %d", len(dnsResponse.Answer))
+	}
+}
+
 func TestServiceDiscoverReplacesRecordsFromDiscoverer(t *testing.T) {
 	records := []map[string]NameRecords{
 		{

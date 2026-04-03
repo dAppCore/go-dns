@@ -19,6 +19,45 @@ type DNSServer struct {
 	tcpServer   *dnsprotocol.Server
 }
 
+// ServiceRuntime owns the DNS and HTTP listeners created by ServeAll.
+type ServiceRuntime struct {
+	DNS  *DNSServer
+	HTTP *HTTPServer
+}
+
+func (runtime *ServiceRuntime) DNSAddress() string {
+	if runtime == nil || runtime.DNS == nil {
+		return ""
+	}
+	return runtime.DNS.Address()
+}
+
+func (runtime *ServiceRuntime) HTTPAddress() string {
+	if runtime == nil || runtime.HTTP == nil {
+		return ""
+	}
+	return runtime.HTTP.Address()
+}
+
+func (runtime *ServiceRuntime) Close() error {
+	if runtime == nil {
+		return nil
+	}
+
+	var firstError error
+	if runtime.DNS != nil {
+		if err := runtime.DNS.Close(); err != nil && firstError == nil {
+			firstError = err
+		}
+	}
+	if runtime.HTTP != nil {
+		if err := runtime.HTTP.Close(); err != nil && firstError == nil {
+			firstError = err
+		}
+	}
+	return firstError
+}
+
 func (server *DNSServer) Address() string {
 	if server.udpListener == nil {
 		return ""
@@ -84,6 +123,27 @@ func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
 	}()
 
 	return run, nil
+}
+
+// ServeAll starts the DNS endpoint and the HTTP health endpoint together.
+//
+//	runtime, err := service.ServeAll("127.0.0.1", 53, 5554)
+func (service *Service) ServeAll(bind string, dnsPort int, httpPort int) (*ServiceRuntime, error) {
+	dnsServer, err := service.Serve(bind, dnsPort)
+	if err != nil {
+		return nil, err
+	}
+
+	httpServer, err := service.ServeHTTPHealth(bind, httpPort)
+	if err != nil {
+		_ = dnsServer.Close()
+		return nil, err
+	}
+
+	return &ServiceRuntime{
+		DNS:  dnsServer,
+		HTTP: httpServer,
+	}, nil
 }
 
 type dnsRequestHandler struct {
