@@ -13,6 +13,7 @@ import (
 //
 //	server, err := service.ServeHTTPHealth("127.0.0.1", 5554)
 //	defer func() { _ = server.Close() }()
+//	fmt.Println("health at", server.Address())
 type HTTPServer struct {
 	listener net.Listener
 	server   *http.Server
@@ -50,6 +51,7 @@ func (server *HTTPServer) Close() error {
 //
 //	server, err := service.ServeHTTPHealth("127.0.0.1", 5554)
 //	defer func() { _ = server.Close() }()
+//	resp, _ := http.Get("http://" + server.Address() + "/health")
 func (service *Service) ServeHTTPHealth(bind string, port int) (*HTTPServer, error) {
 	if bind == "" {
 		bind = "127.0.0.1"

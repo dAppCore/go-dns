@@ -45,6 +45,7 @@ type ReverseLookupResult struct {
 // HealthResult is the typed payload returned by Health and dns.health.
 //
 //	health := service.Health()
+//	fmt.Println(health.Status, health.NamesCached, health.TreeRoot)
 type HealthResult struct {
 	Status      string `json:"status"`
 	NamesCached int    `json:"names_cached"`
@@ -328,11 +329,10 @@ func parseActionAliasRecord(record map[string]any) (string, error) {
 
 // DiscoverFromMainchainAliases updates records from main-chain aliases resolved through HSD.
 //
-//	service.DiscoverFromMainchainAliases(context.Background(), dns.NewMainchainAliasClient(dns.MainchainClientOptions{
-//		URL: "http://127.0.0.1:14037",
-//	}), dns.NewHSDClient(dns.HSDClientOptions{
-//		URL: "http://127.0.0.1:14037",
-//	}))
+//	err := service.DiscoverFromMainchainAliases(context.Background(),
+//		dns.NewMainchainAliasClient(dns.MainchainClientOptions{URL: "http://127.0.0.1:14037"}),
+//		dns.NewHSDClient(dns.HSDClientOptions{URL: "http://127.0.0.1:14037"}),
+//	)
 func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainClient *MainchainAliasClient, hsdClient *HSDClient) error {
 	resolvedHSDClient, err := service.resolveHSDClient(hsdClient)
 	if err != nil {
@@ -676,6 +676,7 @@ func (service *Service) ResolveAll(name string) (ResolveAllResult, bool) {
 // Health reports the live cache size and tree root.
 //
 //	health := service.Health()
+//	fmt.Println(health.TreeRoot)
 func (service *Service) Health() HealthResult {
 	service.mu.RLock()
 	defer service.mu.RUnlock()

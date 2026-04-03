@@ -15,6 +15,7 @@ const dnsTTL = 300
 //
 //	srv, err := service.Serve("127.0.0.1", 53)
 //	defer func() { _ = srv.Close() }()
+//	fmt.Println("dns at", srv.Address())
 type DNSServer struct {
 	udpListener net.PacketConn
 	tcpListener net.Listener
@@ -26,6 +27,7 @@ type DNSServer struct {
 //
 //	runtime, err := service.ServeAll("127.0.0.1", 53, 5554)
 //	defer func() { _ = runtime.Close() }()
+//	fmt.Println(runtime.DNSAddress(), runtime.HTTPAddress())
 type ServiceRuntime struct {
 	DNS  *DNSServer
 	HTTP *HTTPServer
@@ -92,6 +94,8 @@ func (server *DNSServer) Close() error {
 //
 //	srv, err := service.Serve("0.0.0.0", 53)
 //	defer func() { _ = srv.Close() }()
+//	lookup := new(dnsprotocol.Msg)
+//	lookup.SetQuestion("gateway.charon.lthn.", dnsprotocol.TypeA)
 func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
 	if bind == "" {
 		bind = "127.0.0.1"
@@ -136,6 +140,7 @@ func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
 //
 //	runtime, err := service.ServeAll("127.0.0.1", 53, 5554)
 //	defer func() { _ = runtime.Close() }()
+//	fmt.Println("dns:", runtime.DNSAddress(), "health:", runtime.HTTPAddress())
 func (service *Service) ServeAll(bind string, dnsPort int, httpPort int) (*ServiceRuntime, error) {
 	dnsServer, err := service.Serve(bind, dnsPort)
 	if err != nil {
