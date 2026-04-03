@@ -2439,6 +2439,68 @@ func TestServiceHandleActionServeDefaultsPortFromServiceConfiguration(t *testing
 	_ = dnsServer.Close()
 }
 
+func TestServiceHandleActionServeHealthPortStartsRuntime(t *testing.T) {
+	desiredHealthPort := pickFreeTCPPort(t)
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	payload, ok, err := service.HandleAction(ActionServe, map[string]any{
+		"bind":        "127.0.0.1",
+		"health_port": desiredHealthPort,
+	})
+	if err != nil {
+		t.Fatalf("expected serve action with health port to start: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected serve action to succeed with health port")
+	}
+	runtime, ok := payload.(*ServiceRuntime)
+	if !ok {
+		t.Fatalf("expected ServiceRuntime payload, got %T", payload)
+	}
+	if runtime == nil {
+		t.Fatal("expected service runtime from serve action")
+	}
+	defer func() {
+		_ = runtime.Close()
+	}()
+
+	if runtime.DNSAddress() == "" {
+		t.Fatal("expected dns address from runtime")
+	}
+	if runtime.HealthAddress() == "" {
+		t.Fatal("expected health address from runtime")
+	}
+
+	_, runtimeHealthPort, err := net.SplitHostPort(runtime.HealthAddress())
+	if err != nil {
+		t.Fatalf("expected health address to include port: %v", err)
+	}
+	if runtimeHealthPort != strconv.Itoa(desiredHealthPort) {
+		t.Fatalf("expected requested health port %d, got %q", desiredHealthPort, runtimeHealthPort)
+	}
+	_, _, err = net.SplitHostPort(runtime.DNSAddress())
+	if err != nil {
+		t.Fatalf("expected dns address to include port: %v", err)
+	}
+
+	response, err := http.Get("http://" + runtime.HealthAddress() + "/health")
+	if err != nil {
+		t.Fatalf("expected health endpoint to respond: %v", err)
+	}
+	defer func() {
+		_ = response.Body.Close()
+	}()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected health status: %d", response.StatusCode)
+	}
+}
+
 func TestServiceResolveServePortDefaultsToStandardDNSPort(t *testing.T) {
 	service := NewService(ServiceOptions{})
 	if service.ResolveDNSPort() != DefaultDNSPort {

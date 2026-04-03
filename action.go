@@ -29,6 +29,7 @@ const (
 	actionArgIP   = "ip"
 	actionArgName = "name"
 	actionArgPort = "port"
+	actionArgHealthPort = "health_port"
 )
 
 type ActionDefinition struct {
@@ -294,6 +295,19 @@ func (service *Service) handleServe(ctx context.Context, values map[string]any) 
 	if !portProvided {
 		port = service.ResolveDNSPort()
 	}
+
+	healthPort, healthPortProvided, err := intActionValueOptional(values, actionArgHealthPort)
+	if err != nil {
+		return nil, false, err
+	}
+	if healthPortProvided {
+		runtime, err := service.ServeAll(bind, port, healthPort)
+		if err != nil {
+			return nil, false, err
+		}
+		return runtime, true, nil
+	}
+
 	result, err := service.Serve(bind, port)
 	if err != nil {
 		return nil, false, err
