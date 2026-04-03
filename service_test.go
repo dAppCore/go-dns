@@ -2369,6 +2369,35 @@ func TestServiceHandleActionReverseHealthServeAndDiscover(t *testing.T) {
 	}
 }
 
+func TestServiceHandleActionContextPassesThroughToDiscover(t *testing.T) {
+	service := NewService(ServiceOptions{
+		ChainAliasDiscoverer: func(ctx context.Context) ([]string, error) {
+			<-ctx.Done()
+			return nil, ctx.Err()
+		},
+		HSDClient: NewHSDClient(HSDClientOptions{
+			URL: "http://127.0.0.1:1",
+		}),
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	payload, ok, err := service.HandleActionContext(ctx, ActionDiscover, nil)
+	if err == nil {
+		t.Fatal("expected discover action to fail for a canceled context")
+	}
+	if ok {
+		t.Fatal("expected discover action to report failure")
+	}
+	if payload != nil {
+		t.Fatalf("expected no payload on context cancellation, got %#v", payload)
+	}
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context cancellation error, got %v", err)
+	}
+}
+
 type actionRecorder struct {
 	names    []string
 	handlers map[string]func(map[string]any) (any, bool, error)
