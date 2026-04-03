@@ -11,10 +11,10 @@ import (
 )
 
 type NameRecords struct {
-	A     []string `json:"a"`
-	AAAA  []string `json:"aaaa"`
-	TXT   []string `json:"txt"`
-	NS    []string `json:"ns"`
+	A    []string `json:"a"`
+	AAAA []string `json:"aaaa"`
+	TXT  []string `json:"txt"`
+	NS   []string `json:"ns"`
 }
 
 type ResolveAllResult struct {
@@ -29,16 +29,18 @@ type ResolveAddressResult struct {
 }
 
 type Service struct {
-	mu           sync.RWMutex
-	records      map[string]NameRecords
-	reverseIndex map[string][]string
-	treeRoot     string
-	discoverer   func() (map[string]NameRecords, error)
+	mu                 sync.RWMutex
+	records            map[string]NameRecords
+	reverseIndex       map[string][]string
+	treeRoot           string
+	discoverer         func() (map[string]NameRecords, error)
+	fallbackDiscoverer func() (map[string]NameRecords, error)
 }
 
 type ServiceOptions struct {
-	Records    map[string]NameRecords
-	Discoverer func() (map[string]NameRecords, error)
+	Records            map[string]NameRecords
+	Discoverer         func() (map[string]NameRecords, error)
+	FallbackDiscoverer func() (map[string]NameRecords, error)
 }
 
 func NewService(options ServiceOptions) *Service {
@@ -48,24 +50,46 @@ func NewService(options ServiceOptions) *Service {
 	}
 	treeRoot := computeTreeRoot(cached)
 	return &Service{
-		records:      cached,
-		reverseIndex: buildReverseIndex(cached),
-		treeRoot:     treeRoot,
-		discoverer:   options.Discoverer,
+		records:            cached,
+		reverseIndex:       buildReverseIndex(cached),
+		treeRoot:           treeRoot,
+		discoverer:         options.Discoverer,
+		fallbackDiscoverer: options.FallbackDiscoverer,
 	}
 }
 
 func (service *Service) Discover() error {
 	discoverer := service.discoverer
+	fallback := service.fallbackDiscoverer
 	if discoverer == nil {
+		if fallback == nil {
+			return nil
+		}
+		discovered, err := fallback()
+		if err != nil {
+			return err
+		}
+		service.replaceRecords(discovered)
 		return nil
 	}
 
 	discovered, err := discoverer()
 	if err != nil {
+		if fallback == nil {
+			return err
+		}
+		discovered, err = fallback()
+		if err != nil {
+			return err
+		}
+		service.replaceRecords(discovered)
 		return err
 	}
+	service.replaceRecords(discovered)
+	return nil
+}
 
+func (service *Service) replaceRecords(discovered map[string]NameRecords) {
 	cached := make(map[string]NameRecords, len(discovered))
 	for name, record := range discovered {
 		normalizedName := normalizeName(name)
@@ -80,7 +104,6 @@ func (service *Service) Discover() error {
 	service.records = cached
 	service.reverseIndex = buildReverseIndex(service.records)
 	service.treeRoot = computeTreeRoot(service.records)
-	return nil
 }
 
 func (service *Service) SetRecord(name string, record NameRecords) {

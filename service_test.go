@@ -1,6 +1,7 @@
 package dns
 
 import (
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -251,6 +252,83 @@ func TestServiceDiscoverReplacesRecordsFromDiscoverer(t *testing.T) {
 	}
 	if _, ok := service.Resolve("legacy.unknown"); ok {
 		t.Fatal("expected replaced cache not to resolve via old record")
+	}
+}
+
+func TestServiceDiscoverFallsBackWhenPrimaryDiscovererFails(t *testing.T) {
+	primaryCalled := false
+	fallbackCalled := false
+
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"legacy.charon.lthn": {
+				A: []string{"10.11.11.11"},
+			},
+		},
+		Discoverer: func() (map[string]NameRecords, error) {
+			primaryCalled = true
+			return nil, errors.New("chain service unavailable")
+		},
+		FallbackDiscoverer: func() (map[string]NameRecords, error) {
+			fallbackCalled = true
+			return map[string]NameRecords{
+				"gateway.charon.lthn": {
+					A: []string{"10.10.10.10"},
+				},
+			}, nil
+		},
+	})
+
+	if err := service.Discover(); err != nil {
+		t.Fatalf("expected fallback discovery to succeed: %v", err)
+	}
+	if !primaryCalled {
+		t.Fatal("expected primary discoverer to be attempted")
+	}
+	if !fallbackCalled {
+		t.Fatal("expected fallback discoverer to run after primary failure")
+	}
+
+	result, ok := service.Resolve("gateway.charon.lthn")
+	if !ok {
+		t.Fatal("expected fallback record to resolve")
+	}
+	if len(result.A) != 1 || result.A[0] != "10.10.10.10" {
+		t.Fatalf("unexpected fallback resolve result: %#v", result.A)
+	}
+	if _, ok := service.Resolve("legacy.charon.lthn"); ok {
+		t.Fatal("expected legacy record to be replaced by fallback discovery")
+	}
+}
+
+func TestServiceDiscoverUsesFallbackOnlyWhenPrimaryMissing(t *testing.T) {
+	fallbackCalled := false
+
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"legacy.charon.lthn": {
+				A: []string{"10.11.11.11"},
+			},
+		},
+		FallbackDiscoverer: func() (map[string]NameRecords, error) {
+			fallbackCalled = true
+			return map[string]NameRecords{
+				"gateway.charon.lthn": {
+					A: []string{"10.10.10.20"},
+				},
+			}, nil
+		},
+	})
+
+	if err := service.Discover(); err != nil {
+		t.Fatalf("expected fallback discovery to run: %v", err)
+	}
+	if !fallbackCalled {
+		t.Fatal("expected fallback discoverer to run when primary is missing")
+	}
+
+	if _, ok := service.Resolve("gateway.charon.lthn"); !ok {
+		t.Fatal("expected fallback record to resolve")
 	}
 }
 
