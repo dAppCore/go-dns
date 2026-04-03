@@ -36,6 +36,18 @@ type ActionRegistrar interface {
 	RegisterAction(name string, invoke func(map[string]any) (any, bool, error))
 }
 
+// ActionContextRegistrar publishes DNS actions while preserving caller context.
+//
+//	registrar.RegisterActionContext(
+//		ActionDiscover,
+//		func(ctx context.Context, values map[string]any) (any, bool, error) {
+//			return service.HandleActionContext(ctx, ActionDiscover, values)
+//		},
+//	)
+type ActionContextRegistrar interface {
+	RegisterActionContext(name string, invoke func(context.Context, map[string]any) (any, bool, error))
+}
+
 // ActionCaller resolves named actions from another Core surface.
 //
 //	aliases, ok, err := caller.CallAction(
@@ -148,6 +160,20 @@ func (service *Service) RegisterActions(registrar ActionRegistrar) {
 	if registrar == nil {
 		return
 	}
+
+	if contextRegistrar, ok := registrar.(ActionContextRegistrar); ok {
+		for _, definition := range service.ActionDefinitions() {
+			invoke := definition.InvokeContext
+			if invoke == nil {
+				invoke = func(ctx context.Context, values map[string]any) (any, bool, error) {
+					return definition.Invoke(values)
+				}
+			}
+			contextRegistrar.RegisterActionContext(definition.Name, invoke)
+		}
+		return
+	}
+
 	for _, definition := range service.ActionDefinitions() {
 		registrar.RegisterAction(definition.Name, definition.Invoke)
 	}
