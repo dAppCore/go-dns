@@ -33,10 +33,12 @@ type Service struct {
 	records      map[string]NameRecords
 	reverseIndex map[string][]string
 	treeRoot     string
+	discoverer   func() (map[string]NameRecords, error)
 }
 
 type ServiceOptions struct {
-	Records map[string]NameRecords
+	Records    map[string]NameRecords
+	Discoverer func() (map[string]NameRecords, error)
 }
 
 func NewService(options ServiceOptions) *Service {
@@ -49,7 +51,36 @@ func NewService(options ServiceOptions) *Service {
 		records:      cached,
 		reverseIndex: buildReverseIndex(cached),
 		treeRoot:     treeRoot,
+		discoverer:   options.Discoverer,
 	}
+}
+
+func (service *Service) Discover() error {
+	discoverer := service.discoverer
+	if discoverer == nil {
+		return nil
+	}
+
+	discovered, err := discoverer()
+	if err != nil {
+		return err
+	}
+
+	cached := make(map[string]NameRecords, len(discovered))
+	for name, record := range discovered {
+		normalizedName := normalizeName(name)
+		if normalizedName == "" {
+			continue
+		}
+		cached[normalizedName] = record
+	}
+
+	service.mu.Lock()
+	defer service.mu.Unlock()
+	service.records = cached
+	service.reverseIndex = buildReverseIndex(service.records)
+	service.treeRoot = computeTreeRoot(service.records)
+	return nil
 }
 
 func (service *Service) SetRecord(name string, record NameRecords) {

@@ -184,3 +184,62 @@ func TestServiceHealthUsesDeterministicTreeRootAndUpdatesOnMutations(t *testing.
 		t.Fatalf("expected updated tree root after RemoveRecord, got %s", removedRoot)
 	}
 }
+
+func TestServiceDiscoverReplacesRecordsFromDiscoverer(t *testing.T) {
+	records := []map[string]NameRecords{
+		{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+			"*.lthn": {
+				A: []string{"10.0.0.1"},
+			},
+		},
+	}
+	index := 0
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"legacy.charon.lthn": {
+				A: []string{"10.11.11.11"},
+			},
+		},
+		Discoverer: func() (map[string]NameRecords, error) {
+			next := records[index%len(records)]
+			index++
+			return next, nil
+		},
+	})
+
+	if _, ok := service.Resolve("legacy.charon.lthn"); !ok {
+		t.Fatal("expected baseline record before discovery")
+	}
+
+	if err := service.Discover(); err != nil {
+		t.Fatalf("unexpected discover error: %v", err)
+	}
+
+	result, ok := service.Resolve("gateway.charon.lthn")
+	if !ok {
+		t.Fatal("expected discovered exact record")
+	}
+	if len(result.A) != 1 || result.A[0] != "10.10.10.10" {
+		t.Fatalf("unexpected discovered resolve result: %#v", result.A)
+	}
+	if _, ok := service.Resolve("legacy.unknown"); ok {
+		t.Fatal("expected replaced cache not to resolve via old record")
+	}
+}
+
+func TestServiceDiscoverReturnsNilWithoutDiscoverer(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	if err := service.Discover(); err != nil {
+		t.Fatalf("expected no error when discoverer is missing: %v", err)
+	}
+}
