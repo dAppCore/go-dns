@@ -1000,6 +1000,39 @@ func TestServiceServeAnswersSOAOnlyForZoneApex(t *testing.T) {
 	}
 }
 
+func TestServiceServeAnswersSOAForDerivedZoneApexWithoutExactRecord(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+			"node.charon.lthn": {
+				A: []string{"10.10.10.11"},
+			},
+		},
+	})
+
+	srv, err := service.Serve("127.0.0.1", 0)
+	if err != nil {
+		t.Fatalf("expected server to start: %v", err)
+	}
+	defer func() { _ = srv.Close() }()
+
+	client := dnsprotocol.Client{}
+	request := new(dnsprotocol.Msg)
+	request.SetQuestion("charon.lthn.", dnsprotocol.TypeSOA)
+	response := exchangeWithRetry(t, client, request, srv.Address())
+	if response.Rcode != dnsprotocol.RcodeSuccess {
+		t.Fatalf("expected SOA query for derived apex to succeed, got %d", response.Rcode)
+	}
+	if len(response.Answer) != 1 {
+		t.Fatalf("expected one SOA answer for derived apex, got %d", len(response.Answer))
+	}
+	if _, ok := response.Answer[0].(*dnsprotocol.SOA); !ok {
+		t.Fatalf("expected SOA answer for derived apex, got %#v", response.Answer[0])
+	}
+}
+
 func TestServiceServeReturnsNXDOMAINWhenMissing(t *testing.T) {
 	service := NewService(ServiceOptions{})
 

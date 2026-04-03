@@ -184,10 +184,7 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 			})
 		}
 	case dnsprotocol.TypeSOA:
-		if !found {
-			goto noRecord
-		}
-		if normalizeName(name) == handler.service.ZoneApex() {
+		if normalizeName(name) == handler.service.ZoneApex() && handler.service.ZoneApex() != "" {
 			reply.Answer = append(reply.Answer, &dnsprotocol.SOA{
 				Hdr:     dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeSOA, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
 				Ns:      normalizeName("ns."+name) + ".",
@@ -198,6 +195,10 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 				Expire:  3600,
 				Minttl:  300,
 			})
+			break
+		}
+		if !found {
+			goto noRecord
 		}
 	default:
 		reply.SetRcode(request, dnsprotocol.RcodeNotImplemented)
