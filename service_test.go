@@ -1529,6 +1529,9 @@ func TestServiceServeAnswersANYWithAllRecordTypes(t *testing.T) {
 				TXT:  []string{"v=lthn1 type=gateway"},
 				NS:   []string{"ns.gateway.charon.lthn"},
 			},
+			"node.charon.lthn": {
+				A: []string{"10.10.10.11"},
+			},
 		},
 	})
 
@@ -1546,7 +1549,7 @@ func TestServiceServeAnswersANYWithAllRecordTypes(t *testing.T) {
 		t.Fatalf("unexpected ANY rcode: %d", response.Rcode)
 	}
 
-	var sawA, sawAAAA, sawTXT, sawNS bool
+	var sawA, sawAAAA, sawTXT, sawNS, sawSOA bool
 	for _, answer := range response.Answer {
 		switch rr := answer.(type) {
 		case *dnsprotocol.A:
@@ -1557,11 +1560,16 @@ func TestServiceServeAnswersANYWithAllRecordTypes(t *testing.T) {
 			sawTXT = len(rr.Txt) == 1 && rr.Txt[0] == "v=lthn1 type=gateway"
 		case *dnsprotocol.NS:
 			sawNS = rr.Ns == "ns.gateway.charon.lthn."
+		case *dnsprotocol.SOA:
+			sawSOA = true
 		}
 	}
 
 	if !sawA || !sawAAAA || !sawTXT || !sawNS {
 		t.Fatalf("expected ANY answer to include A, AAAA, TXT, and NS records, got %#v", response.Answer)
+	}
+	if sawSOA {
+		t.Fatalf("expected ANY answer for a non-apex name to omit SOA, got %#v", response.Answer)
 	}
 }
 

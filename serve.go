@@ -301,9 +301,9 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 		}
 	case dnsprotocol.TypeANY:
 		if found {
-			appendAnyAnswers(reply, question.Name, lookupName, record)
+			appendAnyAnswers(reply, question.Name, lookupName, record, handler.service.ZoneApex())
 		} else if normalizeName(lookupName) == handler.service.ZoneApex() && handler.service.ZoneApex() != "" {
-			appendAnyAnswers(reply, question.Name, lookupName, NameRecords{})
+			appendAnyAnswers(reply, question.Name, lookupName, NameRecords{}, handler.service.ZoneApex())
 		} else {
 			goto noRecord
 		}
@@ -378,7 +378,7 @@ func parsePTRIP(name string) (string, bool) {
 	return "", false
 }
 
-func appendAnyAnswers(reply *dnsprotocol.Msg, questionName string, lookupName string, record NameRecords) {
+func appendAnyAnswers(reply *dnsprotocol.Msg, questionName string, lookupName string, record NameRecords, zoneApex string) {
 	for _, value := range record.A {
 		parsedIP := net.ParseIP(value)
 		if parsedIP == nil || parsedIP.To4() == nil {
@@ -417,7 +417,7 @@ func appendAnyAnswers(reply *dnsprotocol.Msg, questionName string, lookupName st
 		}
 	}
 
-	if normalizeName(lookupName) == normalizeName(questionName) && normalizeName(lookupName) != "" {
+	if normalizeName(lookupName) == normalizeName(zoneApex) && normalizeName(zoneApex) != "" {
 		if len(record.NS) == 0 {
 			reply.Answer = append(reply.Answer, &dnsprotocol.NS{
 				Hdr: dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeNS, Class: dnsprotocol.ClassINET, Ttl: defaultDNSTTL},
