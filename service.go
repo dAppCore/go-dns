@@ -105,11 +105,24 @@ func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HS
 //		URL: "http://127.0.0.1:14037",
 //	}))
 func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainClient *MainchainAliasClient, hsdClient *HSDClient) error {
-	if chainClient == nil {
-		return fmt.Errorf("mainchain alias client is required")
-	}
-
-	aliases, err := chainClient.GetAllAliasDetails(ctx)
+	aliases, err := discoverAliases(
+		ctx,
+		func(ctx context.Context) ([]string, error) {
+			if service.chainAliasDiscoverer != nil {
+				return service.chainAliasDiscoverer(ctx)
+			}
+			if chainClient == nil {
+				return nil, nil
+			}
+			return chainClient.GetAllAliasDetails(ctx)
+		},
+		func(ctx context.Context) ([]string, error) {
+			if service.fallbackChainAliasDiscoverer != nil {
+				return service.fallbackChainAliasDiscoverer(ctx)
+			}
+			return nil, nil
+		},
+	)
 	if err != nil {
 		return err
 	}
