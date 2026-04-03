@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	cache "github.com/patrickmn/go-cache"
 )
 
 const defaultTreeRootCheckInterval = 15 * time.Second
@@ -43,7 +45,7 @@ type ReverseLookupResult struct {
 type Service struct {
 	mu                           sync.RWMutex
 	records                      map[string]NameRecords
-	reverseIndex                 map[string][]string
+	reverseIndex                 *cache.Cache
 	treeRoot                     string
 	zoneApex                     string
 	hsdClient                    *HSDClient
@@ -99,7 +101,7 @@ func NewService(options ServiceOptions) *Service {
 	treeRoot := computeTreeRoot(cached)
 	return &Service{
 		records:                      cached,
-		reverseIndex:                 buildReverseIndex(cached),
+		reverseIndex:                 buildReverseIndexCache(cached),
 		treeRoot:                     treeRoot,
 		zoneApex:                     computeZoneApex(cached),
 		hsdClient:                    options.HSDClient,
@@ -361,7 +363,7 @@ func (service *Service) replaceRecords(discovered map[string]NameRecords) {
 	service.mu.Lock()
 	defer service.mu.Unlock()
 	service.records = cached
-	service.reverseIndex = buildReverseIndex(service.records)
+	service.reverseIndex = buildReverseIndexCache(service.records)
 	service.treeRoot = computeTreeRoot(service.records)
 	service.zoneApex = computeZoneApex(service.records)
 }
@@ -373,7 +375,7 @@ func (service *Service) SetRecord(name string, record NameRecords) {
 	service.mu.Lock()
 	defer service.mu.Unlock()
 	service.records[normalizeName(name)] = record
-	service.reverseIndex = buildReverseIndex(service.records)
+	service.reverseIndex = buildReverseIndexCache(service.records)
 	service.treeRoot = computeTreeRoot(service.records)
 	service.zoneApex = computeZoneApex(service.records)
 }
@@ -385,7 +387,7 @@ func (service *Service) RemoveRecord(name string) {
 	service.mu.Lock()
 	defer service.mu.Unlock()
 	delete(service.records, normalizeName(name))
-	service.reverseIndex = buildReverseIndex(service.records)
+	service.reverseIndex = buildReverseIndexCache(service.records)
 	service.treeRoot = computeTreeRoot(service.records)
 	service.zoneApex = computeZoneApex(service.records)
 }
@@ -472,16 +474,26 @@ func (service *Service) ResolveAddress(name string) (ResolveAddressResult, bool)
 //
 //	names, ok := service.ResolveReverse("10.10.10.10")
 func (service *Service) ResolveReverse(ip string) ([]string, bool) {
-	service.mu.RLock()
-	defer service.mu.RUnlock()
-
 	normalizedIP := normalizeIP(ip)
 	if normalizedIP == "" {
 		return nil, false
 	}
 
-	names, ok := service.reverseIndex[normalizedIP]
-	if !ok {
+	service.mu.RLock()
+	reverseIndex := service.reverseIndex
+	service.mu.RUnlock()
+
+	if reverseIndex == nil {
+		return nil, false
+	}
+
+	rawNames, found := reverseIndex.Get(normalizedIP)
+	if !found {
+		return nil, false
+	}
+
+	names, ok := rawNames.([]string)
+	if !ok || len(names) == 0 {
 		return nil, false
 	}
 	return append([]string(nil), names...), true
@@ -568,7 +580,7 @@ func resolveResult(record NameRecords) ResolveAllResult {
 	}
 }
 
-func buildReverseIndex(records map[string]NameRecords) map[string][]string {
+func buildReverseIndexCache(records map[string]NameRecords) *cache.Cache {
 	raw := map[string]map[string]struct{}{}
 	for name, record := range records {
 		for _, ip := range record.A {
@@ -606,7 +618,11 @@ func buildReverseIndex(records map[string]NameRecords) map[string][]string {
 		slices.Sort(unique)
 		reverseIndex[ip] = unique
 	}
-	return reverseIndex
+	reverseIndexCache := cache.New(cache.NoExpiration, cache.NoExpiration)
+	for ip, names := range reverseIndex {
+		reverseIndexCache.Set(ip, names, cache.NoExpiration)
+	}
+	return reverseIndexCache
 }
 
 func normalizeIP(ip string) string {
