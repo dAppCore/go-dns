@@ -251,6 +251,55 @@ func TestServiceHealthUsesDeterministicTreeRootAndUpdatesOnMutations(t *testing.
 	}
 }
 
+func TestServiceHealthUsesChainTreeRootAfterDiscovery(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+		var payload struct {
+			Method string `json:"method"`
+			Params []any  `json:"params"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Fatalf("unexpected request payload: %v", err)
+		}
+
+		switch payload.Method {
+		case "getblockchaininfo":
+			responseWriter.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": map[string]any{
+					"tree_root": "chain-root-1",
+				},
+			})
+		case "getnameresource":
+			responseWriter.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": map[string]any{
+					"a": []string{"10.10.10.10"},
+				},
+			})
+		default:
+			t.Fatalf("unexpected method: %s", payload.Method)
+		}
+	}))
+	defer server.Close()
+
+	service := NewService(ServiceOptions{
+		ChainAliasDiscoverer: func(_ context.Context) ([]string, error) {
+			return []string{"gateway.charon.lthn"}, nil
+		},
+		HSDClient: NewHSDClient(HSDClientOptions{URL: server.URL}),
+	})
+
+	if err := service.DiscoverAliases(context.Background()); err != nil {
+		t.Fatalf("expected discover to run for health chain-root assertions: %v", err)
+	}
+
+	health := service.Health()
+	root, ok := health["tree_root"].(string)
+	if !ok || root != "chain-root-1" {
+		t.Fatalf("expected health to expose chain tree_root, got %#v", health["tree_root"])
+	}
+}
+
 func TestServiceDiscoverReplacesRecordsFromDiscoverer(t *testing.T) {
 	records := []map[string]NameRecords{
 		{

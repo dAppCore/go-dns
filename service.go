@@ -463,10 +463,16 @@ func (service *Service) ResolveAll(name string) (ResolveAllResult, bool) {
 func (service *Service) Health() map[string]any {
 	service.mu.RLock()
 	defer service.mu.RUnlock()
+
+	treeRoot := service.treeRoot
+	if service.chainTreeRoot != "" {
+		treeRoot = service.chainTreeRoot
+	}
+
 	return map[string]any{
 		"status":       "ready",
 		"names_cached": len(service.records),
-		"tree_root":    service.treeRoot,
+		"tree_root":    treeRoot,
 	}
 }
 
