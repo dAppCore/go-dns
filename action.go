@@ -135,6 +135,7 @@ func (service *Service) ActionDefinitions() []ActionDefinition {
 // ActionNames returns the names of the registered DNS actions.
 //
 //	names := service.ActionNames()
+//	// []string{"dns.resolve", "dns.resolve.txt", "dns.resolve.all", "dns.reverse", "dns.serve", "dns.health", "dns.discover"}
 func (service *Service) ActionNames() []string {
 	definitions := service.ActionDefinitions()
 	names := make([]string, 0, len(definitions))
@@ -147,6 +148,7 @@ func (service *Service) ActionNames() []string {
 // RegisterActions publishes the DNS action surface to a registrar in definition order.
 //
 //	service.RegisterActions(registrar)
+//	// registrar now knows how to handle dns.health and the rest of the DNS actions.
 func (service *Service) RegisterActions(registrar ActionRegistrar) {
 	if registrar == nil {
 		return
