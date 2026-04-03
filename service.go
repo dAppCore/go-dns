@@ -30,18 +30,22 @@ type ResolveAddressResult struct {
 }
 
 type Service struct {
-	mu                 sync.RWMutex
-	records            map[string]NameRecords
-	reverseIndex       map[string][]string
-	treeRoot           string
-	discoverer         func() (map[string]NameRecords, error)
-	fallbackDiscoverer func() (map[string]NameRecords, error)
+	mu                           sync.RWMutex
+	records                      map[string]NameRecords
+	reverseIndex                 map[string][]string
+	treeRoot                     string
+	discoverer                   func() (map[string]NameRecords, error)
+	fallbackDiscoverer           func() (map[string]NameRecords, error)
+	chainAliasDiscoverer         func(context.Context) ([]string, error)
+	fallbackChainAliasDiscoverer func(context.Context) ([]string, error)
 }
 
 type ServiceOptions struct {
-	Records            map[string]NameRecords
-	Discoverer         func() (map[string]NameRecords, error)
-	FallbackDiscoverer func() (map[string]NameRecords, error)
+	Records                      map[string]NameRecords
+	Discoverer                   func() (map[string]NameRecords, error)
+	FallbackDiscoverer           func() (map[string]NameRecords, error)
+	ChainAliasDiscoverer         func(context.Context) ([]string, error)
+	FallbackChainAliasDiscoverer func(context.Context) ([]string, error)
 }
 
 func NewService(options ServiceOptions) *Service {
@@ -51,12 +55,54 @@ func NewService(options ServiceOptions) *Service {
 	}
 	treeRoot := computeTreeRoot(cached)
 	return &Service{
-		records:            cached,
-		reverseIndex:       buildReverseIndex(cached),
-		treeRoot:           treeRoot,
-		discoverer:         options.Discoverer,
-		fallbackDiscoverer: options.FallbackDiscoverer,
+		records:                      cached,
+		reverseIndex:                 buildReverseIndex(cached),
+		treeRoot:                     treeRoot,
+		discoverer:                   options.Discoverer,
+		fallbackDiscoverer:           options.FallbackDiscoverer,
+		chainAliasDiscoverer:         options.ChainAliasDiscoverer,
+		fallbackChainAliasDiscoverer: options.FallbackChainAliasDiscoverer,
 	}
+}
+
+func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HSDClient) error {
+	if client == nil {
+		return fmt.Errorf("hsd client is required")
+	}
+
+	aliases, err := discoverAliases(ctx, service.chainAliasDiscoverer, service.fallbackChainAliasDiscoverer)
+	if err != nil {
+		return err
+	}
+	if aliases == nil {
+		return nil
+	}
+	return service.DiscoverWithHSD(ctx, aliases, client)
+}
+
+func discoverAliases(ctx context.Context, discoverer func(context.Context) ([]string, error), fallback func(context.Context) ([]string, error)) ([]string, error) {
+	if discoverer == nil {
+		if fallback == nil {
+			return nil, nil
+		}
+		aliases, err := fallback(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return aliases, nil
+	}
+
+	aliases, err := discoverer(ctx)
+	if err != nil {
+		if fallback == nil {
+			return nil, err
+		}
+		aliases, err = fallback(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return aliases, nil
 }
 
 func (service *Service) Discover() error {

@@ -1,7 +1,11 @@
 package dns
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -329,6 +333,98 @@ func TestServiceDiscoverUsesFallbackOnlyWhenPrimaryMissing(t *testing.T) {
 
 	if _, ok := service.Resolve("gateway.charon.lthn"); !ok {
 		t.Fatal("expected fallback record to resolve")
+	}
+}
+
+func TestServiceDiscoverFromChainAliasesUsesFallbackWhenPrimaryFails(t *testing.T) {
+	primaryCalled := false
+	fallbackCalled := false
+
+	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+		var payload struct {
+			Method string `json:"method"`
+			Params []any  `json:"params"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Fatalf("unexpected request payload: %v", err)
+		}
+		switch payload.Params[0] {
+		case "gateway.charon.lthn":
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": map[string]any{
+					"a": []string{"10.10.10.10"},
+				},
+			})
+		case "node.charon.lthn":
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": map[string]any{
+					"aaaa": []string{"2600:1f1c:7f0:4f01::2"},
+				},
+			})
+		default:
+			t.Fatalf("unexpected alias query: %#v", payload.Params)
+		}
+	}))
+	defer server.Close()
+
+	service := NewService(ServiceOptions{
+		ChainAliasDiscoverer: func(_ context.Context) ([]string, error) {
+			primaryCalled = true
+			return nil, errors.New("blockchain service unavailable")
+		},
+		FallbackChainAliasDiscoverer: func(_ context.Context) ([]string, error) {
+			fallbackCalled = true
+			return []string{"gateway.charon.lthn", "node.charon.lthn"}, nil
+		},
+	})
+
+	client := NewHSDClient(HSDClientOptions{
+		URL: server.URL,
+	})
+	if err := service.DiscoverFromChainAliases(context.Background(), client); err != nil {
+		t.Fatalf("expected chain alias discovery to complete: %v", err)
+	}
+	if !primaryCalled {
+		t.Fatal("expected primary chain alias discoverer to be attempted")
+	}
+	if !fallbackCalled {
+		t.Fatal("expected fallback chain alias discoverer to run")
+	}
+
+	gateway, ok := service.Resolve("gateway.charon.lthn")
+	if !ok || len(gateway.A) != 1 || gateway.A[0] != "10.10.10.10" {
+		t.Fatalf("expected gateway A record, got %#v (ok=%t)", gateway, ok)
+	}
+	node, ok := service.Resolve("node.charon.lthn")
+	if !ok || len(node.AAAA) != 1 || node.AAAA[0] != "2600:1f1c:7f0:4f01::2" {
+		t.Fatalf("expected node AAAA record, got %#v (ok=%t)", node, ok)
+	}
+}
+
+func TestServiceDiscoverFromChainAliasesIgnoresMissingDiscoverers(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+		t.Fatalf("expected no hsd requests when alias discoverers are missing")
+	}))
+	defer server.Close()
+
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+	client := NewHSDClient(HSDClientOptions{
+		URL: server.URL,
+	})
+
+	if err := service.DiscoverFromChainAliases(context.Background(), client); err != nil {
+		t.Fatalf("expected no-op when no alias discoverer configured: %v", err)
+	}
+
+	result, ok := service.Resolve("gateway.charon.lthn")
+	if !ok || len(result.A) != 1 || result.A[0] != "10.10.10.10" {
+		t.Fatalf("expected baseline record to stay in cache, got %#v (ok=%t)", result, ok)
 	}
 }
 
