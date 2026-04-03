@@ -60,7 +60,7 @@ type ServiceOptions struct {
 	Records                      map[string]NameRecords
 	Discoverer                   func() (map[string]NameRecords, error)
 	FallbackDiscoverer           func() (map[string]NameRecords, error)
-	MainchainAliasClient          *MainchainAliasClient
+	MainchainAliasClient         *MainchainAliasClient
 	HSDClient                    *HSDClient
 	ChainAliasDiscoverer         func(context.Context) ([]string, error)
 	FallbackChainAliasDiscoverer func(context.Context) ([]string, error)
@@ -180,14 +180,19 @@ func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainC
 		return err
 	}
 
+	effectiveChainClient := chainClient
+	if effectiveChainClient == nil {
+		effectiveChainClient = service.mainchainAliasClient
+	}
+
 	aliases, err := discoverAliasesWithFallback(
 		ctx,
 		func(ctx context.Context) ([]string, error) {
 			if service.chainAliasDiscoverer != nil {
 				return service.chainAliasDiscoverer(ctx)
 			}
-			if chainClient != nil {
-				return chainClient.GetAllAliasDetails(ctx)
+			if effectiveChainClient != nil {
+				return effectiveChainClient.GetAllAliasDetails(ctx)
 			}
 			return nil, nil
 		},
@@ -195,12 +200,12 @@ func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainC
 			if service.fallbackChainAliasDiscoverer != nil {
 				return service.fallbackChainAliasDiscoverer(ctx)
 			}
-			if chainClient != nil && service.chainAliasDiscoverer != nil {
-				return chainClient.GetAllAliasDetails(ctx)
+			if effectiveChainClient != nil && service.chainAliasDiscoverer != nil {
+				return effectiveChainClient.GetAllAliasDetails(ctx)
 			}
 			return nil, nil
 		},
-		chainClient,
+		effectiveChainClient,
 	)
 	if err != nil {
 		return err

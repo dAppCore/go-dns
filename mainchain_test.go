@@ -141,6 +141,81 @@ func TestServiceDiscoverFromMainchainAliasesUsesMainchainThenHSD(t *testing.T) {
 	}
 }
 
+func TestServiceDiscoverFromMainchainAliasesFallsBackToConfiguredMainchainClient(t *testing.T) {
+	var chainCalls int32
+	var hsdTreeRootCalls int32
+	var hsdAliasCalls int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+		var payload struct {
+			Method string `json:"method"`
+			Params []any  `json:"params"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Fatalf("unexpected request payload: %v", err)
+		}
+
+		switch payload.Method {
+		case "get_all_alias_details":
+			atomic.AddInt32(&chainCalls, 1)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": []any{
+					map[string]any{
+						"hns": "gateway.charon.lthn",
+					},
+				},
+			})
+		case "getblockchaininfo":
+			atomic.AddInt32(&hsdTreeRootCalls, 1)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": map[string]any{
+					"tree_root": "chain-root-1",
+				},
+			})
+		case "getnameresource":
+			atomic.AddInt32(&hsdAliasCalls, 1)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": map[string]any{
+					"a": []string{"10.10.10.10"},
+				},
+			})
+		default:
+			t.Fatalf("unexpected method: %s", payload.Method)
+		}
+	}))
+	defer server.Close()
+
+	service := NewService(ServiceOptions{
+		MainchainAliasClient: NewMainchainAliasClient(MainchainClientOptions{
+			URL: server.URL,
+		}),
+	})
+	hsdClient := NewHSDClient(HSDClientOptions{
+		URL: server.URL,
+	})
+
+	if err := service.DiscoverFromMainchainAliases(context.Background(), nil, hsdClient); err != nil {
+		t.Fatalf("expected discover from configured mainchain client: %v", err)
+	}
+
+	record, ok := service.Resolve("gateway.charon.lthn")
+	if !ok || len(record.A) != 1 || record.A[0] != "10.10.10.10" {
+		t.Fatalf("expected gateway A record from configured client, got %#v (ok=%t)", record, ok)
+	}
+
+	if atomic.LoadInt32(&chainCalls) != 1 || atomic.LoadInt32(&hsdTreeRootCalls) != 1 || atomic.LoadInt32(&hsdAliasCalls) != 1 {
+		t.Fatalf(
+			"expected chain=1 tree-root=1 name-resource=1, got %d %d %d",
+			atomic.LoadInt32(&chainCalls),
+			atomic.LoadInt32(&hsdTreeRootCalls),
+			atomic.LoadInt32(&hsdAliasCalls),
+		)
+	}
+}
+
 func TestServiceDiscoverFromMainchainAliasesUsesActionDiscoverer(t *testing.T) {
 	var treeRootCalls int32
 	var nameResourceCalls int32
@@ -298,8 +373,8 @@ func TestServiceDiscoverFromMainchainAliasesFallsBackToChainClientWhenFallbackCh
 
 	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
 		var payload struct {
-			Method string   `json:"method"`
-			Params []any    `json:"params"`
+			Method string `json:"method"`
+			Params []any  `json:"params"`
 		}
 		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
 			t.Fatalf("unexpected request payload: %v", err)
