@@ -307,6 +307,9 @@ func (service *Service) recordTreeRootState(now time.Time, treeRoot string) {
 	service.chainTreeRoot = treeRoot
 }
 
+// Discover refreshes the cache from the configured discoverer or fallback.
+//
+//	err := service.Discover()
 func (service *Service) Discover() error {
 	discoverer := service.discoverer
 	fallback := service.fallbackDiscoverer
@@ -363,6 +366,9 @@ func (service *Service) replaceRecords(discovered map[string]NameRecords) {
 	service.zoneApex = computeZoneApex(service.records)
 }
 
+// SetRecord inserts or replaces one cached name.
+//
+//	service.SetRecord("gateway.charon.lthn", dns.NameRecords{A: []string{"10.10.10.10"}})
 func (service *Service) SetRecord(name string, record NameRecords) {
 	service.mu.Lock()
 	defer service.mu.Unlock()
@@ -372,6 +378,9 @@ func (service *Service) SetRecord(name string, record NameRecords) {
 	service.zoneApex = computeZoneApex(service.records)
 }
 
+// RemoveRecord deletes one cached name.
+//
+//	service.RemoveRecord("gateway.charon.lthn")
 func (service *Service) RemoveRecord(name string) {
 	service.mu.Lock()
 	defer service.mu.Unlock()
@@ -381,6 +390,9 @@ func (service *Service) RemoveRecord(name string) {
 	service.zoneApex = computeZoneApex(service.records)
 }
 
+// Resolve returns all record types for a name when an exact or wildcard match exists.
+//
+//	result, ok := service.Resolve("gateway.charon.lthn")
 func (service *Service) Resolve(name string) (ResolveAllResult, bool) {
 	record, ok := service.findRecord(name)
 	if !ok {
@@ -389,6 +401,9 @@ func (service *Service) Resolve(name string) (ResolveAllResult, bool) {
 	return resolveResult(record), true
 }
 
+// ResolveTXT returns only TXT values for a name.
+//
+//	txt, ok := service.ResolveTXT("gateway.charon.lthn")
 func (service *Service) ResolveTXT(name string) ([]string, bool) {
 	result, ok := service.ResolveTXTRecords(name)
 	if !ok {
@@ -440,6 +455,9 @@ func (service *Service) DiscoverWithHSD(ctx context.Context, aliases []string, c
 	return nil
 }
 
+// ResolveAddress returns A and AAAA values merged into one address list.
+//
+//	addresses, ok := service.ResolveAddress("gateway.charon.lthn")
 func (service *Service) ResolveAddress(name string) (ResolveAddressResult, bool) {
 	record, ok := service.findRecord(name)
 	if !ok {
@@ -450,6 +468,9 @@ func (service *Service) ResolveAddress(name string) (ResolveAddressResult, bool)
 	}, true
 }
 
+// ResolveReverse returns the names that map back to an IP address.
+//
+//	names, ok := service.ResolveReverse("10.10.10.10")
 func (service *Service) ResolveReverse(ip string) ([]string, bool) {
 	service.mu.RLock()
 	defer service.mu.RUnlock()
@@ -466,6 +487,9 @@ func (service *Service) ResolveReverse(ip string) ([]string, bool) {
 	return append([]string(nil), names...), true
 }
 
+// ResolveAll returns the full record set for a name, including synthesized apex NS data.
+//
+//	result, ok := service.ResolveAll("charon.lthn")
 func (service *Service) ResolveAll(name string) (ResolveAllResult, bool) {
 	record, ok := service.findRecord(name)
 	if !ok {
@@ -483,6 +507,9 @@ func (service *Service) ResolveAll(name string) (ResolveAllResult, bool) {
 	return result, true
 }
 
+// Health reports the live cache size and tree root.
+//
+//	health := service.Health()
 func (service *Service) Health() map[string]any {
 	service.mu.RLock()
 	defer service.mu.RUnlock()
@@ -499,12 +526,18 @@ func (service *Service) Health() map[string]any {
 	}
 }
 
+// ZoneApex returns the computed apex for the current record set.
+//
+//	apex := service.ZoneApex()
 func (service *Service) ZoneApex() string {
 	service.mu.RLock()
 	defer service.mu.RUnlock()
 	return service.zoneApex
 }
 
+// ResolveReverseNames wraps ResolveReverse for action payloads.
+//
+//	result, ok := service.ResolveReverseNames("10.10.10.10")
 func (service *Service) ResolveReverseNames(ip string) (ReverseLookupResult, bool) {
 	names, ok := service.ResolveReverse(ip)
 	if !ok {
@@ -706,10 +739,16 @@ func normalizeName(name string) string {
 	return trimmed
 }
 
+// String returns a compact debug representation of the service.
+//
+//	fmt.Println(service)
 func (service *Service) String() string {
 	return fmt.Sprintf("dns.Service{records=%d}", len(service.records))
 }
 
+// MergeRecords deduplicates and sorts record values before returning them.
+//
+//	values := MergeRecords([]string{"10.10.10.10"}, []string{"10.0.0.1", "10.10.10.10"})
 func MergeRecords(values ...[]string) []string {
 	unique := []string{}
 	seen := map[string]bool{}

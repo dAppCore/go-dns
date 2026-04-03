@@ -26,7 +26,7 @@ type ActionDefinition struct {
 	Invoke func(map[string]any) (any, bool, error)
 }
 
-// ActionRegistrar is the target for publishing a service's DNS actions.
+// ActionRegistrar publishes DNS actions into another Core surface.
 //
 //	registrar.RegisterAction(ActionHealth, func(map[string]any) (any, bool, error) {
 //		return service.Health(), true, nil
