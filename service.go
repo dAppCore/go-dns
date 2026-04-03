@@ -326,6 +326,12 @@ func (service *Service) Discover() error {
 	return nil
 }
 
+// DiscoverAliases refreshes DNS records by scanning chain aliases through HSD RPC calls.
+// This matches the RFC `dns.discover` behavior by reusing the configured chain alias discoverers and fallback clients.
+func (service *Service) DiscoverAliases(ctx context.Context) error {
+	return service.DiscoverFromChainAliases(ctx, service.hsdClient)
+}
+
 func (service *Service) replaceRecords(discovered map[string]NameRecords) {
 	cached := make(map[string]NameRecords, len(discovered))
 	for name, record := range discovered {
