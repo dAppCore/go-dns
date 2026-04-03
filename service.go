@@ -150,7 +150,7 @@ func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HS
 		return err
 	}
 
-	aliases, err := service.discoverAliasesFromSources(
+	aliases, found, err := service.discoverAliasesFromSources(
 		ctx,
 		service.chainAliasActionCaller,
 		service.chainAliasAction,
@@ -161,7 +161,14 @@ func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HS
 	if err != nil {
 		return err
 	}
-	if aliases == nil {
+	if !found {
+		return nil
+	}
+	if len(aliases) == 0 {
+		now := time.Now()
+		fingerprint := aliasFingerprint(aliases)
+		service.replaceRecords(map[string]NameRecords{})
+		service.recordTreeRootState(now, "", fingerprint)
 		return nil
 	}
 	return service.discoverFromChainAliasesUsingTreeRoot(ctx, aliases, resolved)
@@ -187,15 +194,15 @@ func (service *Service) discoverAliasesFromSources(
 	discoverer func(context.Context) ([]string, error),
 	fallback func(context.Context) ([]string, error),
 	mainchainClient *MainchainAliasClient,
-) ([]string, error) {
+) ([]string, bool, error) {
 	if aliases, ok := service.discoverAliasesFromActionCaller(ctx, actionCaller); ok {
-		return aliases, nil
+		return aliases, true, nil
 	}
 
 	if action != nil {
 		aliases, err := action(ctx)
 		if err == nil {
-			return aliases, nil
+			return aliases, true, nil
 		}
 	}
 
@@ -203,38 +210,42 @@ func (service *Service) discoverAliasesFromSources(
 		if fallback != nil {
 			aliases, err := fallback(ctx)
 			if err == nil {
-				return aliases, nil
+				return aliases, true, nil
 			}
 			if mainchainClient == nil {
-				return nil, err
+				return nil, false, err
 			}
-			return mainchainClient.GetAllAliasDetails(ctx)
+			aliases, err = mainchainClient.GetAllAliasDetails(ctx)
+			return aliases, true, err
 		}
 		if mainchainClient == nil {
-			return nil, nil
+			return nil, false, nil
 		}
-		return mainchainClient.GetAllAliasDetails(ctx)
+		aliases, err := mainchainClient.GetAllAliasDetails(ctx)
+		return aliases, true, err
 	}
 
 	aliases, err := discoverer(ctx)
 	if err == nil {
-		return aliases, nil
+		return aliases, true, nil
 	}
 	if fallback == nil {
 		if mainchainClient == nil {
-			return nil, err
+			return nil, false, err
 		}
-		return mainchainClient.GetAllAliasDetails(ctx)
+		aliases, err = mainchainClient.GetAllAliasDetails(ctx)
+		return aliases, true, err
 	}
 
 	fallbackAliases, fallbackErr := fallback(ctx)
 	if fallbackErr == nil {
-		return fallbackAliases, nil
+		return fallbackAliases, true, nil
 	}
 	if mainchainClient == nil {
-		return nil, fallbackErr
+		return nil, false, fallbackErr
 	}
-	return mainchainClient.GetAllAliasDetails(ctx)
+	aliases, err = mainchainClient.GetAllAliasDetails(ctx)
+	return aliases, true, err
 }
 
 func (service *Service) discoverAliasesFromActionCaller(ctx context.Context, actionCaller ActionCaller) ([]string, bool) {
@@ -350,7 +361,7 @@ func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainC
 		effectiveChainClient = service.mainchainAliasClient
 	}
 
-	aliases, err := service.discoverAliasesFromSources(
+	aliases, found, err := service.discoverAliasesFromSources(
 		ctx,
 		service.chainAliasActionCaller,
 		nil,
@@ -367,7 +378,7 @@ func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainC
 			if service.fallbackChainAliasDiscoverer != nil {
 				return service.fallbackChainAliasDiscoverer(ctx)
 			}
-			if effectiveChainClient != nil && service.chainAliasDiscoverer != nil {
+			if effectiveChainClient != nil {
 				return effectiveChainClient.GetAllAliasDetails(ctx)
 			}
 			return nil, nil
@@ -377,7 +388,14 @@ func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainC
 	if err != nil {
 		return err
 	}
+	if !found {
+		return nil
+	}
 	if len(aliases) == 0 {
+		now := time.Now()
+		fingerprint := aliasFingerprint(aliases)
+		service.replaceRecords(map[string]NameRecords{})
+		service.recordTreeRootState(now, "", fingerprint)
 		return nil
 	}
 	return service.discoverFromChainAliasesUsingTreeRoot(ctx, aliases, resolvedHSDClient)

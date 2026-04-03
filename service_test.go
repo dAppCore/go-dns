@@ -677,6 +677,45 @@ func TestServiceDiscoverAliasesUsesConfiguredChainAliasAction(t *testing.T) {
 	}
 }
 
+func TestServiceDiscoverAliasesClearsCacheWhenAliasListBecomesEmpty(t *testing.T) {
+	var hsdCalls int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+		atomic.AddInt32(&hsdCalls, 1)
+		t.Fatalf("unexpected HSD request while clearing an empty alias list")
+	}))
+	defer server.Close()
+
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"legacy.charon.lthn": {
+				A: []string{"10.11.11.11"},
+			},
+		},
+		ChainAliasDiscoverer: func(_ context.Context) ([]string, error) {
+			return []string{}, nil
+		},
+		HSDClient: NewHSDClient(HSDClientOptions{URL: server.URL}),
+	})
+
+	if err := service.DiscoverAliases(context.Background()); err != nil {
+		t.Fatalf("expected empty alias discovery to succeed: %v", err)
+	}
+
+	if _, ok := service.Resolve("legacy.charon.lthn"); ok {
+		t.Fatal("expected stale records to be cleared when the alias list is empty")
+	}
+
+	health := service.Health()
+	if health.NamesCached != 0 {
+		t.Fatalf("expected empty cache after clearing aliases, got %d", health.NamesCached)
+	}
+
+	if atomic.LoadInt32(&hsdCalls) != 0 {
+		t.Fatalf("expected no HSD requests when alias discovery returns empty, got %d", atomic.LoadInt32(&hsdCalls))
+	}
+}
+
 func TestServiceDiscoverAliasesParsesAliasDetailRecordsFromActionCaller(t *testing.T) {
 	var treeRootCalls int32
 	var nameResourceCalls int32
