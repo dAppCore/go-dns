@@ -23,7 +23,7 @@ type DNSServer struct {
 	tcpServer   *dnsprotocol.Server
 }
 
-// ServiceRuntime owns the DNS and health listeners created by ServeAll.
+// ServiceRuntime wraps the DNS and health listeners returned by ServeAll.
 //
 //	runtime, err := service.ServeAll("127.0.0.1", 53, 5554)
 //	defer func() { _ = runtime.Close() }()

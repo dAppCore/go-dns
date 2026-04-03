@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// HealthServer owns the `/health` listener and server.
+// HealthServer wraps the `/health` listener returned by ServeHTTPHealth.
 //
 //	server, err := service.ServeHTTPHealth("127.0.0.1", 5554)
 //	defer func() { _ = server.Close() }()

@@ -10,8 +10,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	cache "github.com/patrickmn/go-cache"
 )
 
 // DefaultTreeRootCheckInterval is the cadence used to re-check the HSD tree root
@@ -53,16 +51,16 @@ type ReverseLookupResult struct {
 	Names []string `json:"names"`
 }
 
-// ReverseIndex stores IP-to-name lookups in a dedicated semantic wrapper.
+// ReverseIndex maps one IP to the names that point at it.
 //
-//	index := buildReverseIndex(records, 15*time.Second)
+//	index := buildReverseIndex(records)
 //	names, ok := index.Lookup("10.10.10.10")
 type ReverseIndex struct {
-	lookupCache *cache.Cache
+	ipToNames map[string][]string
 }
 
 func (index *ReverseIndex) Lookup(ip string) ([]string, bool) {
-	if index == nil || index.lookupCache == nil {
+	if index == nil || len(index.ipToNames) == 0 {
 		return nil, false
 	}
 
@@ -71,13 +69,8 @@ func (index *ReverseIndex) Lookup(ip string) ([]string, bool) {
 		return nil, false
 	}
 
-	rawNames, found := index.lookupCache.Get(normalizedIP)
-	if !found {
-		return nil, false
-	}
-
-	names, ok := rawNames.([]string)
-	if !ok || len(names) == 0 {
+	names, found := index.ipToNames[normalizedIP]
+	if !found || len(names) == 0 {
 		return nil, false
 	}
 
@@ -211,7 +204,7 @@ func NewService(options ServiceOptions) *Service {
 	service := &Service{
 		records:                      cached,
 		recordExpiry:                 make(map[string]time.Time, len(cached)),
-		reverseIndex:                 buildReverseIndex(cached, options.RecordTTL),
+		reverseIndex:                 buildReverseIndex(cached),
 		treeRoot:                     treeRoot,
 		zoneApex:                     computeZoneApex(cached),
 		dnsPort:                      options.DNSPort,
@@ -811,7 +804,7 @@ func (service *Service) pruneExpiredRecords() {
 }
 
 func (service *Service) refreshDerivedStateLocked() {
-	service.reverseIndex = buildReverseIndex(service.records, service.recordTTL)
+	service.reverseIndex = buildReverseIndex(service.records)
 	service.treeRoot = computeTreeRoot(service.records)
 	service.zoneApex = computeZoneApex(service.records)
 }
@@ -947,7 +940,7 @@ func resolveResult(record NameRecords) ResolveAllResult {
 	}
 }
 
-func buildReverseIndex(records map[string]NameRecords, ttl time.Duration) *ReverseIndex {
+func buildReverseIndex(records map[string]NameRecords) *ReverseIndex {
 	raw := map[string]map[string]struct{}{}
 	for name, record := range records {
 		for _, ip := range record.A {
@@ -985,15 +978,7 @@ func buildReverseIndex(records map[string]NameRecords, ttl time.Duration) *Rever
 		slices.Sort(unique)
 		reverseIndex[ip] = unique
 	}
-	cacheTTL := cache.NoExpiration
-	if ttl > 0 {
-		cacheTTL = ttl
-	}
-	lookupCache := cache.New(cacheTTL, cacheTTL)
-	for ip, names := range reverseIndex {
-		lookupCache.Set(ip, names, cacheTTL)
-	}
-	return &ReverseIndex{lookupCache: lookupCache}
+	return &ReverseIndex{ipToNames: reverseIndex}
 }
 
 func normalizeIP(ip string) string {
