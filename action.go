@@ -165,6 +165,16 @@ func (service *Service) RegisterActions(registrar ActionRegistrar) {
 	}
 }
 
+// NewServiceWithRegistrar builds a DNS service and registers its actions in one step.
+//
+//	service := dns.NewServiceWithRegistrar(dns.ServiceOptions{}, registrar)
+//	// registrar now exposes dns.resolve, dns.resolve.txt, dns.resolve.all, dns.reverse, dns.serve, dns.health, dns.discover
+func NewServiceWithRegistrar(options ServiceOptions, registrar ActionRegistrar) *Service {
+	service := NewService(options)
+	service.RegisterActions(registrar)
+	return service
+}
+
 // HandleAction executes a DNS action by name.
 //
 //	payload, ok, err := service.HandleAction(ActionResolve, map[string]any{

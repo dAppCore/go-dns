@@ -1566,6 +1566,37 @@ func TestServiceRegisterActionsPublishesAllActionsInOrder(t *testing.T) {
 	}
 }
 
+func TestNewServiceWithRegistrarBuildsAndRegistersInOneStep(t *testing.T) {
+	registrar := &actionRecorder{}
+	service := NewServiceWithRegistrar(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	}, registrar)
+
+	if service == nil {
+		t.Fatal("expected service to be built")
+	}
+
+	if len(registrar.names) != len(service.ActionNames()) {
+		t.Fatalf("expected helper to register all actions, got %#v", registrar.names)
+	}
+
+	payload, ok, err := registrar.handlers[ActionResolve](map[string]any{"name": "gateway.charon.lthn"})
+	if err != nil {
+		t.Fatalf("unexpected registered handler error: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected registered handler to resolve")
+	}
+	result, ok := payload.(ResolveAddressResult)
+	if !ok || len(result.Addresses) != 1 || result.Addresses[0] != "10.10.10.10" {
+		t.Fatalf("unexpected registered handler payload: %#v", payload)
+	}
+}
+
 func TestServiceActionDefinitionsHaveInvokers(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{
