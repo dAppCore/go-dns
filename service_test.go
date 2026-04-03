@@ -899,6 +899,52 @@ func TestServiceDiscoverAliasesUsesConfiguredActionCaller(t *testing.T) {
 	}
 }
 
+func TestServiceDiscoverAliasesTreatsNilActionResponseAsNoAliases(t *testing.T) {
+	var actionCalled bool
+	var fallbackCallCount int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+		atomic.AddInt32(&fallbackCallCount, 1)
+		t.Fatalf("expected nil action result to avoid fallback RPC calls, got %s", request.Method)
+		_, _ = responseWriter.Write([]byte("{}"))
+	}))
+	defer server.Close()
+
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+		ChainAliasActionCaller: actionCallerFunc(func(ctx context.Context, name string, values map[string]any) (any, bool, error) {
+			actionCalled = true
+			if name != "blockchain.chain.aliases" {
+				t.Fatalf("unexpected action name: %s", name)
+			}
+			return nil, true, nil
+		}),
+		HSDClient:    NewHSDClient(HSDClientOptions{URL: server.URL}),
+		MainchainURL: server.URL,
+	})
+
+	if err := service.DiscoverAliases(context.Background()); err != nil {
+		t.Fatalf("expected DiscoverAliases to treat nil action result as empty aliases: %v", err)
+	}
+	if !actionCalled {
+		t.Fatal("expected action caller to be invoked")
+	}
+	if atomic.LoadInt32(&fallbackCallCount) != 0 {
+		t.Fatalf("expected no fallback RPC calls, got %d", atomic.LoadInt32(&fallbackCallCount))
+	}
+	if _, ok := service.Resolve("gateway.charon.lthn"); ok {
+		t.Fatal("expected existing records to be cleared after nil alias response")
+	}
+	health := service.Health()
+	if health.NamesCached != 0 {
+		t.Fatalf("expected empty cache after nil alias response, got %d", health.NamesCached)
+	}
+}
+
 func TestServiceDiscoverAliasesUsesConfiguredChainAliasAction(t *testing.T) {
 	var treeRootCalls int32
 	var nameResourceCalls int32

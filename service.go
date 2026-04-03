@@ -411,7 +411,7 @@ func (service *Service) discoverAliasesFromActionCaller(ctx context.Context, act
 func parseActionAliasList(value any) ([]string, error) {
 	switch aliases := value.(type) {
 	case nil:
-		return nil, fmt.Errorf("blockchain.chain.aliases action returned no value")
+		return []string{}, nil
 	case string:
 		return normalizeAliasList([]string{aliases}), nil
 	case []string:
