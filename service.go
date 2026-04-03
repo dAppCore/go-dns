@@ -9,7 +9,10 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 )
+
+const defaultTreeRootCheckInterval = 15 * time.Second
 
 type NameRecords struct {
 	A    []string `json:"a"`
@@ -38,6 +41,9 @@ type Service struct {
 	fallbackDiscoverer           func() (map[string]NameRecords, error)
 	chainAliasDiscoverer         func(context.Context) ([]string, error)
 	fallbackChainAliasDiscoverer func(context.Context) ([]string, error)
+	lastTreeRootCheck            time.Time
+	chainTreeRoot                string
+	treeRootCheckInterval        time.Duration
 }
 
 type ServiceOptions struct {
@@ -46,9 +52,15 @@ type ServiceOptions struct {
 	FallbackDiscoverer           func() (map[string]NameRecords, error)
 	ChainAliasDiscoverer         func(context.Context) ([]string, error)
 	FallbackChainAliasDiscoverer func(context.Context) ([]string, error)
+	TreeRootCheckInterval        time.Duration
 }
 
 func NewService(options ServiceOptions) *Service {
+	checkInterval := options.TreeRootCheckInterval
+	if checkInterval <= 0 {
+		checkInterval = defaultTreeRootCheckInterval
+	}
+
 	cached := make(map[string]NameRecords, len(options.Records))
 	for name, record := range options.Records {
 		cached[normalizeName(name)] = record
@@ -62,6 +74,7 @@ func NewService(options ServiceOptions) *Service {
 		fallbackDiscoverer:           options.FallbackDiscoverer,
 		chainAliasDiscoverer:         options.ChainAliasDiscoverer,
 		fallbackChainAliasDiscoverer: options.FallbackChainAliasDiscoverer,
+		treeRootCheckInterval:        checkInterval,
 	}
 }
 
@@ -77,7 +90,67 @@ func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HS
 	if aliases == nil {
 		return nil
 	}
-	return service.DiscoverWithHSD(ctx, aliases, client)
+	return service.discoverFromChainAliasesUsingTreeRoot(ctx, aliases, client)
+}
+
+func (service *Service) discoverFromChainAliasesUsingTreeRoot(ctx context.Context, aliases []string, client *HSDClient) error {
+	if len(aliases) == 0 {
+		return nil
+	}
+
+	now := time.Now()
+	if service.shouldUseCachedTreeRoot(now) {
+		return nil
+	}
+
+	info, err := client.GetBlockchainInfo(ctx)
+	if err != nil {
+		return err
+	}
+
+	cachedRoot := service.getChainTreeRoot()
+	if cachedRoot != "" && cachedRoot == info.TreeRoot {
+		service.recordTreeRootCheck(now)
+		return nil
+	}
+
+	if err := service.DiscoverWithHSD(ctx, aliases, client); err != nil {
+		return err
+	}
+
+	service.recordTreeRootState(now, info.TreeRoot)
+	return nil
+}
+
+func (service *Service) shouldUseCachedTreeRoot(now time.Time) bool {
+	service.mu.RLock()
+	defer service.mu.RUnlock()
+	if service.lastTreeRootCheck.IsZero() {
+		return false
+	}
+	if service.treeRootCheckInterval <= 0 {
+		return false
+	}
+	return now.Sub(service.lastTreeRootCheck) < service.treeRootCheckInterval
+}
+
+func (service *Service) getChainTreeRoot() string {
+	service.mu.RLock()
+	defer service.mu.RUnlock()
+	return service.chainTreeRoot
+}
+
+func (service *Service) recordTreeRootCheck(now time.Time) {
+	service.mu.Lock()
+	defer service.mu.Unlock()
+	service.lastTreeRootCheck = now
+}
+
+func (service *Service) recordTreeRootState(now time.Time, treeRoot string) {
+	service.mu.Lock()
+	defer service.mu.Unlock()
+	service.lastTreeRootCheck = now
+	service.chainTreeRoot = treeRoot
 }
 
 func discoverAliases(ctx context.Context, discoverer func(context.Context) ([]string, error), fallback func(context.Context) ([]string, error)) ([]string, error) {

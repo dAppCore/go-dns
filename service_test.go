@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -339,6 +340,8 @@ func TestServiceDiscoverUsesFallbackOnlyWhenPrimaryMissing(t *testing.T) {
 func TestServiceDiscoverFromChainAliasesUsesFallbackWhenPrimaryFails(t *testing.T) {
 	primaryCalled := false
 	fallbackCalled := false
+	var treeRootCalls int32
+	var nameResourceCalls int32
 
 	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
 		var payload struct {
@@ -348,21 +351,35 @@ func TestServiceDiscoverFromChainAliasesUsesFallbackWhenPrimaryFails(t *testing.
 		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
 			t.Fatalf("unexpected request payload: %v", err)
 		}
-		switch payload.Params[0] {
-		case "gateway.charon.lthn":
+
+		switch payload.Method {
+		case "getblockchaininfo":
+			atomic.AddInt32(&treeRootCalls, 1)
 			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
 				"result": map[string]any{
-					"a": []string{"10.10.10.10"},
+					"tree_root": "root-1",
 				},
 			})
-		case "node.charon.lthn":
-			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
-				"result": map[string]any{
-					"aaaa": []string{"2600:1f1c:7f0:4f01::2"},
-				},
-			})
+		case "getnameresource":
+			atomic.AddInt32(&nameResourceCalls, 1)
+			switch payload.Params[0] {
+			case "gateway.charon.lthn":
+				_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+					"result": map[string]any{
+						"a": []string{"10.10.10.10"},
+					},
+				})
+			case "node.charon.lthn":
+				_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+					"result": map[string]any{
+						"aaaa": []string{"2600:1f1c:7f0:4f01::2"},
+					},
+				})
+			default:
+				t.Fatalf("unexpected alias query: %#v", payload.Params)
+			}
 		default:
-			t.Fatalf("unexpected alias query: %#v", payload.Params)
+			t.Fatalf("unexpected method: %s", payload.Method)
 		}
 	}))
 	defer server.Close()
@@ -398,6 +415,74 @@ func TestServiceDiscoverFromChainAliasesUsesFallbackWhenPrimaryFails(t *testing.
 	node, ok := service.Resolve("node.charon.lthn")
 	if !ok || len(node.AAAA) != 1 || node.AAAA[0] != "2600:1f1c:7f0:4f01::2" {
 		t.Fatalf("expected node AAAA record, got %#v (ok=%t)", node, ok)
+	}
+
+	if atomic.LoadInt32(&treeRootCalls) != 1 || atomic.LoadInt32(&nameResourceCalls) != 2 {
+		t.Fatalf("expected one tree-root and two name-resource RPC calls, got treeRoot=%d nameResource=%d", atomic.LoadInt32(&treeRootCalls), atomic.LoadInt32(&nameResourceCalls))
+	}
+}
+
+func TestServiceDiscoverFromChainAliasesSkipsRefreshWhenTreeRootUnchanged(t *testing.T) {
+	var treeRootCalls int32
+	var nameResourceCalls int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+		var payload struct {
+			Method string `json:"method"`
+			Params []any  `json:"params"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Fatalf("unexpected request payload: %v", err)
+		}
+
+		switch payload.Method {
+		case "getblockchaininfo":
+			atomic.AddInt32(&treeRootCalls, 1)
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": map[string]any{
+					"tree_root": "same-root",
+				},
+			})
+		case "getnameresource":
+			atomic.AddInt32(&nameResourceCalls, 1)
+			switch payload.Params[0] {
+			case "gateway.charon.lthn":
+				_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+					"result": map[string]any{
+						"a": []string{"10.10.10.10"},
+					},
+				})
+			default:
+				t.Fatalf("unexpected alias query: %#v", payload.Params)
+			}
+		default:
+			t.Fatalf("unexpected method: %s", payload.Method)
+		}
+	}))
+	defer server.Close()
+
+	service := NewService(ServiceOptions{
+		TreeRootCheckInterval: 5 * time.Second,
+		ChainAliasDiscoverer: func(_ context.Context) ([]string, error) {
+			return []string{"gateway.charon.lthn"}, nil
+		},
+	})
+
+	client := NewHSDClient(HSDClientOptions{
+		URL: server.URL,
+	})
+	if err := service.DiscoverFromChainAliases(context.Background(), client); err != nil {
+		t.Fatalf("expected first chain alias discovery to run: %v", err)
+	}
+	if err := service.DiscoverFromChainAliases(context.Background(), client); err != nil {
+		t.Fatalf("expected second chain alias discovery to skip refresh: %v", err)
+	}
+
+	if atomic.LoadInt32(&treeRootCalls) != 1 {
+		t.Fatalf("expected one tree_root check in interval window, got %d", atomic.LoadInt32(&treeRootCalls))
+	}
+	if atomic.LoadInt32(&nameResourceCalls) != 1 {
+		t.Fatalf("expected one name-resource query while refreshing, got %d", atomic.LoadInt32(&nameResourceCalls))
 	}
 }
 
