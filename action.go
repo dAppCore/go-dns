@@ -38,7 +38,7 @@ type ActionRegistrar interface {
 
 // ActionCaller resolves named actions from another Core surface.
 //
-//	payload, ok, err := caller.CallAction(context.Background(), "blockchain.chain.aliases", nil)
+//	aliases, ok, err := caller.CallAction(context.Background(), "blockchain.chain.aliases", map[string]any{})
 type ActionCaller interface {
 	CallAction(ctx context.Context, name string, values map[string]any) (any, bool, error)
 }

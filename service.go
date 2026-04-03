@@ -124,7 +124,7 @@ type Service struct {
 //		Records: map[string]dns.NameRecords{
 //			"gateway.charon.lthn": {A: []string{"10.10.10.10"}},
 //		},
-//		RecordTTL:   15 * time.Second,
+//		RecordTTL:    15 * time.Second,
 //		HSDURL:       "http://127.0.0.1:14037",
 //		MainchainURL: "http://127.0.0.1:14037",
 //	})
