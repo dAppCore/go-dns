@@ -414,6 +414,34 @@ func parseActionAliasList(value any) ([]string, error) {
 		return normalizeAliasList([]string{aliases}), nil
 	case []string:
 		return normalizeAliasList(aliases), nil
+	case []map[string]any:
+		parsed := make([]string, 0, len(aliases))
+		for _, alias := range aliases {
+			name, err := parseActionAliasRecord(alias)
+			if err != nil {
+				return nil, err
+			}
+			if name != "" {
+				parsed = append(parsed, name)
+			}
+		}
+		return normalizeAliasList(parsed), nil
+	case []map[string]string:
+		parsed := make([]string, 0, len(aliases))
+		for _, alias := range aliases {
+			normalized := map[string]any{}
+			for key, value := range alias {
+				normalized[key] = value
+			}
+			name, err := parseActionAliasRecord(normalized)
+			if err != nil {
+				return nil, err
+			}
+			if name != "" {
+				parsed = append(parsed, name)
+			}
+		}
+		return normalizeAliasList(parsed), nil
 	case []any:
 		parsed := make([]string, 0, len(aliases))
 		for _, item := range aliases {

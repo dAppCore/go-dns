@@ -3182,6 +3182,48 @@ func TestStringActionValueRejectsWhitespaceOnlyArgument(t *testing.T) {
 	}
 }
 
+func TestParseActionAliasListAcceptsMapSliceTypedAny(t *testing.T) {
+	aliases, err := parseActionAliasList([]map[string]any{
+		{
+			"hns": "gateway.charon.lthn",
+		},
+		{
+			"name":    "node",
+			"comment": "node alias hns=node.charon.lthn",
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected typed map slice parse error: %v", err)
+	}
+	if len(aliases) != 2 {
+		t.Fatalf("expected two aliases, got %#v", aliases)
+	}
+	if aliases[0] != "gateway.charon.lthn" || aliases[1] != "node.charon.lthn" {
+		t.Fatalf("unexpected alias parsing result: %#v", aliases)
+	}
+}
+
+func TestParseActionAliasListAcceptsStringMapSlice(t *testing.T) {
+	aliases, err := parseActionAliasList([]map[string]string{
+		{
+			"hns": "gateway.charon.lthn",
+		},
+		{
+			"name":    "node",
+			"comment": "node alias hns=node.charon.lthn",
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected typed string map slice parse error: %v", err)
+	}
+	if len(aliases) != 2 {
+		t.Fatalf("expected two aliases, got %#v", aliases)
+	}
+	if aliases[0] != "gateway.charon.lthn" || aliases[1] != "node.charon.lthn" {
+		t.Fatalf("unexpected alias parsing result: %#v", aliases)
+	}
+}
+
 func TestNormalizeNameAndNormalizeIPArePublicWrappers(t *testing.T) {
 	normalizedName := NormalizeName(" Gateway.Charon.lthn. ")
 	if normalizedName != "gateway.charon.lthn" {
