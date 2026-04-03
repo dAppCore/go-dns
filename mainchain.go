@@ -223,12 +223,17 @@ func decodeString(raw json.RawMessage) (string, bool) {
 
 func extractAliasFromComment(comment string) string {
 	for _, token := range strings.Fields(comment) {
-		if strings.HasPrefix(token, "hns=") {
-			return normalizeName(strings.TrimSuffix(strings.TrimPrefix(token, "hns="), ";"))
+		switch normalizedToken := strings.ToLower(token); {
+		case strings.HasPrefix(normalizedToken, "hns="):
+			alias := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(normalizedToken, "hns="), ";"))
+			if alias != "" {
+				return normalizeName(alias)
+			}
 		}
 	}
 
-	if marker := strings.Index(comment, "hns="); marker >= 0 {
+	commentLower := strings.ToLower(comment)
+	if marker := strings.Index(commentLower, "hns="); marker >= 0 {
 		alias := comment[marker+4:]
 		if trim := strings.IndexAny(alias, " ;,"); trim >= 0 {
 			alias = alias[:trim]

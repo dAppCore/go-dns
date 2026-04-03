@@ -559,3 +559,10 @@ func TestServiceDiscoverFromMainchainAliasesFallsBackToChainClientWhenPrimaryDis
 		t.Fatalf("expected one tree-root and two name-resource RPC calls, got treeRoot=%d nameResource=%d", atomic.LoadInt32(&hsdTreeRootCalls), atomic.LoadInt32(&hsdAliasCalls))
 	}
 }
+
+func TestExtractAliasFromCommentParsesCaseInsensitiveHNSPrefix(t *testing.T) {
+	got := extractAliasFromComment("gateway alias HNS=gateway.charon.lthn")
+	if got != "gateway.charon.lthn" {
+		t.Fatalf("expected gateway.charon.lthn, got %s", got)
+	}
+}
