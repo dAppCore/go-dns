@@ -2651,8 +2651,14 @@ func TestServiceResolveServePortDefaultsToStandardDNSPort(t *testing.T) {
 	if service.DNSPort() != DefaultDNSPort {
 		t.Fatalf("expected DNSPort alias to return the standard DNS port %d, got %d", DefaultDNSPort, service.DNSPort())
 	}
+	if service.DNSListenPort() != DefaultDNSPort {
+		t.Fatalf("expected DNSListenPort to return the standard DNS port %d, got %d", DefaultDNSPort, service.DNSListenPort())
+	}
 	if service.resolveServePort() != DefaultDNSPort {
 		t.Fatalf("expected internal resolveServePort helper to return the standard DNS port %d, got %d", DefaultDNSPort, service.resolveServePort())
+	}
+	if service.resolveDNSListenPort() != DefaultDNSPort {
+		t.Fatalf("expected internal resolveDNSListenPort helper to return the standard DNS port %d, got %d", DefaultDNSPort, service.resolveDNSListenPort())
 	}
 
 	customPort := 1053
@@ -2665,8 +2671,14 @@ func TestServiceResolveServePortDefaultsToStandardDNSPort(t *testing.T) {
 	if customService.DNSPort() != customPort {
 		t.Fatalf("expected DNSPort alias to honor configured DNSPort, got %d", customService.DNSPort())
 	}
+	if customService.DNSListenPort() != customPort {
+		t.Fatalf("expected DNSListenPort to honor configured DNSPort, got %d", customService.DNSListenPort())
+	}
 	if customService.resolveServePort() != customPort {
 		t.Fatalf("expected resolveServePort helper to honor configured DNSPort, got %d", customService.resolveServePort())
+	}
+	if customService.resolveDNSListenPort() != customPort {
+		t.Fatalf("expected resolveDNSListenPort helper to honor configured DNSPort, got %d", customService.resolveDNSListenPort())
 	}
 }
 
@@ -2678,8 +2690,14 @@ func TestServiceResolveHTTPPortDefaultsToStandardHTTPPort(t *testing.T) {
 	if service.HTTPPort() != DefaultHTTPPort {
 		t.Fatalf("expected HTTPPort alias to return default %d, got %d", DefaultHTTPPort, service.HTTPPort())
 	}
+	if service.HTTPListenPort() != DefaultHTTPPort {
+		t.Fatalf("expected HTTPListenPort to return default %d, got %d", DefaultHTTPPort, service.HTTPListenPort())
+	}
 	if service.resolveHTTPPort() != DefaultHTTPPort {
 		t.Fatalf("expected resolveHTTPPort helper to return default %d, got %d", DefaultHTTPPort, service.resolveHTTPPort())
+	}
+	if service.resolveHTTPListenPort() != DefaultHTTPPort {
+		t.Fatalf("expected resolveHTTPListenPort helper to return default %d, got %d", DefaultHTTPPort, service.resolveHTTPListenPort())
 	}
 
 	customPort := 5555
@@ -2692,8 +2710,14 @@ func TestServiceResolveHTTPPortDefaultsToStandardHTTPPort(t *testing.T) {
 	if customService.HTTPPort() != customPort {
 		t.Fatalf("expected HTTPPort alias to honor configured HTTPPort, got %d", customService.HTTPPort())
 	}
+	if customService.HTTPListenPort() != customPort {
+		t.Fatalf("expected HTTPListenPort to honor configured HTTPPort, got %d", customService.HTTPListenPort())
+	}
 	if customService.resolveHTTPPort() != customPort {
 		t.Fatalf("expected resolveHTTPPort helper to honor configured HTTPPort, got %d", customService.resolveHTTPPort())
+	}
+	if customService.resolveHTTPListenPort() != customPort {
+		t.Fatalf("expected resolveHTTPListenPort helper to honor configured HTTPPort, got %d", customService.resolveHTTPListenPort())
 	}
 }
 

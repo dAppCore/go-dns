@@ -125,6 +125,14 @@ func (service *Service) ResolveDNSPort() int {
 	return service.dnsPort
 }
 
+// DNSListenPort resolves the configured DNS listen port for `dns.serve`.
+//
+//	port := service.DNSListenPort()
+//	server, err := service.Serve("127.0.0.1", port)
+func (service *Service) DNSListenPort() int {
+	return service.ResolveDNSPort()
+}
+
 // DNSPort is an explicit alias for ResolveDNSPort.
 //
 //	port := service.DNSPort()
@@ -133,7 +141,12 @@ func (service *Service) DNSPort() int {
 	return service.ResolveDNSPort()
 }
 
-// resolveServePort keeps internal callers aligned with existing behavior.
+// resolveDNSListenPort keeps internal callers aligned with explicit naming.
+func (service *Service) resolveDNSListenPort() int {
+	return service.DNSListenPort()
+}
+
+// resolveServePort is a legacy compatibility helper.
 func (service *Service) resolveServePort() int {
 	return service.ResolveDNSPort()
 }
@@ -149,6 +162,14 @@ func (service *Service) ResolveHTTPPort() int {
 	return service.httpPort
 }
 
+// HTTPListenPort resolves the configured health/listener port for `dns.serve`.
+//
+//	port := service.HTTPListenPort()
+//	server, err := service.ServeHTTPHealth("127.0.0.1", port)
+func (service *Service) HTTPListenPort() int {
+	return service.ResolveHTTPPort()
+}
+
 // HTTPPort is an explicit alias for ResolveHTTPPort.
 //
 //	port := service.HTTPPort()
@@ -157,6 +178,12 @@ func (service *Service) HTTPPort() int {
 	return service.ResolveHTTPPort()
 }
 
+// resolveHTTPListenPort keeps internal callers aligned with explicit naming.
+func (service *Service) resolveHTTPListenPort() int {
+	return service.HTTPListenPort()
+}
+
+// resolveHTTPPort is a legacy compatibility helper.
 func (service *Service) resolveHTTPPort() int {
 	return service.ResolveHTTPPort()
 }
@@ -217,10 +244,10 @@ func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
 //	fmt.Println("dns:", runtime.DNSAddress(), "health:", runtime.HealthAddress())
 func (service *Service) ServeAll(bind string, dnsPort int, httpPort int) (*ServiceRuntime, error) {
 	if dnsPort <= 0 {
-		dnsPort = service.resolveServePort()
+		dnsPort = service.resolveDNSListenPort()
 	}
 	if httpPort <= 0 {
-		httpPort = service.resolveHTTPPort()
+		httpPort = service.resolveHTTPListenPort()
 	}
 
 	dnsServer, err := service.Serve(bind, dnsPort)
