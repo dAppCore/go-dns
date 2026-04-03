@@ -14,7 +14,12 @@ import (
 	cache "github.com/patrickmn/go-cache"
 )
 
-const defaultTreeRootCheckInterval = 15 * time.Second
+// DefaultTreeRootCheckInterval is the cadence used to re-check the HSD tree root
+// when ServiceOptions.TreeRootCheckInterval is not set.
+//
+//	service := dns.NewService(dns.ServiceOptions{})
+//	fmt.Println(dns.DefaultTreeRootCheckInterval)
+const DefaultTreeRootCheckInterval = 15 * time.Second
 
 type NameRecords struct {
 	A    []string `json:"a"`
@@ -104,7 +109,7 @@ type Options = ServiceOptions
 func NewService(options ServiceOptions) *Service {
 	checkInterval := options.TreeRootCheckInterval
 	if checkInterval <= 0 {
-		checkInterval = defaultTreeRootCheckInterval
+		checkInterval = DefaultTreeRootCheckInterval
 	}
 
 	cached := make(map[string]NameRecords, len(options.Records))
@@ -327,9 +332,10 @@ func parseActionAliasRecord(record map[string]any) (string, error) {
 	return "", nil
 }
 
-// DiscoverFromMainchainAliases updates records from main-chain aliases resolved through HSD.
+// DiscoverFromMainchainAliases refreshes the cache from the main-chain alias list.
 //
-//	err := service.DiscoverFromMainchainAliases(context.Background(),
+//	err := service.DiscoverFromMainchainAliases(
+//		context.Background(),
 //		dns.NewMainchainAliasClient(dns.MainchainClientOptions{URL: "http://127.0.0.1:14037"}),
 //		dns.NewHSDClient(dns.HSDClientOptions{URL: "http://127.0.0.1:14037"}),
 //	)
@@ -489,7 +495,7 @@ func (service *Service) Discover() error {
 	return nil
 }
 
-// DiscoverAliases refreshes DNS records from chain aliases.
+// DiscoverAliases refreshes DNS records from the configured chain alias source.
 //
 //	err := service.DiscoverAliases(context.Background())
 func (service *Service) DiscoverAliases(ctx context.Context) error {

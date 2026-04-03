@@ -46,7 +46,7 @@ type ActionCaller interface {
 //
 //	definitions := service.ActionDefinitions()
 //	for _, definition := range definitions {
-//		registrar.RegisterAction(definition.Name, definition.Invoke)
+//		fmt.Println(definition.Name)
 //	}
 func (service *Service) ActionDefinitions() []ActionDefinition {
 	return []ActionDefinition{
@@ -155,7 +155,7 @@ func (service *Service) ActionNames() []string {
 // RegisterActions publishes the DNS action surface to a registrar in definition order.
 //
 //	service.RegisterActions(registrar)
-//	// registrar now knows how to handle dns.health and the rest of the DNS actions.
+//	// registrar.RegisterAction("dns.health", ...)
 func (service *Service) RegisterActions(registrar ActionRegistrar) {
 	if registrar == nil {
 		return
