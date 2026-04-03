@@ -41,6 +41,7 @@ type Service struct {
 	records                      map[string]NameRecords
 	reverseIndex                 map[string][]string
 	treeRoot                     string
+	mainchainAliasClient         *MainchainAliasClient
 	discoverer                   func() (map[string]NameRecords, error)
 	fallbackDiscoverer           func() (map[string]NameRecords, error)
 	chainAliasDiscoverer         func(context.Context) ([]string, error)
@@ -54,6 +55,7 @@ type ServiceOptions struct {
 	Records                      map[string]NameRecords
 	Discoverer                   func() (map[string]NameRecords, error)
 	FallbackDiscoverer           func() (map[string]NameRecords, error)
+	MainchainAliasClient          *MainchainAliasClient
 	ChainAliasDiscoverer         func(context.Context) ([]string, error)
 	FallbackChainAliasDiscoverer func(context.Context) ([]string, error)
 	TreeRootCheckInterval        time.Duration
@@ -74,6 +76,7 @@ func NewService(options ServiceOptions) *Service {
 		records:                      cached,
 		reverseIndex:                 buildReverseIndex(cached),
 		treeRoot:                     treeRoot,
+		mainchainAliasClient:         options.MainchainAliasClient,
 		discoverer:                   options.Discoverer,
 		fallbackDiscoverer:           options.FallbackDiscoverer,
 		chainAliasDiscoverer:         options.ChainAliasDiscoverer,
@@ -87,7 +90,12 @@ func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HS
 		return fmt.Errorf("hsd client is required")
 	}
 
-	aliases, err := discoverAliases(ctx, service.chainAliasDiscoverer, service.fallbackChainAliasDiscoverer)
+	aliases, err := discoverAliasesWithFallback(
+		ctx,
+		service.chainAliasDiscoverer,
+		service.fallbackChainAliasDiscoverer,
+		service.mainchainAliasClient,
+	)
 	if err != nil {
 		return err
 	}
@@ -95,6 +103,50 @@ func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HS
 		return nil
 	}
 	return service.discoverFromChainAliasesUsingTreeRoot(ctx, aliases, client)
+}
+
+func discoverAliasesWithFallback(
+	ctx context.Context,
+	discoverer func(context.Context) ([]string, error),
+	fallback func(context.Context) ([]string, error),
+	mainchainClient *MainchainAliasClient,
+) ([]string, error) {
+	if discoverer == nil {
+		if fallback != nil {
+			aliases, err := fallback(ctx)
+			if err == nil {
+				return aliases, nil
+			}
+			if mainchainClient == nil {
+				return nil, err
+			}
+			return mainchainClient.GetAllAliasDetails(ctx)
+		}
+		if mainchainClient == nil {
+			return nil, nil
+		}
+		return mainchainClient.GetAllAliasDetails(ctx)
+	}
+
+	aliases, err := discoverer(ctx)
+	if err == nil {
+		return aliases, nil
+	}
+	if fallback == nil {
+		if mainchainClient == nil {
+			return nil, err
+		}
+		return mainchainClient.GetAllAliasDetails(ctx)
+	}
+
+	fallbackAliases, fallbackErr := fallback(ctx)
+	if fallbackErr == nil {
+		return fallbackAliases, nil
+	}
+	if mainchainClient == nil {
+		return nil, fallbackErr
+	}
+	return mainchainClient.GetAllAliasDetails(ctx)
 }
 
 // DiscoverFromMainchainAliases updates records from main-chain aliases resolved through HSD.
