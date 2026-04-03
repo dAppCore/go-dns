@@ -19,6 +19,7 @@ import (
 //	fmt.Println(dns.DefaultTreeRootCheckInterval)
 const DefaultTreeRootCheckInterval = 15 * time.Second
 const DefaultDNSPort = 53
+const DefaultHTTPPort = 5554
 
 // NameRecords stores the cached DNS records for one name.
 //

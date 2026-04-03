@@ -113,6 +113,13 @@ func (server *DNSServer) Close() error {
 	return err
 }
 
+func (service *Service) resolveHTTPPort() int {
+	if service == nil || service.httpPort <= 0 {
+		return DefaultHTTPPort
+	}
+	return service.httpPort
+}
+
 // Serve starts DNS over UDP and TCP.
 //
 //	srv, err := service.Serve("0.0.0.0", 53)
@@ -168,8 +175,8 @@ func (service *Service) ServeAll(bind string, dnsPort int, httpPort int) (*Servi
 	if dnsPort == 0 {
 		dnsPort = service.dnsPort
 	}
-	if httpPort == 0 {
-		httpPort = service.httpPort
+	if httpPort <= 0 {
+		httpPort = service.resolveHTTPPort()
 	}
 
 	dnsServer, err := service.Serve(bind, dnsPort)

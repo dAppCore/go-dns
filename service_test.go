@@ -2250,6 +2250,21 @@ func TestServiceResolveServePortDefaultsToStandardDNSPort(t *testing.T) {
 	}
 }
 
+func TestServiceResolveHTTPPortDefaultsToStandardHTTPPort(t *testing.T) {
+	service := NewService(ServiceOptions{})
+	if service.resolveHTTPPort() != DefaultHTTPPort {
+		t.Fatalf("expected resolve HTTP port to default to %d, got %d", DefaultHTTPPort, service.resolveHTTPPort())
+	}
+
+	customPort := 5555
+	customService := NewService(ServiceOptions{
+		HTTPPort: customPort,
+	})
+	if customService.resolveHTTPPort() != customPort {
+		t.Fatalf("expected resolveHTTPPort to honor configured HTTPPort, got %d", customService.resolveHTTPPort())
+	}
+}
+
 func TestServiceActionNamesExposeAllRFCActions(t *testing.T) {
 	service := NewService(ServiceOptions{})
 
