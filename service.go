@@ -159,7 +159,7 @@ func (service *Service) resolveHSDClient(client *HSDClient) (*HSDClient, error) 
 }
 
 func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HSDClient) error {
-	resolved, err := service.resolveHSDClient(client)
+	effectiveHSDClient, err := service.resolveHSDClient(client)
 	if err != nil {
 		return err
 	}
@@ -185,7 +185,7 @@ func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HS
 		service.recordTreeRootState(now, "", fingerprint)
 		return nil
 	}
-	return service.discoverFromChainAliasesUsingTreeRoot(ctx, aliases, resolved)
+	return service.discoverFromChainAliasesUsingTreeRoot(ctx, aliases, effectiveHSDClient)
 }
 
 func aliasFingerprint(aliases []string) string {
@@ -203,62 +203,62 @@ func aliasFingerprint(aliases []string) string {
 
 func (service *Service) discoverAliasesFromSources(
 	ctx context.Context,
-	actionCaller ActionCaller,
-	action func(context.Context) ([]string, error),
-	discoverer func(context.Context) ([]string, error),
-	fallback func(context.Context) ([]string, error),
-	mainchainClient *MainchainAliasClient,
+	chainAliasActionCaller ActionCaller,
+	chainAliasAction func(context.Context) ([]string, error),
+	chainAliasDiscoverer func(context.Context) ([]string, error),
+	fallbackChainAliasDiscoverer func(context.Context) ([]string, error),
+	mainchainAliasClient *MainchainAliasClient,
 ) ([]string, bool, error) {
-	if aliases, ok := service.discoverAliasesFromActionCaller(ctx, actionCaller); ok {
+	if aliases, ok := service.discoverAliasesFromActionCaller(ctx, chainAliasActionCaller); ok {
 		return aliases, true, nil
 	}
 
-	if action != nil {
-		aliases, err := action(ctx)
+	if chainAliasAction != nil {
+		aliases, err := chainAliasAction(ctx)
 		if err == nil {
 			return aliases, true, nil
 		}
 	}
 
-	if discoverer == nil {
-		if fallback != nil {
-			aliases, err := fallback(ctx)
+	if chainAliasDiscoverer == nil {
+		if fallbackChainAliasDiscoverer != nil {
+			aliases, err := fallbackChainAliasDiscoverer(ctx)
 			if err == nil {
 				return aliases, true, nil
 			}
-			if mainchainClient == nil {
+			if mainchainAliasClient == nil {
 				return nil, false, err
 			}
-			aliases, err = mainchainClient.GetAllAliasDetails(ctx)
+			aliases, err = mainchainAliasClient.GetAllAliasDetails(ctx)
 			return aliases, true, err
 		}
-		if mainchainClient == nil {
+		if mainchainAliasClient == nil {
 			return nil, false, nil
 		}
-		aliases, err := mainchainClient.GetAllAliasDetails(ctx)
+		aliases, err := mainchainAliasClient.GetAllAliasDetails(ctx)
 		return aliases, true, err
 	}
 
-	aliases, err := discoverer(ctx)
+	aliases, err := chainAliasDiscoverer(ctx)
 	if err == nil {
 		return aliases, true, nil
 	}
-	if fallback == nil {
-		if mainchainClient == nil {
+	if fallbackChainAliasDiscoverer == nil {
+		if mainchainAliasClient == nil {
 			return nil, false, err
 		}
-		aliases, err = mainchainClient.GetAllAliasDetails(ctx)
+		aliases, err = mainchainAliasClient.GetAllAliasDetails(ctx)
 		return aliases, true, err
 	}
 
-	fallbackAliases, fallbackErr := fallback(ctx)
+	fallbackAliases, fallbackErr := fallbackChainAliasDiscoverer(ctx)
 	if fallbackErr == nil {
 		return fallbackAliases, true, nil
 	}
-	if mainchainClient == nil {
+	if mainchainAliasClient == nil {
 		return nil, false, fallbackErr
 	}
-	aliases, err = mainchainClient.GetAllAliasDetails(ctx)
+	aliases, err = mainchainAliasClient.GetAllAliasDetails(ctx)
 	return aliases, true, err
 }
 
@@ -365,7 +365,7 @@ func parseActionAliasRecord(record map[string]any) (string, error) {
 //		dns.NewHSDClient(dns.HSDClientOptions{URL: "http://127.0.0.1:14037"}),
 //	)
 func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainClient *MainchainAliasClient, hsdClient *HSDClient) error {
-	resolvedHSDClient, err := service.resolveHSDClient(hsdClient)
+	effectiveHSDClient, err := service.resolveHSDClient(hsdClient)
 	if err != nil {
 		return err
 	}
@@ -412,7 +412,7 @@ func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainC
 		service.recordTreeRootState(now, "", fingerprint)
 		return nil
 	}
-	return service.discoverFromChainAliasesUsingTreeRoot(ctx, aliases, resolvedHSDClient)
+	return service.discoverFromChainAliasesUsingTreeRoot(ctx, aliases, effectiveHSDClient)
 }
 
 func (service *Service) discoverFromChainAliasesUsingTreeRoot(ctx context.Context, aliases []string, client *HSDClient) error {
