@@ -114,11 +114,51 @@ func (server *DNSServer) Close() error {
 	return err
 }
 
-func (service *Service) resolveHTTPPort() int {
+// ResolveDNSPort returns the DNS port used for `dns.serve` and `Serve`.
+//
+//	port := service.ResolveDNSPort()
+//	server, err := service.Serve("127.0.0.1", port)
+func (service *Service) ResolveDNSPort() int {
+	if service == nil || service.dnsPort <= 0 {
+		return DefaultDNSPort
+	}
+	return service.dnsPort
+}
+
+// DNSPort is an explicit alias for ResolveDNSPort.
+//
+//	port := service.DNSPort()
+//	server, err := service.Serve("127.0.0.1", port)
+func (service *Service) DNSPort() int {
+	return service.ResolveDNSPort()
+}
+
+// resolveServePort keeps internal callers aligned with existing behavior.
+func (service *Service) resolveServePort() int {
+	return service.ResolveDNSPort()
+}
+
+// ResolveHTTPPort returns the HTTP health port used by `ServeHTTPHealth`.
+//
+//	port := service.ResolveHTTPPort()
+//	healthServer, err := service.ServeHTTPHealth("127.0.0.1", port)
+func (service *Service) ResolveHTTPPort() int {
 	if service == nil || service.httpPort <= 0 {
 		return DefaultHTTPPort
 	}
 	return service.httpPort
+}
+
+// HTTPPort is an explicit alias for ResolveHTTPPort.
+//
+//	port := service.HTTPPort()
+//	healthServer, err := service.ServeHTTPHealth("127.0.0.1", port)
+func (service *Service) HTTPPort() int {
+	return service.ResolveHTTPPort()
+}
+
+func (service *Service) resolveHTTPPort() int {
+	return service.ResolveHTTPPort()
 }
 
 // Serve starts DNS over UDP and TCP.

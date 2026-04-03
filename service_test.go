@@ -2399,31 +2399,55 @@ func TestServiceHandleActionServeDefaultsPortFromServiceConfiguration(t *testing
 
 func TestServiceResolveServePortDefaultsToStandardDNSPort(t *testing.T) {
 	service := NewService(ServiceOptions{})
+	if service.ResolveDNSPort() != DefaultDNSPort {
+		t.Fatalf("expected ResolveDNSPort to default to standard DNS port %d, got %d", DefaultDNSPort, service.ResolveDNSPort())
+	}
+	if service.DNSPort() != DefaultDNSPort {
+		t.Fatalf("expected DNSPort alias to return the standard DNS port %d, got %d", DefaultDNSPort, service.DNSPort())
+	}
 	if service.resolveServePort() != DefaultDNSPort {
-		t.Fatalf("expected serve to default to standard DNS port %d, got %d", DefaultDNSPort, service.resolveServePort())
+		t.Fatalf("expected internal resolveServePort helper to return the standard DNS port %d, got %d", DefaultDNSPort, service.resolveServePort())
 	}
 
 	customPort := 1053
 	customService := NewService(ServiceOptions{
 		DNSPort: customPort,
 	})
+	if customService.ResolveDNSPort() != customPort {
+		t.Fatalf("expected ResolveDNSPort to honor configured DNSPort, got %d", customService.ResolveDNSPort())
+	}
+	if customService.DNSPort() != customPort {
+		t.Fatalf("expected DNSPort alias to honor configured DNSPort, got %d", customService.DNSPort())
+	}
 	if customService.resolveServePort() != customPort {
-		t.Fatalf("expected resolveServePort to honor configured DNSPort, got %d", customService.resolveServePort())
+		t.Fatalf("expected resolveServePort helper to honor configured DNSPort, got %d", customService.resolveServePort())
 	}
 }
 
 func TestServiceResolveHTTPPortDefaultsToStandardHTTPPort(t *testing.T) {
 	service := NewService(ServiceOptions{})
+	if service.ResolveHTTPPort() != DefaultHTTPPort {
+		t.Fatalf("expected ResolveHTTPPort to default to %d, got %d", DefaultHTTPPort, service.ResolveHTTPPort())
+	}
+	if service.HTTPPort() != DefaultHTTPPort {
+		t.Fatalf("expected HTTPPort alias to return default %d, got %d", DefaultHTTPPort, service.HTTPPort())
+	}
 	if service.resolveHTTPPort() != DefaultHTTPPort {
-		t.Fatalf("expected resolve HTTP port to default to %d, got %d", DefaultHTTPPort, service.resolveHTTPPort())
+		t.Fatalf("expected resolveHTTPPort helper to return default %d, got %d", DefaultHTTPPort, service.resolveHTTPPort())
 	}
 
 	customPort := 5555
 	customService := NewService(ServiceOptions{
 		HTTPPort: customPort,
 	})
+	if customService.ResolveHTTPPort() != customPort {
+		t.Fatalf("expected ResolveHTTPPort to honor configured HTTPPort, got %d", customService.ResolveHTTPPort())
+	}
+	if customService.HTTPPort() != customPort {
+		t.Fatalf("expected HTTPPort alias to honor configured HTTPPort, got %d", customService.HTTPPort())
+	}
 	if customService.resolveHTTPPort() != customPort {
-		t.Fatalf("expected resolveHTTPPort to honor configured HTTPPort, got %d", customService.resolveHTTPPort())
+		t.Fatalf("expected resolveHTTPPort helper to honor configured HTTPPort, got %d", customService.resolveHTTPPort())
 	}
 }
 
