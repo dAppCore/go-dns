@@ -26,6 +26,13 @@ type ActionDefinition struct {
 	Invoke func(map[string]any) (any, bool, error)
 }
 
+// ActionRegistrar accepts named DNS action handlers from a service.
+//
+//	service.RegisterActions(registrar)
+type ActionRegistrar interface {
+	RegisterAction(name string, invoke func(map[string]any) (any, bool, error))
+}
+
 // ActionDefinitions returns the complete DNS action surface in registration order.
 //
 //	service.ActionDefinitions()
@@ -130,6 +137,18 @@ func (service *Service) ActionNames() []string {
 		names = append(names, definition.Name)
 	}
 	return names
+}
+
+// RegisterActions publishes the DNS action surface to a registrar in definition order.
+//
+//	service.RegisterActions(registrar)
+func (service *Service) RegisterActions(registrar ActionRegistrar) {
+	if registrar == nil {
+		return
+	}
+	for _, definition := range service.ActionDefinitions() {
+		registrar.RegisterAction(definition.Name, definition.Invoke)
+	}
 }
 
 // HandleAction executes a DNS action by name.

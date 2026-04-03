@@ -1063,6 +1063,41 @@ func TestServiceActionNamesExposeAllRFCActions(t *testing.T) {
 	}
 }
 
+func TestServiceRegisterActionsPublishesAllActionsInOrder(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	registrar := &actionRecorder{}
+	service.RegisterActions(registrar)
+
+	expected := service.ActionNames()
+	if len(registrar.names) != len(expected) {
+		t.Fatalf("expected %d registered actions, got %d: %#v", len(expected), len(registrar.names), registrar.names)
+	}
+	for index, name := range expected {
+		if registrar.names[index] != name {
+			t.Fatalf("unexpected registered action at %d: got %q want %q", index, registrar.names[index], name)
+		}
+	}
+
+	payload, ok, err := registrar.handlers[ActionResolve](map[string]any{"name": "gateway.charon.lthn"})
+	if err != nil {
+		t.Fatalf("unexpected registered handler error: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected registered handler to resolve")
+	}
+	result, ok := payload.(ResolveAddressResult)
+	if !ok || len(result.Addresses) != 1 || result.Addresses[0] != "10.10.10.10" {
+		t.Fatalf("unexpected registered handler payload: %#v", payload)
+	}
+}
+
 func TestServiceActionDefinitionsHaveInvokers(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{
@@ -1225,4 +1260,17 @@ func TestServiceHandleActionReverseHealthServeAndDiscover(t *testing.T) {
 	if discoverHealth["tree_root"] != "discover-root" {
 		t.Fatalf("expected discover to refresh tree root, got %#v", discoverHealth["tree_root"])
 	}
+}
+
+type actionRecorder struct {
+	names    []string
+	handlers map[string]func(map[string]any) (any, bool, error)
+}
+
+func (recorder *actionRecorder) RegisterAction(name string, invoke func(map[string]any) (any, bool, error)) {
+	if recorder.handlers == nil {
+		recorder.handlers = map[string]func(map[string]any) (any, bool, error){}
+	}
+	recorder.names = append(recorder.names, name)
+	recorder.handlers[name] = invoke
 }
