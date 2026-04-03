@@ -92,6 +92,24 @@ func TestServiceResolveTXTUsesWildcard(t *testing.T) {
 	}
 }
 
+func TestServiceResolveTXTRecordsReturnsNamedField(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				TXT: []string{"v=lthn1 type=gateway"},
+			},
+		},
+	})
+
+	result, ok := service.ResolveTXTRecords("gateway.charon.lthn")
+	if !ok {
+		t.Fatal("expected named TXT result to resolve")
+	}
+	if len(result.TXT) != 1 || result.TXT[0] != "v=lthn1 type=gateway" {
+		t.Fatalf("unexpected ResolveTXTRecords output: %#v", result.TXT)
+	}
+}
+
 func TestServiceResolveAddressReturnsMergedRecords(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{

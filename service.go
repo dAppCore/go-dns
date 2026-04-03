@@ -32,6 +32,10 @@ type ResolveAddressResult struct {
 	Addresses []string `json:"addresses"`
 }
 
+type ResolveTXTResult struct {
+	TXT []string `json:"txt"`
+}
+
 type ReverseLookupResult struct {
 	Names []string `json:"names"`
 }
@@ -345,11 +349,24 @@ func (service *Service) Resolve(name string) (ResolveAllResult, bool) {
 }
 
 func (service *Service) ResolveTXT(name string) ([]string, bool) {
-	record, ok := service.findRecord(name)
+	result, ok := service.ResolveTXTRecords(name)
 	if !ok {
 		return nil, false
 	}
-	return append([]string(nil), record.TXT...), true
+	return result.TXT, true
+}
+
+// ResolveTXTRecords returns TXT records wrapped with the RFC field name for action payloads.
+//
+//	service.ResolveTXTRecords("gateway.charon.lthn")
+func (service *Service) ResolveTXTRecords(name string) (ResolveTXTResult, bool) {
+	record, ok := service.findRecord(name)
+	if !ok {
+		return ResolveTXTResult{}, false
+	}
+	return ResolveTXTResult{
+		TXT: append([]string(nil), record.TXT...),
+	}, true
 }
 
 // DiscoverWithHSD refreshes DNS records for each alias by calling HSD.
