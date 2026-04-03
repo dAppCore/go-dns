@@ -2718,6 +2718,55 @@ func TestServiceHandleActionServeHealthPortStartsRuntime(t *testing.T) {
 	}
 }
 
+func TestServiceHandleActionServeDefaultsToConfiguredHTTPPort(t *testing.T) {
+	httpPort := pickFreeTCPPort(t)
+	dnsPort := pickFreeTCPPort(t)
+	service := NewService(ServiceOptions{
+		DNSPort:  dnsPort,
+		HTTPPort: httpPort,
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	payload, ok, err := service.HandleAction(ActionServe, map[string]any{
+		"bind": "127.0.0.1",
+	})
+	if err != nil {
+		t.Fatalf("expected serve action to start runtime with default http port: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected serve action to succeed")
+	}
+	runtime, ok := payload.(*ServiceRuntime)
+	if !ok {
+		t.Fatalf("expected ServiceRuntime payload, got %T", payload)
+	}
+	if runtime == nil {
+		t.Fatal("expected runtime from serve action")
+	}
+	defer func() {
+		_ = runtime.Close()
+	}()
+
+	_, dnsPortStr, err := net.SplitHostPort(runtime.DNSAddress())
+	if err != nil {
+		t.Fatalf("expected dns address to include port: %v", err)
+	}
+	if dnsPortStr != strconv.Itoa(dnsPort) {
+		t.Fatalf("expected configured DNS port %d, got %q", dnsPort, dnsPortStr)
+	}
+	_, healthPortStr, err := net.SplitHostPort(runtime.HealthAddress())
+	if err != nil {
+		t.Fatalf("expected health address to include port: %v", err)
+	}
+	if healthPortStr != strconv.Itoa(httpPort) {
+		t.Fatalf("expected configured health port %d, got %q", httpPort, healthPortStr)
+	}
+}
+
 func TestServiceResolveServePortDefaultsToStandardDNSPort(t *testing.T) {
 	service := NewService(ServiceOptions{})
 	if service.ResolveDNSPort() != DefaultDNSPort {

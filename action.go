@@ -310,6 +310,13 @@ func (service *Service) handleServe(ctx context.Context, values map[string]any) 
 	if err != nil {
 		return nil, false, err
 	}
+	if !healthPortProvided && service.httpPort > 0 {
+		runtime, err := service.ServeAll(bind, port, service.httpPort)
+		if err != nil {
+			return nil, false, err
+		}
+		return runtime, true, nil
+	}
 	if healthPortProvided {
 		runtime, err := service.ServeAll(bind, port, healthPort)
 		if err != nil {
