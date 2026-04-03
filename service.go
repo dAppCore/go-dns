@@ -2,6 +2,7 @@ package dns
 
 import (
 	"fmt"
+	"net"
 	"slices"
 	"strings"
 	"sync"
@@ -22,8 +23,9 @@ type ResolveAllResult struct {
 }
 
 type Service struct {
-	mu       sync.RWMutex
-	records  map[string]NameRecords
+	mu           sync.RWMutex
+	records      map[string]NameRecords
+	reverseIndex map[string][]string
 }
 
 type ServiceOptions struct {
@@ -36,7 +38,8 @@ func NewService(options ServiceOptions) *Service {
 		cached[normalizeName(name)] = record
 	}
 	return &Service{
-		records: cached,
+		records:      cached,
+		reverseIndex: buildReverseIndex(cached),
 	}
 }
 
@@ -44,12 +47,14 @@ func (service *Service) SetRecord(name string, record NameRecords) {
 	service.mu.Lock()
 	defer service.mu.Unlock()
 	service.records[normalizeName(name)] = record
+	service.reverseIndex = buildReverseIndex(service.records)
 }
 
 func (service *Service) RemoveRecord(name string) {
 	service.mu.Lock()
 	defer service.mu.Unlock()
 	delete(service.records, normalizeName(name))
+	service.reverseIndex = buildReverseIndex(service.records)
 }
 
 func (service *Service) Resolve(name string) (ResolveAllResult, bool) {
@@ -66,6 +71,22 @@ func (service *Service) ResolveTXT(name string) ([]string, bool) {
 		return nil, false
 	}
 	return append([]string(nil), record.TXT...), true
+}
+
+func (service *Service) ResolveReverse(ip string) ([]string, bool) {
+	service.mu.RLock()
+	defer service.mu.RUnlock()
+
+	normalizedIP := normalizeIP(ip)
+	if normalizedIP == "" {
+		return nil, false
+	}
+
+	names, ok := service.reverseIndex[normalizedIP]
+	if !ok {
+		return nil, false
+	}
+	return append([]string(nil), names...), true
 }
 
 func (service *Service) ResolveAll(name string) (ResolveAllResult, bool) {
@@ -106,6 +127,55 @@ func resolveResult(record NameRecords) ResolveAllResult {
 		TXT:  append([]string(nil), record.TXT...),
 		NS:   append([]string(nil), record.NS...),
 	}
+}
+
+func buildReverseIndex(records map[string]NameRecords) map[string][]string {
+	raw := map[string]map[string]struct{}{}
+	for name, record := range records {
+		for _, ip := range record.A {
+			normalized := normalizeIP(ip)
+			if normalized == "" {
+				continue
+			}
+			index := raw[normalized]
+			if index == nil {
+				index = map[string]struct{}{}
+				raw[normalized] = index
+			}
+			index[name] = struct{}{}
+		}
+		for _, ip := range record.AAAA {
+			normalized := normalizeIP(ip)
+			if normalized == "" {
+				continue
+			}
+			index := raw[normalized]
+			if index == nil {
+				index = map[string]struct{}{}
+				raw[normalized] = index
+			}
+			index[name] = struct{}{}
+		}
+	}
+
+	reverseIndex := make(map[string][]string, len(raw))
+	for ip, names := range raw {
+		unique := make([]string, 0, len(names))
+		for name := range names {
+			unique = append(unique, name)
+		}
+		slices.Sort(unique)
+		reverseIndex[ip] = unique
+	}
+	return reverseIndex
+}
+
+func normalizeIP(ip string) string {
+	parsed := net.ParseIP(strings.TrimSpace(ip))
+	if parsed == nil {
+		return ""
+	}
+	return parsed.String()
 }
 
 func findWildcardMatch(name string, records map[string]NameRecords) (NameRecords, bool) {
@@ -183,4 +253,3 @@ func MergeRecords(values ...[]string) []string {
 	slices.Sort(unique)
 	return unique
 }
-
