@@ -423,7 +423,7 @@ func (service *Service) ResolveTXTRecords(name string) (ResolveTXTResult, bool) 
 		return ResolveTXTResult{}, false
 	}
 	return ResolveTXTResult{
-		TXT: append([]string(nil), record.TXT...),
+		TXT: cloneStrings(record.TXT),
 	}, true
 }
 
@@ -573,10 +573,10 @@ func (service *Service) findRecord(name string) (NameRecords, bool) {
 
 func resolveResult(record NameRecords) ResolveAllResult {
 	return ResolveAllResult{
-		A:    append([]string(nil), record.A...),
-		AAAA: append([]string(nil), record.AAAA...),
-		TXT:  append([]string(nil), record.TXT...),
-		NS:   append([]string(nil), record.NS...),
+		A:    cloneStrings(record.A),
+		AAAA: cloneStrings(record.AAAA),
+		TXT:  cloneStrings(record.TXT),
+		NS:   cloneStrings(record.NS),
 	}
 }
 
@@ -697,6 +697,13 @@ func serializeRecordValues(values []string) string {
 	copied := append([]string(nil), values...)
 	slices.Sort(copied)
 	return strings.Join(copied, ",")
+}
+
+func cloneStrings(values []string) []string {
+	if len(values) == 0 {
+		return []string{}
+	}
+	return append([]string(nil), values...)
 }
 
 func findWildcardMatch(name string, records map[string]NameRecords) (NameRecords, bool) {

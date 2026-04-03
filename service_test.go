@@ -1229,6 +1229,41 @@ func TestServiceResolveAllSynthesizesNSForDerivedZoneApex(t *testing.T) {
 	}
 }
 
+func TestServiceResolveAllReturnsEmptyArraysForMissingRecordValues(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+			"node.charon.lthn": {
+				AAAA: []string{"2600:1f1c:7f0:4f01::2"},
+			},
+		},
+	})
+
+	result, ok := service.ResolveAll("gateway.charon.lthn")
+	if !ok {
+		t.Fatal("expected record to resolve")
+	}
+	if result.AAAA == nil || len(result.AAAA) != 0 {
+		t.Fatalf("expected empty AAAA slice, got %#v", result.AAAA)
+	}
+	if result.TXT == nil || len(result.TXT) != 0 {
+		t.Fatalf("expected empty TXT slice, got %#v", result.TXT)
+	}
+	if result.NS == nil || len(result.NS) != 0 {
+		t.Fatalf("expected empty NS slice, got %#v", result.NS)
+	}
+
+	raw, err := json.Marshal(result)
+	if err != nil {
+		t.Fatalf("expected result to marshal: %v", err)
+	}
+	if string(raw) != `{"a":["10.10.10.10"],"aaaa":[],"txt":[],"ns":[]}` {
+		t.Fatalf("expected empty arrays in JSON, got %s", raw)
+	}
+}
+
 func TestServiceServeReturnsNXDOMAINWhenMissing(t *testing.T) {
 	service := NewService(ServiceOptions{})
 
