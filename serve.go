@@ -217,14 +217,22 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 			})
 		}
 	case dnsprotocol.TypeNS:
-		if !found {
-			goto noRecord
+		if found {
+			for _, value := range record.NS {
+				reply.Answer = append(reply.Answer, &dnsprotocol.NS{
+					Hdr: dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeNS, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+					Ns:  normalizeName(value) + ".",
+				})
+			}
 		}
-		for _, value := range record.NS {
+		if len(reply.Answer) == 0 && normalizeName(name) == handler.service.ZoneApex() && handler.service.ZoneApex() != "" {
 			reply.Answer = append(reply.Answer, &dnsprotocol.NS{
 				Hdr: dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeNS, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
-				Ns:  normalizeName(value) + ".",
+				Ns:  normalizeName("ns."+name) + ".",
 			})
+		}
+		if len(reply.Answer) == 0 && !found {
+			goto noRecord
 		}
 	case dnsprotocol.TypePTR:
 		ip, ok := parsePTRIP(name)
