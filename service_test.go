@@ -975,6 +975,33 @@ func TestServiceServeReturnsNXDOMAINWhenMissing(t *testing.T) {
 	}
 }
 
+func TestServiceServeReturnsNoErrorWhenTypeIsMissing(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	srv, err := service.Serve("127.0.0.1", 0)
+	if err != nil {
+		t.Fatalf("expected server to start: %v", err)
+	}
+	defer func() { _ = srv.Close() }()
+
+	client := dnsprotocol.Client{}
+	request := new(dnsprotocol.Msg)
+	request.SetQuestion("gateway.charon.lthn.", dnsprotocol.TypeTXT)
+	response := exchangeWithRetry(t, client, request, srv.Address())
+	if response.Rcode != dnsprotocol.RcodeSuccess {
+		t.Fatalf("expected NOERROR for existing name without TXT records, got %d", response.Rcode)
+	}
+	if len(response.Answer) != 0 {
+		t.Fatalf("expected empty answer for missing TXT record, got %#v", response.Answer)
+	}
+}
+
 func TestServiceHandleActionResolveAndTXTAndAll(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{

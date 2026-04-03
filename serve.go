@@ -204,10 +204,6 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 		return
 	}
 
-	if len(reply.Answer) == 0 {
-		goto noRecord
-	}
-
 	_ = responseWriter.WriteMsg(reply)
 	return
 
