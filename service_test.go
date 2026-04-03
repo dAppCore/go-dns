@@ -396,6 +396,64 @@ func TestServiceHealthUsesChainTreeRootAfterDiscovery(t *testing.T) {
 	}
 }
 
+func TestServiceLocalMutationClearsChainTreeRoot(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+		var payload struct {
+			Method string `json:"method"`
+			Params []any  `json:"params"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Fatalf("unexpected request payload: %v", err)
+		}
+
+		switch payload.Method {
+		case "getblockchaininfo":
+			responseWriter.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": map[string]any{
+					"tree_root": "chain-root-1",
+				},
+			})
+		case "getnameresource":
+			responseWriter.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": map[string]any{
+					"a": []string{"10.10.10.10"},
+				},
+			})
+		default:
+			t.Fatalf("unexpected method: %s", payload.Method)
+		}
+	}))
+	defer server.Close()
+
+	service := NewService(ServiceOptions{
+		ChainAliasDiscoverer: func(_ context.Context) ([]string, error) {
+			return []string{"gateway.charon.lthn"}, nil
+		},
+		HSDClient: NewHSDClient(HSDClientOptions{URL: server.URL}),
+	})
+
+	if err := service.DiscoverAliases(context.Background()); err != nil {
+		t.Fatalf("expected discovery to populate chain tree root: %v", err)
+	}
+	if health := service.Health(); health.TreeRoot != "chain-root-1" {
+		t.Fatalf("expected chain tree root before local mutation, got %#v", health.TreeRoot)
+	}
+
+	service.SetRecord("gateway.charon.lthn", NameRecords{
+		A: []string{"10.10.10.11"},
+	})
+
+	health := service.Health()
+	if health.TreeRoot == "chain-root-1" {
+		t.Fatalf("expected local mutation to clear stale chain tree root, got %#v", health.TreeRoot)
+	}
+	if health.TreeRoot == "" {
+		t.Fatal("expected health to fall back to computed tree root after local mutation")
+	}
+}
+
 func TestServiceServeHTTPHealthReturnsJSON(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{

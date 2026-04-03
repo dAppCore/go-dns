@@ -623,6 +623,9 @@ func (service *Service) replaceRecords(discovered map[string]NameRecords) {
 	defer service.mu.Unlock()
 	service.records = cached
 	service.recordExpiry = expiry
+	service.chainTreeRoot = ""
+	service.lastTreeRootCheck = time.Time{}
+	service.lastAliasFingerprint = ""
 	service.refreshDerivedStateLocked()
 }
 
@@ -646,6 +649,9 @@ func (service *Service) SetRecord(name string, record NameRecords) {
 	} else if service.recordExpiry != nil {
 		delete(service.recordExpiry, normalizedName)
 	}
+	service.chainTreeRoot = ""
+	service.lastTreeRootCheck = time.Time{}
+	service.lastAliasFingerprint = ""
 	service.refreshDerivedStateLocked()
 }
 
@@ -663,6 +669,9 @@ func (service *Service) RemoveRecord(name string) {
 	if service.recordExpiry != nil {
 		delete(service.recordExpiry, normalizedName)
 	}
+	service.chainTreeRoot = ""
+	service.lastTreeRootCheck = time.Time{}
+	service.lastAliasFingerprint = ""
 	service.refreshDerivedStateLocked()
 }
 
@@ -757,6 +766,9 @@ func (service *Service) pruneExpiredRecords() {
 	}
 
 	if changed {
+		service.chainTreeRoot = ""
+		service.lastTreeRootCheck = time.Time{}
+		service.lastAliasFingerprint = ""
 		service.refreshDerivedStateLocked()
 	}
 }
