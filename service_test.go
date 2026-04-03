@@ -1061,6 +1061,34 @@ func TestServiceDiscoverAliasesClearsCacheWhenAliasListBecomesEmpty(t *testing.T
 	}
 }
 
+func TestServiceDiscoverAliasesClearsCacheWhenAliasListIsEmptyWithoutHSDClient(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"legacy.charon.lthn": {
+				A: []string{"10.11.11.11"},
+			},
+		},
+		ChainAliasDiscoverer: func(_ context.Context) ([]string, error) {
+			return []string{}, nil
+		},
+	})
+	service.hsdClient = nil
+	service.mainchainAliasClient = nil
+
+	if err := service.DiscoverAliases(context.Background()); err != nil {
+		t.Fatalf("expected empty alias discovery to succeed without HSD client: %v", err)
+	}
+
+	if _, ok := service.Resolve("legacy.charon.lthn"); ok {
+		t.Fatal("expected stale records to be cleared when the alias list is empty")
+	}
+
+	health := service.Health()
+	if health.NamesCached != 0 {
+		t.Fatalf("expected empty cache after clearing aliases, got %d", health.NamesCached)
+	}
+}
+
 func TestServiceDiscoverAliasesParsesAliasDetailRecordsFromActionCaller(t *testing.T) {
 	var treeRootCalls int32
 	var nameResourceCalls int32
@@ -1700,6 +1728,34 @@ func TestServiceDiscoverAliasesReturnsNilWithoutDiscovererOrHSDClient(t *testing
 	result, ok := service.Resolve("gateway.charon.lthn")
 	if !ok || len(result.A) != 1 || result.A[0] != "10.10.10.10" {
 		t.Fatalf("expected cached record to remain intact, got %#v (ok=%t)", result, ok)
+	}
+}
+
+func TestServiceDiscoverFromMainchainAliasesClearsCacheWhenAliasListIsEmptyWithoutHSDClient(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"legacy.charon.lthn": {
+				A: []string{"10.11.11.11"},
+			},
+		},
+		ChainAliasDiscoverer: func(_ context.Context) ([]string, error) {
+			return []string{}, nil
+		},
+	})
+	service.mainchainAliasClient = nil
+	service.hsdClient = nil
+
+	if err := service.DiscoverFromMainchainAliases(context.Background(), nil, nil); err != nil {
+		t.Fatalf("expected empty mainchain alias discovery to succeed without HSD or mainchain client: %v", err)
+	}
+
+	if _, ok := service.Resolve("legacy.charon.lthn"); ok {
+		t.Fatal("expected stale records to be cleared when the mainchain alias list is empty")
+	}
+
+	health := service.Health()
+	if health.NamesCached != 0 {
+		t.Fatalf("expected empty cache after clearing aliases, got %d", health.NamesCached)
 	}
 }
 

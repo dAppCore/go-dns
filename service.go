@@ -290,16 +290,16 @@ func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HS
 	if !found {
 		return nil
 	}
-	effectiveHSDClient, err := service.resolveHSDClient(client)
-	if err != nil {
-		return err
-	}
 	if len(aliases) == 0 {
 		now := time.Now()
 		fingerprint := aliasFingerprint(aliases)
 		service.replaceRecords(map[string]NameRecords{})
 		service.recordTreeRootState(now, "", fingerprint)
 		return nil
+	}
+	effectiveHSDClient, err := service.resolveHSDClient(client)
+	if err != nil {
+		return err
 	}
 	return service.discoverFromChainAliasesUsingTreeRoot(ctx, aliases, effectiveHSDClient)
 }
@@ -516,16 +516,16 @@ func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainC
 	if !found {
 		return nil
 	}
-	effectiveHSDClient, err := service.resolveHSDClient(hsdClient)
-	if err != nil {
-		return err
-	}
 	if len(aliases) == 0 {
 		now := time.Now()
 		fingerprint := aliasFingerprint(aliases)
 		service.replaceRecords(map[string]NameRecords{})
 		service.recordTreeRootState(now, "", fingerprint)
 		return nil
+	}
+	effectiveHSDClient, err := service.resolveHSDClient(hsdClient)
+	if err != nil {
+		return err
 	}
 	return service.discoverFromChainAliasesUsingTreeRoot(ctx, aliases, effectiveHSDClient)
 }
