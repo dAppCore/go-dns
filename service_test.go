@@ -2105,6 +2105,45 @@ func TestServiceHandleActionResolveAndTXTAndAll(t *testing.T) {
 	}
 }
 
+func TestServiceHandleActionServeDefaultsPortFromServiceConfiguration(t *testing.T) {
+	desiredPort := pickFreeTCPPort(t)
+	service := NewService(ServiceOptions{
+		DNSPort: desiredPort,
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	payload, ok, err := service.HandleAction(ActionServe, map[string]any{
+		"bind": "127.0.0.1",
+	})
+	if err != nil {
+		t.Fatalf("expected serve action to default port when omitted: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected serve action to succeed with omitted port")
+	}
+	dnsServer, ok := payload.(*DNSServer)
+	if !ok {
+		t.Fatalf("expected DNSServer payload, got %T", payload)
+	}
+	if dnsServer == nil {
+		t.Fatal("expected dns server from serve action")
+	}
+
+	_, port, err := net.SplitHostPort(dnsServer.DNSAddress())
+	if err != nil {
+		t.Fatalf("expected service address to include port: %v", err)
+	}
+	if port != strconv.Itoa(desiredPort) {
+		t.Fatalf("expected configured DNS port %d, got %q", desiredPort, port)
+	}
+
+	_ = dnsServer.Close()
+}
+
 func TestServiceActionNamesExposeAllRFCActions(t *testing.T) {
 	service := NewService(ServiceOptions{})
 

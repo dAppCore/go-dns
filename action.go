@@ -274,9 +274,12 @@ func (service *Service) handleReverseLookup(ctx context.Context, values map[stri
 func (service *Service) handleServe(ctx context.Context, values map[string]any) (any, bool, error) {
 	_ = ctx
 	bind, _ := stringActionValueOptional(values, "bind")
-	port, err := intActionValue(values, "port")
+	port, portProvided, err := intActionValueOptional(values, "port")
 	if err != nil {
 		return nil, false, err
+	}
+	if !portProvided {
+		port = service.dnsPort
 	}
 	result, err := service.Serve(bind, port)
 	if err != nil {
@@ -336,4 +339,19 @@ func intActionValue(values map[string]any, key string) (int, error) {
 	default:
 		return 0, fmt.Errorf("%w: %s", errActionMissingValue, key)
 	}
+}
+
+func intActionValueOptional(values map[string]any, key string) (int, bool, error) {
+	if values == nil {
+		return 0, false, nil
+	}
+	_, exists := values[key]
+	if !exists {
+		return 0, false, nil
+	}
+	value, err := intActionValue(values, key)
+	if err != nil {
+		return 0, false, err
+	}
+	return value, true, nil
 }
