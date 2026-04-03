@@ -57,6 +57,7 @@ type Service struct {
 	reverseIndex                 *cache.Cache
 	treeRoot                     string
 	zoneApex                     string
+	lastAliasFingerprint         string
 	hsdClient                    *HSDClient
 	mainchainAliasClient         *MainchainAliasClient
 	chainAliasActionCaller       ActionCaller
@@ -158,6 +159,19 @@ func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HS
 		return nil
 	}
 	return service.discoverFromChainAliasesUsingTreeRoot(ctx, aliases, resolved)
+}
+
+func aliasFingerprint(aliases []string) string {
+	normalized := normalizeAliasList(aliases)
+	builder := strings.Builder{}
+	for index, alias := range normalized {
+		if index > 0 {
+			builder.WriteByte('\n')
+		}
+		builder.WriteString(alias)
+	}
+	sum := sha256.Sum256([]byte(builder.String()))
+	return hex.EncodeToString(sum[:])
 }
 
 func (service *Service) discoverAliasesFromSources(
@@ -369,7 +383,8 @@ func (service *Service) discoverFromChainAliasesUsingTreeRoot(ctx context.Contex
 	}
 
 	now := time.Now()
-	if service.shouldUseCachedTreeRoot(now) {
+	fingerprint := aliasFingerprint(aliases)
+	if service.shouldUseCachedTreeRoot(now, fingerprint) {
 		return nil
 	}
 
@@ -379,8 +394,8 @@ func (service *Service) discoverFromChainAliasesUsingTreeRoot(ctx context.Contex
 	}
 
 	cachedRoot := service.getChainTreeRoot()
-	if cachedRoot != "" && cachedRoot == info.TreeRoot {
-		service.recordTreeRootCheck(now)
+	if cachedRoot != "" && cachedRoot == info.TreeRoot && service.getLastAliasFingerprint() == fingerprint {
+		service.recordTreeRootCheck(now, fingerprint)
 		return nil
 	}
 
@@ -388,13 +403,16 @@ func (service *Service) discoverFromChainAliasesUsingTreeRoot(ctx context.Contex
 		return err
 	}
 
-	service.recordTreeRootState(now, info.TreeRoot)
+	service.recordTreeRootState(now, info.TreeRoot, fingerprint)
 	return nil
 }
 
-func (service *Service) shouldUseCachedTreeRoot(now time.Time) bool {
+func (service *Service) shouldUseCachedTreeRoot(now time.Time, aliasFingerprint string) bool {
 	service.mu.RLock()
 	defer service.mu.RUnlock()
+	if service.lastAliasFingerprint != aliasFingerprint {
+		return false
+	}
 	if service.lastTreeRootCheck.IsZero() {
 		return false
 	}
@@ -410,17 +428,31 @@ func (service *Service) getChainTreeRoot() string {
 	return service.chainTreeRoot
 }
 
-func (service *Service) recordTreeRootCheck(now time.Time) {
+func (service *Service) getLastAliasFingerprint() string {
+	service.mu.RLock()
+	defer service.mu.RUnlock()
+	return service.lastAliasFingerprint
+}
+
+func (service *Service) recordAliasFingerprint(aliasFingerprint string) {
+	service.mu.Lock()
+	defer service.mu.Unlock()
+	service.lastAliasFingerprint = aliasFingerprint
+}
+
+func (service *Service) recordTreeRootCheck(now time.Time, aliasFingerprint string) {
 	service.mu.Lock()
 	defer service.mu.Unlock()
 	service.lastTreeRootCheck = now
+	service.lastAliasFingerprint = aliasFingerprint
 }
 
-func (service *Service) recordTreeRootState(now time.Time, treeRoot string) {
+func (service *Service) recordTreeRootState(now time.Time, treeRoot string, aliasFingerprint string) {
 	service.mu.Lock()
 	defer service.mu.Unlock()
 	service.lastTreeRootCheck = now
 	service.chainTreeRoot = treeRoot
+	service.lastAliasFingerprint = aliasFingerprint
 }
 
 // Discover refreshes the cache from the configured discoverer or fallback.
@@ -553,6 +585,7 @@ func (service *Service) DiscoverWithHSD(ctx context.Context, aliases []string, c
 		return fmt.Errorf("hsd client is required")
 	}
 
+	fingerprint := aliasFingerprint(aliases)
 	resolved := make(map[string]NameRecords, len(aliases))
 	for _, alias := range aliases {
 		normalized := normalizeName(alias)
@@ -568,6 +601,7 @@ func (service *Service) DiscoverWithHSD(ctx context.Context, aliases []string, c
 	}
 
 	service.replaceRecords(resolved)
+	service.recordAliasFingerprint(fingerprint)
 	return nil
 }
 
