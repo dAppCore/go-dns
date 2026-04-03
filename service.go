@@ -42,6 +42,15 @@ type ReverseLookupResult struct {
 	Names []string `json:"names"`
 }
 
+// HealthResult is the typed payload returned by Health and dns.health.
+//
+//	health := service.Health()
+type HealthResult struct {
+	Status      string `json:"status"`
+	NamesCached int    `json:"names_cached"`
+	TreeRoot    string `json:"tree_root"`
+}
+
 type Service struct {
 	mu                           sync.RWMutex
 	records                      map[string]NameRecords
@@ -627,7 +636,7 @@ func (service *Service) ResolveAll(name string) (ResolveAllResult, bool) {
 // Health reports the live cache size and tree root.
 //
 //	health := service.Health()
-func (service *Service) Health() map[string]any {
+func (service *Service) Health() HealthResult {
 	service.mu.RLock()
 	defer service.mu.RUnlock()
 
@@ -636,10 +645,10 @@ func (service *Service) Health() map[string]any {
 		treeRoot = service.chainTreeRoot
 	}
 
-	return map[string]any{
-		"status":       "ready",
-		"names_cached": len(service.records),
-		"tree_root":    treeRoot,
+	return HealthResult{
+		Status:      "ready",
+		NamesCached: len(service.records),
+		TreeRoot:    treeRoot,
 	}
 }
 

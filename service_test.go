@@ -237,9 +237,9 @@ func TestServiceHealthUsesDeterministicTreeRootAndUpdatesOnMutations(t *testing.
 	})
 
 	health := service.Health()
-	root, ok := health["tree_root"].(string)
-	if !ok || root == "" || root == "stubbed" {
-		t.Fatalf("expected computed tree root, got %#v", health["tree_root"])
+	root := health.TreeRoot
+	if root == "" || root == "stubbed" {
+		t.Fatalf("expected computed tree root, got %#v", health.TreeRoot)
 	}
 
 	healthRepeating := NewService(ServiceOptions{
@@ -249,7 +249,7 @@ func TestServiceHealthUsesDeterministicTreeRootAndUpdatesOnMutations(t *testing.
 				A:  []string{"10.0.0.1", "10.10.10.10"},
 			},
 		},
-	}).Health()["tree_root"].(string)
+	}).Health().TreeRoot
 
 	if healthRepeating != root {
 		t.Fatalf("expected deterministic tree root, got %s and %s", healthRepeating, root)
@@ -258,14 +258,14 @@ func TestServiceHealthUsesDeterministicTreeRootAndUpdatesOnMutations(t *testing.
 	service.SetRecord("gateway.charon.lthn", NameRecords{
 		A: []string{"10.10.10.11"},
 	})
-	updatedRoot, ok := service.Health()["tree_root"].(string)
-	if !ok || updatedRoot == root {
+	updatedRoot := service.Health().TreeRoot
+	if updatedRoot == root {
 		t.Fatalf("expected updated tree root after SetRecord, got %s", updatedRoot)
 	}
 
 	service.RemoveRecord("gateway.charon.lthn")
-	removedRoot, ok := service.Health()["tree_root"].(string)
-	if !ok || removedRoot == updatedRoot {
+	removedRoot := service.Health().TreeRoot
+	if removedRoot == updatedRoot {
 		t.Fatalf("expected updated tree root after RemoveRecord, got %s", removedRoot)
 	}
 }
@@ -313,9 +313,9 @@ func TestServiceHealthUsesChainTreeRootAfterDiscovery(t *testing.T) {
 	}
 
 	health := service.Health()
-	root, ok := health["tree_root"].(string)
-	if !ok || root != "chain-root-1" {
-		t.Fatalf("expected health to expose chain tree_root, got %#v", health["tree_root"])
+	root := health.TreeRoot
+	if root != "chain-root-1" {
+		t.Fatalf("expected health to expose chain tree_root, got %#v", health.TreeRoot)
 	}
 }
 
@@ -1803,11 +1803,11 @@ func TestServiceHandleActionReverseHealthServeAndDiscover(t *testing.T) {
 	if !ok {
 		t.Fatal("expected health action payload")
 	}
-	health, ok := healthPayload.(map[string]any)
+	health, ok := healthPayload.(HealthResult)
 	if !ok {
-		t.Fatalf("expected health map payload, got %T", healthPayload)
+		t.Fatalf("expected HealthResult payload, got %T", healthPayload)
 	}
-	if health["status"] != "ready" {
+	if health.Status != "ready" {
 		t.Fatalf("unexpected health payload: %#v", health)
 	}
 
@@ -1840,12 +1840,12 @@ func TestServiceHandleActionReverseHealthServeAndDiscover(t *testing.T) {
 	if !ok {
 		t.Fatal("expected discover action to succeed")
 	}
-	discoverHealth, ok := discoverPayload.(map[string]any)
+	discoverHealth, ok := discoverPayload.(HealthResult)
 	if !ok {
-		t.Fatalf("expected discover action payload map, got %T", discoverPayload)
+		t.Fatalf("expected discover action payload HealthResult, got %T", discoverPayload)
 	}
-	if discoverHealth["tree_root"] != "discover-root" {
-		t.Fatalf("expected discover to refresh tree root, got %#v", discoverHealth["tree_root"])
+	if discoverHealth.TreeRoot != "discover-root" {
+		t.Fatalf("expected discover to refresh tree root, got %#v", discoverHealth.TreeRoot)
 	}
 }
 
