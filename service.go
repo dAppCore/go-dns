@@ -32,6 +32,10 @@ type ResolveAddressResult struct {
 	Addresses []string `json:"addresses"`
 }
 
+type ReverseLookupResult struct {
+	Names []string `json:"names"`
+}
+
 type Service struct {
 	mu                           sync.RWMutex
 	records                      map[string]NameRecords
@@ -353,6 +357,14 @@ func (service *Service) Health() map[string]any {
 		"names_cached": len(service.records),
 		"tree_root":    service.treeRoot,
 	}
+}
+
+func (service *Service) ResolveReverseNames(ip string) (ReverseLookupResult, bool) {
+	names, ok := service.ResolveReverse(ip)
+	if !ok {
+		return ReverseLookupResult{}, false
+	}
+	return ReverseLookupResult{Names: names}, true
 }
 
 func (service *Service) findRecord(name string) (NameRecords, bool) {

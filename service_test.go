@@ -140,6 +140,24 @@ func TestServiceResolveReverseUsesARecords(t *testing.T) {
 	}
 }
 
+func TestServiceResolveReverseNamesReturnsNamedField(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	result, ok := service.ResolveReverseNames("10.10.10.10")
+	if !ok {
+		t.Fatal("expected named reverse result")
+	}
+	if len(result.Names) != 1 || result.Names[0] != "gateway.charon.lthn" {
+		t.Fatalf("unexpected reverse names result: %#v", result)
+	}
+}
+
 func TestServiceResolveReverseFallsBackToFalseWhenUnknown(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{
