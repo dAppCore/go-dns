@@ -1535,6 +1535,41 @@ func TestServiceResolveAllSynthesizesNSForDerivedZoneApex(t *testing.T) {
 	}
 }
 
+func TestServiceResolveAllReturnsStableShapeForDerivedZoneApex(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+			"node.charon.lthn": {
+				AAAA: []string{"2600:1f1c:7f0:4f01::2"},
+			},
+		},
+	})
+
+	result, ok := service.ResolveAll("charon.lthn")
+	if !ok {
+		t.Fatal("expected derived zone apex to resolve")
+	}
+	if result.A == nil || result.AAAA == nil || result.TXT == nil || result.NS == nil {
+		t.Fatalf("expected stable slice fields for derived apex, got %#v", result)
+	}
+	if len(result.A) != 0 || len(result.AAAA) != 0 || len(result.TXT) != 0 {
+		t.Fatalf("expected empty value arrays for derived apex, got %#v", result)
+	}
+	if len(result.NS) != 1 || result.NS[0] != "ns.charon.lthn" {
+		t.Fatalf("expected synthesized apex NS, got %#v", result.NS)
+	}
+
+	raw, err := json.Marshal(result)
+	if err != nil {
+		t.Fatalf("expected derived apex payload to marshal: %v", err)
+	}
+	if string(raw) != `{"a":[],"aaaa":[],"txt":[],"ns":["ns.charon.lthn"]}` {
+		t.Fatalf("expected stable JSON shape for derived apex, got %s", raw)
+	}
+}
+
 func TestServiceResolveAllReturnsEmptyArraysForMissingRecordValues(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{

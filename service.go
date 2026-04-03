@@ -662,7 +662,10 @@ func (service *Service) ResolveAll(name string) (ResolveAllResult, bool) {
 	if !ok {
 		if normalizeName(name) == service.ZoneApex() && service.ZoneApex() != "" {
 			return ResolveAllResult{
-				NS: []string{"ns." + service.ZoneApex()},
+				A:    []string{},
+				AAAA: []string{},
+				TXT:  []string{},
+				NS:   []string{"ns." + service.ZoneApex()},
 			}, true
 		}
 		return ResolveAllResult{
