@@ -35,6 +35,13 @@ type ActionRegistrar interface {
 	RegisterAction(name string, invoke func(map[string]any) (any, bool, error))
 }
 
+// ActionCaller resolves named actions from another Core surface.
+//
+//	payload, ok, err := caller.CallAction(context.Background(), "blockchain.chain.aliases", nil)
+type ActionCaller interface {
+	CallAction(ctx context.Context, name string, values map[string]any) (any, bool, error)
+}
+
 // ActionDefinitions returns the complete DNS action surface in registration order.
 //
 //	definitions := service.ActionDefinitions()

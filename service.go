@@ -50,6 +50,7 @@ type Service struct {
 	zoneApex                     string
 	hsdClient                    *HSDClient
 	mainchainAliasClient         *MainchainAliasClient
+	chainAliasActionCaller       ActionCaller
 	chainAliasAction             func(context.Context) ([]string, error)
 	discoverer                   func() (map[string]NameRecords, error)
 	fallbackDiscoverer           func() (map[string]NameRecords, error)
@@ -66,6 +67,7 @@ type ServiceOptions struct {
 	FallbackDiscoverer           func() (map[string]NameRecords, error)
 	MainchainAliasClient         *MainchainAliasClient
 	HSDClient                    *HSDClient
+	ChainAliasActionCaller       ActionCaller
 	ChainAliasAction             func(context.Context) ([]string, error)
 	ChainAliasDiscoverer         func(context.Context) ([]string, error)
 	FallbackChainAliasDiscoverer func(context.Context) ([]string, error)
@@ -106,6 +108,7 @@ func NewService(options ServiceOptions) *Service {
 		zoneApex:                     computeZoneApex(cached),
 		hsdClient:                    options.HSDClient,
 		mainchainAliasClient:         options.MainchainAliasClient,
+		chainAliasActionCaller:       options.ChainAliasActionCaller,
 		chainAliasAction:             options.ChainAliasAction,
 		discoverer:                   options.Discoverer,
 		fallbackDiscoverer:           options.FallbackDiscoverer,
@@ -133,6 +136,7 @@ func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HS
 
 	aliases, err := service.discoverAliasesFromSources(
 		ctx,
+		service.chainAliasActionCaller,
 		service.chainAliasAction,
 		service.chainAliasDiscoverer,
 		service.fallbackChainAliasDiscoverer,
@@ -149,11 +153,16 @@ func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HS
 
 func (service *Service) discoverAliasesFromSources(
 	ctx context.Context,
+	actionCaller ActionCaller,
 	action func(context.Context) ([]string, error),
 	discoverer func(context.Context) ([]string, error),
 	fallback func(context.Context) ([]string, error),
 	mainchainClient *MainchainAliasClient,
 ) ([]string, error) {
+	if aliases, ok := service.discoverAliasesFromActionCaller(ctx, actionCaller); ok {
+		return aliases, nil
+	}
+
 	if action != nil {
 		aliases, err := action(ctx)
 		if err == nil {
@@ -199,6 +208,51 @@ func (service *Service) discoverAliasesFromSources(
 	return mainchainClient.GetAllAliasDetails(ctx)
 }
 
+func (service *Service) discoverAliasesFromActionCaller(ctx context.Context, actionCaller ActionCaller) ([]string, bool) {
+	if actionCaller == nil {
+		return nil, false
+	}
+
+	result, ok, err := actionCaller.CallAction(ctx, "blockchain.chain.aliases", map[string]any{})
+	if err != nil || !ok {
+		return nil, false
+	}
+
+	aliases, err := parseActionAliasList(result)
+	if err != nil {
+		return nil, false
+	}
+	return aliases, true
+}
+
+func parseActionAliasList(value any) ([]string, error) {
+	switch aliases := value.(type) {
+	case nil:
+		return nil, fmt.Errorf("blockchain.chain.aliases action returned no value")
+	case []string:
+		return normalizeAliasList(aliases), nil
+	case []any:
+		parsed := make([]string, 0, len(aliases))
+		for _, item := range aliases {
+			name, ok := item.(string)
+			if !ok {
+				return nil, fmt.Errorf("blockchain.chain.aliases action returned non-string alias")
+			}
+			parsed = append(parsed, name)
+		}
+		return normalizeAliasList(parsed), nil
+	case map[string]any:
+		if rawAliases, ok := aliases["aliases"]; ok {
+			return parseActionAliasList(rawAliases)
+		}
+		if rawResult, ok := aliases["result"]; ok {
+			return parseActionAliasList(rawResult)
+		}
+	}
+
+	return nil, fmt.Errorf("blockchain.chain.aliases action returned unsupported result type %T", value)
+}
+
 // DiscoverFromMainchainAliases updates records from main-chain aliases resolved through HSD.
 //
 //	service.DiscoverFromMainchainAliases(context.Background(), dns.NewMainchainAliasClient(dns.MainchainClientOptions{
@@ -219,6 +273,7 @@ func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainC
 
 	aliases, err := service.discoverAliasesFromSources(
 		ctx,
+		service.chainAliasActionCaller,
 		nil,
 		func(ctx context.Context) ([]string, error) {
 			if service.chainAliasDiscoverer != nil {

@@ -516,6 +516,95 @@ func TestServiceDiscoverAliasesUsesConfiguredAliasDiscovery(t *testing.T) {
 	}
 }
 
+func TestServiceDiscoverAliasesUsesConfiguredActionCaller(t *testing.T) {
+	var treeRootCalls int32
+	var nameResourceCalls int32
+	actionCalled := false
+	discovererCalled := false
+
+	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+		var payload struct {
+			Method string `json:"method"`
+			Params []any  `json:"params"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Fatalf("unexpected request payload: %v", err)
+		}
+
+		switch payload.Method {
+		case "getblockchaininfo":
+			atomic.AddInt32(&treeRootCalls, 1)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": map[string]any{
+					"tree_root": "action-caller-root",
+				},
+			})
+		case "getnameresource":
+			atomic.AddInt32(&nameResourceCalls, 1)
+			switch payload.Params[0] {
+			case "gateway.charon.lthn":
+				_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+					"result": map[string]any{
+						"a": []string{"10.10.10.10"},
+					},
+				})
+			case "node.charon.lthn":
+				_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+					"result": map[string]any{
+						"aaaa": []string{"2600:1f1c:7f0:4f01::2"},
+					},
+				})
+			default:
+				t.Fatalf("unexpected alias lookup: %#v", payload.Params)
+			}
+		default:
+			t.Fatalf("unexpected method: %s", payload.Method)
+		}
+	}))
+	defer server.Close()
+
+	service := NewService(ServiceOptions{
+		ChainAliasActionCaller: actionCallerFunc(func(ctx context.Context, name string, values map[string]any) (any, bool, error) {
+			actionCalled = true
+			if name != "blockchain.chain.aliases" {
+				t.Fatalf("unexpected action name: %s", name)
+			}
+			return map[string]any{
+				"aliases": []any{"gateway.charon.lthn", "node.charon.lthn"},
+			}, true, nil
+		}),
+		ChainAliasDiscoverer: func(_ context.Context) ([]string, error) {
+			discovererCalled = true
+			return nil, errors.New("discoverer should not run when action caller succeeds")
+		},
+		HSDClient: NewHSDClient(HSDClientOptions{URL: server.URL}),
+	})
+
+	if err := service.DiscoverAliases(context.Background()); err != nil {
+		t.Fatalf("expected DiscoverAliases to complete through action caller: %v", err)
+	}
+	if !actionCalled {
+		t.Fatal("expected action caller to be invoked")
+	}
+	if discovererCalled {
+		t.Fatal("expected chain alias discoverer to be skipped after action caller success")
+	}
+
+	gateway, ok := service.Resolve("gateway.charon.lthn")
+	if !ok || len(gateway.A) != 1 || gateway.A[0] != "10.10.10.10" {
+		t.Fatalf("expected gateway A record, got %#v (ok=%t)", gateway, ok)
+	}
+	node, ok := service.Resolve("node.charon.lthn")
+	if !ok || len(node.AAAA) != 1 || node.AAAA[0] != "2600:1f1c:7f0:4f01::2" {
+		t.Fatalf("expected node AAAA record, got %#v (ok=%t)", node, ok)
+	}
+
+	if atomic.LoadInt32(&treeRootCalls) != 1 || atomic.LoadInt32(&nameResourceCalls) != 2 {
+		t.Fatalf("expected discovery to perform chain and name-resource calls, got treeRoot=%d nameResource=%d", atomic.LoadInt32(&treeRootCalls), atomic.LoadInt32(&nameResourceCalls))
+	}
+}
+
 func TestServiceDiscoverAliasesUsesConfiguredChainAliasAction(t *testing.T) {
 	var treeRootCalls int32
 	var nameResourceCalls int32
@@ -1607,4 +1696,10 @@ func (recorder *actionRecorder) RegisterAction(name string, invoke func(map[stri
 	}
 	recorder.names = append(recorder.names, name)
 	recorder.handlers[name] = invoke
+}
+
+type actionCallerFunc func(context.Context, string, map[string]any) (any, bool, error)
+
+func (caller actionCallerFunc) CallAction(ctx context.Context, name string, values map[string]any) (any, bool, error) {
+	return caller(ctx, name, values)
 }
