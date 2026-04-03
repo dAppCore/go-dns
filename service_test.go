@@ -93,6 +93,35 @@ func TestServiceResolveUsesMostSpecificWildcard(t *testing.T) {
 	}
 }
 
+func TestServiceResolveWildcardMatchesOnlyOneLabel(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"*.charon.lthn": {
+				A: []string{"10.0.0.2"},
+			},
+			"*.bar.charon.lthn": {
+				A: []string{"10.0.0.3"},
+			},
+		},
+	})
+
+	if _, ok := service.Resolve("foo.bar.charon.lthn"); !ok {
+		t.Fatal("expected deeper wildcard match to resolve against the matching depth")
+	}
+
+	result, ok := service.Resolve("foo.charon.lthn")
+	if !ok {
+		t.Fatal("expected single-label wildcard to resolve")
+	}
+	if len(result.A) != 1 || result.A[0] != "10.0.0.2" {
+		t.Fatalf("unexpected wildcard result for single-label match: %#v", result.A)
+	}
+
+	if _, ok := service.Resolve("foo.baz.charon.lthn"); ok {
+		t.Fatal("expected wildcard to require an exact one-label match")
+	}
+}
+
 func TestServiceResolveTXTUsesWildcard(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{

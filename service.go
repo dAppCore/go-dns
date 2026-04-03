@@ -971,14 +971,14 @@ func findWildcardMatch(name string, records map[string]NameRecords) (NameRecords
 }
 
 func wildcardMatches(suffix, name string) bool {
-	parts := strings.Split(suffix, ".")
-	if len(parts) == 0 || len(name) <= len(suffix)+1 {
+	if suffix == "" || name == suffix {
 		return false
 	}
 	if !strings.HasSuffix(name, "."+suffix) {
 		return false
 	}
-	return strings.Count(name[:len(name)-len(suffix)], ".") >= 1
+	prefix := strings.TrimSuffix(name, "."+suffix)
+	return prefix != "" && !strings.Contains(prefix, ".")
 }
 
 func betterWildcardMatch(candidate, current string) bool {
