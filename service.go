@@ -89,12 +89,19 @@ type Service struct {
 //		Records: map[string]dns.NameRecords{
 //			"gateway.charon.lthn": {A: []string{"10.10.10.10"}},
 //		},
-//		HSDClient: dns.NewHSDClient(dns.HSDClientOptions{URL: "http://127.0.0.1:14037"}),
+//		HSDURL:       "http://127.0.0.1:14037",
+//		MainchainURL: "http://127.0.0.1:14037",
 //	})
 type ServiceOptions struct {
 	Records                      map[string]NameRecords
 	RecordDiscoverer             func() (map[string]NameRecords, error)
 	FallbackRecordDiscoverer     func() (map[string]NameRecords, error)
+	HSDURL                       string
+	HSDUsername                  string
+	HSDPassword                  string
+	MainchainURL                 string
+	MainchainUsername            string
+	MainchainPassword            string
 	MainchainAliasClient         *MainchainAliasClient
 	HSDClient                    *HSDClient
 	ChainAliasActionCaller       ActionCaller
@@ -126,6 +133,24 @@ func NewService(options ServiceOptions) *Service {
 		checkInterval = DefaultTreeRootCheckInterval
 	}
 
+	hsdClient := options.HSDClient
+	if hsdClient == nil && strings.TrimSpace(options.HSDURL) != "" {
+		hsdClient = NewHSDClient(HSDClientOptions{
+			URL:      options.HSDURL,
+			Username: options.HSDUsername,
+			Password: options.HSDPassword,
+		})
+	}
+
+	mainchainClient := options.MainchainAliasClient
+	if mainchainClient == nil && strings.TrimSpace(options.MainchainURL) != "" {
+		mainchainClient = NewMainchainAliasClient(MainchainClientOptions{
+			URL:      options.MainchainURL,
+			Username: options.MainchainUsername,
+			Password: options.MainchainPassword,
+		})
+	}
+
 	cached := make(map[string]NameRecords, len(options.Records))
 	for name, record := range options.Records {
 		cached[normalizeName(name)] = record
@@ -136,8 +161,8 @@ func NewService(options ServiceOptions) *Service {
 		reverseIndex:                 buildReverseIndexCache(cached),
 		treeRoot:                     treeRoot,
 		zoneApex:                     computeZoneApex(cached),
-		hsdClient:                    options.HSDClient,
-		mainchainAliasClient:         options.MainchainAliasClient,
+		hsdClient:                    hsdClient,
+		mainchainAliasClient:         mainchainClient,
 		chainAliasActionCaller:       options.ChainAliasActionCaller,
 		chainAliasAction:             options.ChainAliasAction,
 		recordDiscoverer:             options.RecordDiscoverer,

@@ -677,6 +677,85 @@ func TestServiceDiscoverAliasesUsesConfiguredChainAliasAction(t *testing.T) {
 	}
 }
 
+func TestNewServiceBuildsRPCClientsFromOptions(t *testing.T) {
+	var chainCalls int32
+	var treeRootCalls int32
+	var nameResourceCalls int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+		var payload struct {
+			Method string `json:"method"`
+			Params []any  `json:"params"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Fatalf("unexpected request payload: %v", err)
+		}
+
+		switch payload.Method {
+		case "get_all_alias_details":
+			atomic.AddInt32(&chainCalls, 1)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": []any{
+					map[string]any{
+						"hns": "gateway.charon.lthn",
+					},
+				},
+			})
+		case "getblockchaininfo":
+			atomic.AddInt32(&treeRootCalls, 1)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": map[string]any{
+					"tree_root": "options-root-1",
+				},
+			})
+		case "getnameresource":
+			atomic.AddInt32(&nameResourceCalls, 1)
+			if len(payload.Params) != 1 || payload.Params[0] != "gateway.charon.lthn" {
+				t.Fatalf("unexpected alias lookup: %#v", payload.Params)
+			}
+			responseWriter.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": map[string]any{
+					"a": []string{"10.10.10.10"},
+				},
+			})
+		default:
+			t.Fatalf("unexpected method: %s", payload.Method)
+		}
+	}))
+	defer server.Close()
+
+	service := NewService(ServiceOptions{
+		MainchainURL: server.URL,
+		HSDURL:       server.URL,
+	})
+
+	if err := service.DiscoverAliases(context.Background()); err != nil {
+		t.Fatalf("expected configured RPC clients to drive discovery: %v", err)
+	}
+
+	record, ok := service.Resolve("gateway.charon.lthn")
+	if !ok || len(record.A) != 1 || record.A[0] != "10.10.10.10" {
+		t.Fatalf("expected discovered record from configured clients, got %#v (ok=%t)", record, ok)
+	}
+
+	health := service.Health()
+	if health.TreeRoot != "options-root-1" {
+		t.Fatalf("expected health to reflect configured HSD client tree root, got %#v", health.TreeRoot)
+	}
+
+	if atomic.LoadInt32(&chainCalls) != 1 || atomic.LoadInt32(&treeRootCalls) != 1 || atomic.LoadInt32(&nameResourceCalls) != 1 {
+		t.Fatalf(
+			"expected chain=1 tree-root=1 name-resource=1, got %d %d %d",
+			atomic.LoadInt32(&chainCalls),
+			atomic.LoadInt32(&treeRootCalls),
+			atomic.LoadInt32(&nameResourceCalls),
+		)
+	}
+}
+
 func TestServiceDiscoverAliasesClearsCacheWhenAliasListBecomesEmpty(t *testing.T) {
 	var hsdCalls int32
 
