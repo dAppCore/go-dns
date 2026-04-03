@@ -11,7 +11,10 @@ import (
 
 const dnsTTL = 300
 
-// DNSServer handles a live UDP+TCP DNS endpoint and owns listener resources.
+// DNSServer owns the UDP+TCP DNS listeners returned by Serve.
+//
+//	srv, err := service.Serve("127.0.0.1", 53)
+//	defer func() { _ = srv.Close() }()
 type DNSServer struct {
 	udpListener net.PacketConn
 	tcpListener net.Listener
@@ -20,6 +23,9 @@ type DNSServer struct {
 }
 
 // ServiceRuntime owns the DNS and HTTP listeners created by ServeAll.
+//
+//	runtime, err := service.ServeAll("127.0.0.1", 53, 5554)
+//	defer func() { _ = runtime.Close() }()
 type ServiceRuntime struct {
 	DNS  *DNSServer
 	HTTP *HTTPServer

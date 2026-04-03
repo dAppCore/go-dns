@@ -10,6 +10,9 @@ import (
 )
 
 // HTTPServer owns the health endpoint listener and server.
+//
+//	server, err := service.ServeHTTPHealth("127.0.0.1", 5554)
+//	defer func() { _ = server.Close() }()
 type HTTPServer struct {
 	listener net.Listener
 	server   *http.Server
