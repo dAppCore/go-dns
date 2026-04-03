@@ -468,6 +468,10 @@ func appendAnyAnswers(reply *dnsprotocol.Msg, questionName string, lookupName st
 		appendDNSSECResourceRecords(reply, questionName, dnsprotocol.TypeDNSKEY, []string{value})
 	}
 
+	for _, value := range record.DS {
+		appendDNSSECResourceRecords(reply, questionName, dnsprotocol.TypeDS, []string{value})
+	}
+
 	for _, value := range record.RRSIG {
 		appendDNSSECResourceRecords(reply, questionName, dnsprotocol.TypeRRSIG, []string{value})
 	}
