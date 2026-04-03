@@ -1,6 +1,30 @@
 package dns
 
-import "testing"
+import (
+	"strings"
+	"testing"
+	"time"
+
+	dnsprotocol "github.com/miekg/dns"
+)
+
+func exchangeWithRetry(t *testing.T, client dnsprotocol.Client, request *dnsprotocol.Msg, address string) *dnsprotocol.Msg {
+	t.Helper()
+
+	for attempt := 0; attempt < 80; attempt++ {
+		response, _, err := client.Exchange(request, address)
+		if err == nil {
+			return response
+		}
+		if !strings.Contains(err.Error(), "connection refused") {
+			t.Fatalf("dns query failed: %v", err)
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+
+	t.Fatalf("dns query failed after retrying due to startup timing")
+	return nil
+}
 
 func TestServiceResolveUsesExactNameBeforeWildcard(t *testing.T) {
 	service := NewService(ServiceOptions{
@@ -241,5 +265,108 @@ func TestServiceDiscoverReturnsNilWithoutDiscoverer(t *testing.T) {
 
 	if err := service.Discover(); err != nil {
 		t.Fatalf("expected no error when discoverer is missing: %v", err)
+	}
+}
+
+func TestServiceServeResolvesAAndAAAARecords(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A:    []string{"10.10.10.10"},
+				AAAA: []string{"2600:1f1c:7f0:4f01::1"},
+			},
+		},
+	})
+
+	srv, err := service.Serve("127.0.0.1", 0)
+	if err != nil {
+		t.Fatalf("expected server to start: %v", err)
+	}
+	defer func() { _ = srv.Close() }()
+
+	client := dnsprotocol.Client{}
+	query := func(qtype uint16) *dnsprotocol.Msg {
+		request := new(dnsprotocol.Msg)
+		request.SetQuestion("gateway.charon.lthn.", qtype)
+		response := exchangeWithRetry(t, client, request, srv.Address())
+		if response.Rcode != dnsprotocol.RcodeSuccess {
+			t.Fatalf("unexpected rcode for qtype %d: %d", qtype, response.Rcode)
+		}
+		return response
+	}
+
+	aResponse := query(dnsprotocol.TypeA)
+	if len(aResponse.Answer) != 1 {
+		t.Fatalf("expected one A answer, got %d", len(aResponse.Answer))
+	}
+	if got, ok := aResponse.Answer[0].(*dnsprotocol.A); !ok || got.A.String() != "10.10.10.10" {
+		t.Fatalf("unexpected A answer: %#v", aResponse.Answer[0])
+	}
+
+	aaaaResponse := query(dnsprotocol.TypeAAAA)
+	if len(aaaaResponse.Answer) != 1 {
+		t.Fatalf("expected one AAAA answer, got %d", len(aaaaResponse.Answer))
+	}
+	if got, ok := aaaaResponse.Answer[0].(*dnsprotocol.AAAA); !ok || got.AAAA.String() != "2600:1f1c:7f0:4f01::1" {
+		t.Fatalf("unexpected AAAA answer: %#v", aaaaResponse.Answer[0])
+	}
+}
+
+func TestServiceServeResolvesWildcardAndPTRRecords(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"*.charon.lthn": {
+				A: []string{"10.0.0.1"},
+			},
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	srv, err := service.Serve("127.0.0.1", 0)
+	if err != nil {
+		t.Fatalf("expected server to start: %v", err)
+	}
+	defer func() { _ = srv.Close() }()
+
+	client := dnsprotocol.Client{}
+	request := new(dnsprotocol.Msg)
+	request.SetQuestion("node1.charon.lthn.", dnsprotocol.TypeA)
+	response := exchangeWithRetry(t, client, request, srv.Address())
+	if response.Rcode != dnsprotocol.RcodeSuccess {
+		t.Fatalf("unexpected rcode: %d", response.Rcode)
+	}
+	if got, ok := response.Answer[0].(*dnsprotocol.A); !ok || got.A.String() != "10.0.0.1" {
+		t.Fatalf("unexpected wildcard A answer: %#v", response.Answer)
+	}
+
+	ptrName := "10.10.10.10.in-addr.arpa."
+	ptrRequest := new(dnsprotocol.Msg)
+	ptrRequest.SetQuestion(ptrName, dnsprotocol.TypePTR)
+	ptrResponse := exchangeWithRetry(t, client, ptrRequest, srv.Address())
+	if len(ptrResponse.Answer) == 0 {
+		t.Fatal("expected PTR answer")
+	}
+	if got, ok := ptrResponse.Answer[0].(*dnsprotocol.PTR); !ok || got.Ptr != "gateway.charon.lthn." {
+		t.Fatalf("unexpected PTR answer: %#v", ptrResponse.Answer)
+	}
+}
+
+func TestServiceServeReturnsNXDOMAINWhenMissing(t *testing.T) {
+	service := NewService(ServiceOptions{})
+
+	srv, err := service.Serve("127.0.0.1", 0)
+	if err != nil {
+		t.Fatalf("expected server to start: %v", err)
+	}
+	defer func() { _ = srv.Close() }()
+
+	client := dnsprotocol.Client{}
+	request := new(dnsprotocol.Msg)
+	request.SetQuestion("missing.charon.lthn.", dnsprotocol.TypeA)
+	response := exchangeWithRetry(t, client, request, srv.Address())
+	if response.Rcode != dnsprotocol.RcodeNameError {
+		t.Fatalf("expected NXDOMAIN, got %d", response.Rcode)
 	}
 }
