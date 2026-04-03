@@ -1,6 +1,7 @@
 package dns
 
 import (
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -338,6 +339,11 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 		} else {
 			goto noRecord
 		}
+	case dnsprotocol.TypeDS:
+		if !found {
+			goto noRecord
+		}
+		appendDNSSECResourceRecords(reply, question.Name, dnsprotocol.TypeDS, record.DS)
 	default:
 		reply.SetRcode(request, dnsprotocol.RcodeNotImplemented)
 		_ = responseWriter.WriteMsg(reply)
@@ -466,4 +472,47 @@ func appendAnyAnswers(reply *dnsprotocol.Msg, questionName string, lookupName st
 			Minttl:  300,
 		})
 	}
+}
+
+func appendDNSSECResourceRecords(reply *dnsprotocol.Msg, questionName string, recordType uint16, values []string) {
+	for _, value := range values {
+		rr, err := parseDNSSECResourceRecord(questionName, recordType, value)
+		if err != nil {
+			continue
+		}
+		reply.Answer = append(reply.Answer, rr)
+	}
+}
+
+func parseDNSSECResourceRecord(questionName string, recordType uint16, raw string) (dnsprotocol.RR, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return nil, fmt.Errorf("empty dnssec resource value")
+	}
+
+	fallback := fmt.Sprintf("%s %d IN %s %s", questionName, defaultDNSTTL, dnsprotocol.TypeToString[recordType], trimmed)
+	rr, err := dnsprotocol.NewRR(fallback)
+	if err == nil {
+		header := rr.Header()
+		if header.Rrtype != recordType {
+			return nil, fmt.Errorf("dnsprotocol record type mismatch")
+		}
+		header.Name = questionName
+		header.Class = dnsprotocol.ClassINET
+		header.Ttl = defaultDNSTTL
+		return rr, nil
+	}
+
+	if rr, err := dnsprotocol.NewRR(trimmed); err == nil {
+		header := rr.Header()
+		if header.Rrtype != recordType {
+			return nil, fmt.Errorf("dnsprotocol record type mismatch")
+		}
+		header.Name = questionName
+		header.Class = dnsprotocol.ClassINET
+		header.Ttl = defaultDNSTTL
+		return rr, nil
+	}
+
+	return nil, err
 }

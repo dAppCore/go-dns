@@ -1680,6 +1680,36 @@ func TestServiceServeResolvesAAndAAAARecords(t *testing.T) {
 	}
 }
 
+func TestServiceServeAnswersDSRecords(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				DS: []string{"60485 8 2 A1B2C3D4E5F60718293A4B5C6D7E8F9012345678"},
+			},
+		},
+	})
+
+	srv, err := service.Serve("127.0.0.1", 0)
+	if err != nil {
+		t.Fatalf("expected server to start: %v", err)
+	}
+	defer func() { _ = srv.Close() }()
+
+	client := dnsprotocol.Client{}
+	request := new(dnsprotocol.Msg)
+	request.SetQuestion("gateway.charon.lthn.", dnsprotocol.TypeDS)
+	response := exchangeWithRetry(t, client, request, srv.Address())
+	if response.Rcode != dnsprotocol.RcodeSuccess {
+		t.Fatalf("unexpected DS rcode: %d", response.Rcode)
+	}
+	if len(response.Answer) != 1 {
+		t.Fatalf("expected one DS answer, got %d", len(response.Answer))
+	}
+	if _, ok := response.Answer[0].(*dnsprotocol.DS); !ok {
+		t.Fatalf("expected DS answer, got %#v", response.Answer[0])
+	}
+}
+
 func TestServiceServeAnswersANYWithAllRecordTypes(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{

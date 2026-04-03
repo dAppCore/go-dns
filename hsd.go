@@ -210,6 +210,7 @@ func parseHSDNameResource(raw json.RawMessage) (NameRecords, error) {
 		AAAA []string `json:"aaaa"`
 		TXT  []string `json:"txt"`
 		NS   []string `json:"ns"`
+		DS   []string `json:"ds"`
 	}
 	if err := json.Unmarshal(raw, &wrapped); err == nil {
 		result = NameRecords{
@@ -217,6 +218,7 @@ func parseHSDNameResource(raw json.RawMessage) (NameRecords, error) {
 			AAAA: wrapped.AAAA,
 			TXT:  wrapped.TXT,
 			NS:   wrapped.NS,
+			DS:   wrapped.DS,
 		}
 		return result, nil
 	}
