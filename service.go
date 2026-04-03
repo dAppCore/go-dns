@@ -229,16 +229,20 @@ func parseActionAliasList(value any) ([]string, error) {
 	switch aliases := value.(type) {
 	case nil:
 		return nil, fmt.Errorf("blockchain.chain.aliases action returned no value")
+	case string:
+		return normalizeAliasList([]string{aliases}), nil
 	case []string:
 		return normalizeAliasList(aliases), nil
 	case []any:
 		parsed := make([]string, 0, len(aliases))
 		for _, item := range aliases {
-			name, ok := item.(string)
-			if !ok {
-				return nil, fmt.Errorf("blockchain.chain.aliases action returned non-string alias")
+			name, err := parseActionAliasValue(item)
+			if err != nil {
+				return nil, err
 			}
-			parsed = append(parsed, name)
+			if name != "" {
+				parsed = append(parsed, name)
+			}
 		}
 		return normalizeAliasList(parsed), nil
 	case map[string]any:
@@ -248,9 +252,55 @@ func parseActionAliasList(value any) ([]string, error) {
 		if rawResult, ok := aliases["result"]; ok {
 			return parseActionAliasList(rawResult)
 		}
+		name, err := parseActionAliasRecord(aliases)
+		if err != nil {
+			return nil, err
+		}
+		if name != "" {
+			return []string{name}, nil
+		}
 	}
 
 	return nil, fmt.Errorf("blockchain.chain.aliases action returned unsupported result type %T", value)
+}
+
+func parseActionAliasValue(value any) (string, error) {
+	switch alias := value.(type) {
+	case string:
+		return normalizeName(alias), nil
+	case map[string]any:
+		return parseActionAliasRecord(alias)
+	default:
+		return "", fmt.Errorf("blockchain.chain.aliases action returned unsupported alias item type %T", value)
+	}
+}
+
+func parseActionAliasRecord(record map[string]any) (string, error) {
+	if hns, ok := record["hns"]; ok {
+		if name, ok := hns.(string); ok {
+			return normalizeName(name), nil
+		}
+		return "", fmt.Errorf("blockchain.chain.aliases action returned non-string hns value")
+	}
+	if comment, ok := record["comment"]; ok {
+		if text, ok := comment.(string); ok {
+			return extractAliasFromComment(text), nil
+		}
+		return "", fmt.Errorf("blockchain.chain.aliases action returned non-string comment value")
+	}
+	if alias, ok := record["alias"]; ok {
+		if name, ok := alias.(string); ok {
+			return normalizeName(name), nil
+		}
+		return "", fmt.Errorf("blockchain.chain.aliases action returned non-string alias value")
+	}
+	if name, ok := record["name"]; ok {
+		if text, ok := name.(string); ok {
+			return normalizeName(text), nil
+		}
+		return "", fmt.Errorf("blockchain.chain.aliases action returned non-string name value")
+	}
+	return "", nil
 }
 
 // DiscoverFromMainchainAliases updates records from main-chain aliases resolved through HSD.

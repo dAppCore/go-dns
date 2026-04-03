@@ -677,6 +677,94 @@ func TestServiceDiscoverAliasesUsesConfiguredChainAliasAction(t *testing.T) {
 	}
 }
 
+func TestServiceDiscoverAliasesParsesAliasDetailRecordsFromActionCaller(t *testing.T) {
+	var treeRootCalls int32
+	var nameResourceCalls int32
+	actionCalled := false
+
+	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+		var payload struct {
+			Method string `json:"method"`
+			Params []any  `json:"params"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Fatalf("unexpected request payload: %v", err)
+		}
+
+		switch payload.Method {
+		case "getblockchaininfo":
+			atomic.AddInt32(&treeRootCalls, 1)
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": map[string]any{
+					"tree_root": "record-root-1",
+				},
+			})
+		case "getnameresource":
+			atomic.AddInt32(&nameResourceCalls, 1)
+			switch payload.Params[0] {
+			case "gateway.charon.lthn":
+				_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+					"result": map[string]any{
+						"a": []string{"10.10.10.10"},
+					},
+				})
+			case "node.charon.lthn":
+				_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+					"result": map[string]any{
+						"aaaa": []string{"2600:1f1c:7f0:4f01::2"},
+					},
+				})
+			default:
+				t.Fatalf("unexpected alias lookup: %#v", payload.Params)
+			}
+		default:
+			t.Fatalf("unexpected method: %s", payload.Method)
+		}
+	}))
+	defer server.Close()
+
+	service := NewService(ServiceOptions{
+		ChainAliasActionCaller: actionCallerFunc(func(ctx context.Context, name string, values map[string]any) (any, bool, error) {
+			actionCalled = true
+			if name != "blockchain.chain.aliases" {
+				t.Fatalf("unexpected action name: %s", name)
+			}
+			return map[string]any{
+				"aliases": []any{
+					map[string]any{
+						"name":    "gateway",
+						"comment": "gateway alias hns=gateway.charon.lthn",
+					},
+					map[string]any{
+						"name": "node",
+						"hns":  "node.charon.lthn",
+					},
+				},
+			}, true, nil
+		}),
+		HSDClient: NewHSDClient(HSDClientOptions{URL: server.URL}),
+	})
+
+	if err := service.DiscoverAliases(context.Background()); err != nil {
+		t.Fatalf("expected DiscoverAliases to parse alias detail records: %v", err)
+	}
+	if !actionCalled {
+		t.Fatal("expected action caller to be invoked")
+	}
+	if atomic.LoadInt32(&treeRootCalls) != 1 || atomic.LoadInt32(&nameResourceCalls) != 2 {
+		t.Fatalf("expected one tree-root and two name-resource RPC calls, got treeRoot=%d nameResource=%d", atomic.LoadInt32(&treeRootCalls), atomic.LoadInt32(&nameResourceCalls))
+	}
+
+	gateway, ok := service.Resolve("gateway.charon.lthn")
+	if !ok || len(gateway.A) != 1 || gateway.A[0] != "10.10.10.10" {
+		t.Fatalf("expected gateway A record, got %#v (ok=%t)", gateway, ok)
+	}
+	node, ok := service.Resolve("node.charon.lthn")
+	if !ok || len(node.AAAA) != 1 || node.AAAA[0] != "2600:1f1c:7f0:4f01::2" {
+		t.Fatalf("expected node AAAA record, got %#v (ok=%t)", node, ok)
+	}
+}
+
 func TestServiceDiscoverFallsBackWhenPrimaryDiscovererFails(t *testing.T) {
 	primaryCalled := false
 	fallbackCalled := false
