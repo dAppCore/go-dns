@@ -1,6 +1,7 @@
 package dns
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -136,6 +137,37 @@ func (service *Service) ResolveTXT(name string) ([]string, bool) {
 		return nil, false
 	}
 	return append([]string(nil), record.TXT...), true
+}
+
+// DiscoverWithHSD refreshes DNS records for each alias by calling HSD.
+// Example:
+//
+//	err := service.DiscoverWithHSD(context.Background(), []string{"gateway.lthn"}, dns.NewHSDClient(dns.HSDClientOptions{
+//		URL:      "http://127.0.0.1:14037",
+//		Username: "user",
+//		Password: "pass",
+//	}))
+func (service *Service) DiscoverWithHSD(ctx context.Context, aliases []string, client *HSDClient) error {
+	if client == nil {
+		return fmt.Errorf("hsd client is required")
+	}
+
+	resolved := make(map[string]NameRecords, len(aliases))
+	for _, alias := range aliases {
+		normalized := normalizeName(alias)
+		if normalized == "" {
+			continue
+		}
+
+		record, err := client.GetNameResource(ctx, normalized)
+		if err != nil {
+			return err
+		}
+		resolved[normalized] = record
+	}
+
+	service.replaceRecords(resolved)
+	return nil
 }
 
 func (service *Service) ResolveAddress(name string) (ResolveAddressResult, bool) {
