@@ -121,18 +121,23 @@ type ServiceOptions struct {
 	ActionRegistrar              ActionRegistrar
 }
 
-// Options is the documented constructor shape for NewService.
+// ServiceConfig is the preferred constructor shape for NewService.
 //
-//	service := dns.NewService(dns.Options{
+//	service := dns.NewService(dns.ServiceConfig{
 //		Records: map[string]dns.NameRecords{
 //			"gateway.charon.lthn": {A: []string{"10.10.10.10"}},
 //		},
 //	})
+type ServiceConfig = ServiceOptions
+
+// Options is kept for compatibility with older call sites.
+//
+// Deprecated: use ServiceConfig instead.
 type Options = ServiceOptions
 
 // NewService builds a DNS service from cached records and optional discovery hooks.
 //
-//	service := dns.NewService(dns.Options{
+//	service := dns.NewService(dns.ServiceConfig{
 //		Records: map[string]dns.NameRecords{
 //			"gateway.charon.lthn": {A: []string{"10.10.10.10"}},
 //		},
@@ -1097,7 +1102,15 @@ func normalizeName(name string) string {
 //
 //	fmt.Println(service)
 func (service *Service) String() string {
-	return fmt.Sprintf("dns.Service{records=%d}", len(service.records))
+	service.mu.RLock()
+	defer service.mu.RUnlock()
+
+	return fmt.Sprintf(
+		"dns.Service{records=%d zone_apex=%q tree_root=%q}",
+		len(service.records),
+		service.zoneApex,
+		service.treeRoot,
+	)
 }
 
 // MergeRecords deduplicates and sorts record values before returning them.
