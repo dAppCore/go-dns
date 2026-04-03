@@ -928,3 +928,179 @@ func TestServiceServeReturnsNXDOMAINWhenMissing(t *testing.T) {
 		t.Fatalf("expected NXDOMAIN, got %d", response.Rcode)
 	}
 }
+
+func TestServiceHandleActionResolveAndTXTAndAll(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A:    []string{"10.10.10.10"},
+				AAAA: []string{"2600:1f1c:7f0:4f01::1"},
+				TXT:  []string{"v=lthn1 type=gateway"},
+				NS:   []string{"ns.charon.lthn"},
+			},
+		},
+	})
+
+	addresses, ok, err := service.HandleAction(ActionResolve, map[string]any{
+		"name": "gateway.charon.lthn",
+	})
+	if err != nil {
+		t.Fatalf("unexpected resolve action error: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected resolve action to return a record")
+	}
+	payload, ok := addresses.(ResolveAddressResult)
+	if !ok {
+		t.Fatalf("expected ResolveAddressResult payload, got %T", addresses)
+	}
+	if len(payload.Addresses) != 2 || payload.Addresses[0] != "10.10.10.10" || payload.Addresses[1] != "2600:1f1c:7f0:4f01::1" {
+		t.Fatalf("unexpected resolve result: %#v", payload.Addresses)
+	}
+
+	txtPayload, ok, err := service.HandleAction(ActionResolveTXT, map[string]any{
+		"name": "gateway.charon.lthn",
+	})
+	if err != nil {
+		t.Fatalf("unexpected txt action error: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected txt action to return a record")
+	}
+	txts, ok := txtPayload.(ResolveTXTResult)
+	if !ok {
+		t.Fatalf("expected ResolveTXTResult payload, got %T", txtPayload)
+	}
+	if len(txts.TXT) != 1 || txts.TXT[0] != "v=lthn1 type=gateway" {
+		t.Fatalf("unexpected txt result: %#v", txts.TXT)
+	}
+
+	allPayload, ok, err := service.HandleAction(ActionResolveAll, map[string]any{
+		"name": "gateway.charon.lthn",
+	})
+	if err != nil {
+		t.Fatalf("unexpected resolve.all action error: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected resolve.all action to return a record")
+	}
+	all, ok := allPayload.(ResolveAllResult)
+	if !ok {
+		t.Fatalf("expected ResolveAllResult payload, got %T", allPayload)
+	}
+	if len(all.NS) != 1 || all.NS[0] != "ns.charon.lthn" {
+		t.Fatalf("unexpected resolve.all result: %#v", all)
+	}
+}
+
+func TestServiceHandleActionReverseHealthServeAndDiscover(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+		var payload struct {
+			Method string `json:"method"`
+			Params []any  `json:"params"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Fatalf("unexpected request payload: %v", err)
+		}
+		switch payload.Method {
+		case "getblockchaininfo":
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": map[string]any{
+					"tree_root": "discover-root",
+				},
+			})
+		case "getnameresource":
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": map[string]any{
+					"a": []string{"10.10.10.10"},
+				},
+			})
+		default:
+			t.Fatalf("unexpected method: %s", payload.Method)
+		}
+	}))
+	defer server.Close()
+
+	service := NewService(ServiceOptions{
+		ChainAliasDiscoverer: func(_ context.Context) ([]string, error) {
+			return []string{"gateway.charon.lthn"}, nil
+		},
+		HSDClient: NewHSDClient(HSDClientOptions{
+			URL: server.URL,
+		}),
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.20"},
+			},
+		},
+	})
+
+	reversePayload, ok, err := service.HandleAction(ActionReverse, map[string]any{
+		"ip": "10.10.10.20",
+	})
+	if err != nil {
+		t.Fatalf("unexpected reverse action error: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected reverse action to return a record")
+	}
+	reverse, ok := reversePayload.(ReverseLookupResult)
+	if !ok {
+		t.Fatalf("expected ReverseLookupResult payload, got %T", reversePayload)
+	}
+	if len(reverse.Names) != 1 || reverse.Names[0] != "gateway.charon.lthn" {
+		t.Fatalf("unexpected reverse result: %#v", reverse.Names)
+	}
+
+	healthPayload, ok, err := service.HandleAction(ActionHealth, nil)
+	if err != nil {
+		t.Fatalf("unexpected health action error: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected health action payload")
+	}
+	health, ok := healthPayload.(map[string]any)
+	if !ok {
+		t.Fatalf("expected health map payload, got %T", healthPayload)
+	}
+	if health["status"] != "ready" {
+		t.Fatalf("unexpected health payload: %#v", health)
+	}
+
+	srvPayload, ok, err := service.HandleAction(ActionServe, map[string]any{
+		"bind": "127.0.0.1",
+		"port": 0,
+	})
+	if err != nil {
+		t.Fatalf("unexpected serve action error: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected serve action to start server")
+	}
+	dnsServer, ok := srvPayload.(*DNSServer)
+	if !ok {
+		t.Fatalf("expected DNSServer payload, got %T", srvPayload)
+	}
+	if dnsServer.Address() == "" {
+		t.Fatal("expected server address from serve action")
+	}
+	_ = dnsServer.Close()
+
+	discoverPayload, ok, err := service.HandleAction(ActionDiscover, nil)
+	if err != nil {
+		t.Fatalf("unexpected discover action error: %v", err)
+	}
+	if discoverPayload == nil || !ok {
+		t.Fatal("expected discover action payload")
+	}
+	if !ok {
+		t.Fatal("expected discover action to succeed")
+	}
+	discoverHealth, ok := discoverPayload.(map[string]any)
+	if !ok {
+		t.Fatalf("expected discover action payload map, got %T", discoverPayload)
+	}
+	if discoverHealth["tree_root"] != "discover-root" {
+		t.Fatalf("expected discover to refresh tree root, got %#v", discoverHealth["tree_root"])
+	}
+}
