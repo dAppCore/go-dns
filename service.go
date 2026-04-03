@@ -199,26 +199,24 @@ func NewService(options ServiceOptions) *Service {
 		if mainchainURL == "" {
 			mainchainURL = strings.TrimSpace(options.HSDURL)
 		}
-		if mainchainURL != "" {
-			mainchainPassword := options.MainchainPassword
-			mainchainUsername := options.MainchainUsername
-			if strings.TrimSpace(options.MainchainURL) == "" {
+		mainchainPassword := options.MainchainPassword
+		mainchainUsername := options.MainchainUsername
+		if strings.TrimSpace(options.MainchainURL) == "" {
+			if mainchainPassword == "" {
+				mainchainPassword = options.HSDPassword
 				if mainchainPassword == "" {
-					mainchainPassword = options.HSDPassword
-					if mainchainPassword == "" {
-						mainchainPassword = options.HSDApiKey
-					}
-				}
-				if mainchainUsername == "" {
-					mainchainUsername = options.HSDUsername
+					mainchainPassword = options.HSDApiKey
 				}
 			}
-			mainchainClient = NewMainchainAliasClient(MainchainClientOptions{
-				URL:      mainchainURL,
-				Username: mainchainUsername,
-				Password: mainchainPassword,
-			})
+			if mainchainUsername == "" {
+				mainchainUsername = options.HSDUsername
+			}
 		}
+		mainchainClient = NewMainchainAliasClient(MainchainClientOptions{
+			URL:      mainchainURL,
+			Username: mainchainUsername,
+			Password: mainchainPassword,
+		})
 	}
 
 	cached := make(map[string]NameRecords, len(options.Records))

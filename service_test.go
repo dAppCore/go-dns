@@ -1587,12 +1587,13 @@ func TestServiceDiscoverFromChainAliasesIgnoresMissingDiscoverers(t *testing.T) 
 			},
 		},
 	})
+	service.mainchainAliasClient = nil
 	client := NewHSDClient(HSDClientOptions{
 		URL: server.URL,
 	})
 
 	if err := service.DiscoverFromChainAliases(context.Background(), client); err != nil {
-		t.Fatalf("expected no-op when no alias discoverer configured: %v", err)
+		t.Fatalf("expected no-op when no alias discoverer configured and no mainchain client: %v", err)
 	}
 
 	result, ok := service.Resolve("gateway.charon.lthn")
@@ -1623,9 +1624,10 @@ func TestServiceDiscoverAliasesReturnsNilWithoutDiscovererOrHSDClient(t *testing
 			},
 		},
 	})
+	service.mainchainAliasClient = nil
 
 	if err := service.DiscoverAliases(context.Background()); err != nil {
-		t.Fatalf("expected discover aliases to no-op without sources or HSD client: %v", err)
+		t.Fatalf("expected discover aliases to no-op without sources or HSD client when no explicit mainchain client: %v", err)
 	}
 
 	result, ok := service.Resolve("gateway.charon.lthn")
@@ -2672,6 +2674,19 @@ func TestServiceDiscoverAliasesFallsBackToMainchainAliasRPCUsingHSDURL(t *testin
 	}
 	if atomic.LoadInt32(&nameResourceCalls) != 1 {
 		t.Fatalf("expected one name-resource call, got %d", atomic.LoadInt32(&nameResourceCalls))
+	}
+}
+
+func TestNewServiceBuildsMainchainAliasClientByDefault(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{},
+	})
+
+	if service.mainchainAliasClient == nil {
+		t.Fatal("expected default mainchain alias client when none is provided")
+	}
+	if got := service.mainchainAliasClient.baseURL; got != "http://127.0.0.1:14037" {
+		t.Fatalf("expected fallback mainchain alias client URL %q, got %q", "http://127.0.0.1:14037", got)
 	}
 }
 
