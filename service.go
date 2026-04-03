@@ -38,10 +38,13 @@ type NameRecords struct {
 }
 
 type ResolveAllResult struct {
-	A    []string `json:"a"`
-	AAAA []string `json:"aaaa"`
-	TXT  []string `json:"txt"`
-	NS   []string `json:"ns"`
+	A      []string `json:"a"`
+	AAAA   []string `json:"aaaa"`
+	TXT    []string `json:"txt"`
+	NS     []string `json:"ns"`
+	DS     []string `json:"ds,omitempty"`
+	DNSKEY []string `json:"dnskey,omitempty"`
+	RRSIG  []string `json:"rrsig,omitempty"`
 }
 
 type ResolveAddressResult struct {
@@ -958,10 +961,13 @@ func (service *Service) findRecord(name string) (NameRecords, bool) {
 
 func resolveResult(record NameRecords) ResolveAllResult {
 	return ResolveAllResult{
-		A:    cloneStrings(record.A),
-		AAAA: cloneStrings(record.AAAA),
-		TXT:  cloneStrings(record.TXT),
-		NS:   cloneStrings(record.NS),
+		A:      cloneStrings(record.A),
+		AAAA:   cloneStrings(record.AAAA),
+		TXT:    cloneStrings(record.TXT),
+		NS:     cloneStrings(record.NS),
+		DS:     cloneStrings(record.DS),
+		DNSKEY: cloneStrings(record.DNSKEY),
+		RRSIG:  cloneStrings(record.RRSIG),
 	}
 }
 

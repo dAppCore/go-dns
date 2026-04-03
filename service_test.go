@@ -2177,6 +2177,36 @@ func TestServiceResolveAllReturnsEmptyArraysForMissingName(t *testing.T) {
 	}
 }
 
+func TestServiceResolveAllIncludesDNSSECRecords(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A:      []string{"10.10.10.10"},
+				DS:     []string{"60485 8 2 A1B2C3D4E5F60718293A4B5C6D7E8F9012345678"},
+				DNSKEY: []string{"257 3 13 AA=="},
+				RRSIG:  []string{"A 8 2 3600 20260101000000 20250101000000 12345 gateway.charon.lthn. AA=="},
+			},
+		},
+	})
+
+	result, ok := service.ResolveAll("gateway.charon.lthn")
+	if !ok {
+		t.Fatal("expected dnssec record to resolve")
+	}
+	if len(result.A) != 1 || result.A[0] != "10.10.10.10" {
+		t.Fatalf("unexpected A records in dns.resolve.all payload: %#v", result.A)
+	}
+	if len(result.DS) != 1 || result.DS[0] != "60485 8 2 A1B2C3D4E5F60718293A4B5C6D7E8F9012345678" {
+		t.Fatalf("expected DS payload in resolve.all, got %#v", result.DS)
+	}
+	if len(result.DNSKEY) != 1 || result.DNSKEY[0] != "257 3 13 AA==" {
+		t.Fatalf("expected DNSKEY payload in resolve.all, got %#v", result.DNSKEY)
+	}
+	if len(result.RRSIG) != 1 || result.RRSIG[0] != "A 8 2 3600 20260101000000 20250101000000 12345 gateway.charon.lthn. AA==" {
+		t.Fatalf("expected RRSIG payload in resolve.all, got %#v", result.RRSIG)
+	}
+}
+
 func TestServiceServeReturnsNXDOMAINWhenMissing(t *testing.T) {
 	service := NewService(ServiceOptions{})
 
