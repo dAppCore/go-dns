@@ -22,6 +22,10 @@ type ResolveAllResult struct {
 	NS   []string `json:"ns"`
 }
 
+type ResolveAddressResult struct {
+	Addresses []string `json:"addresses"`
+}
+
 type Service struct {
 	mu           sync.RWMutex
 	records      map[string]NameRecords
@@ -71,6 +75,16 @@ func (service *Service) ResolveTXT(name string) ([]string, bool) {
 		return nil, false
 	}
 	return append([]string(nil), record.TXT...), true
+}
+
+func (service *Service) ResolveAddress(name string) (ResolveAddressResult, bool) {
+	record, ok := service.findRecord(name)
+	if !ok {
+		return ResolveAddressResult{}, false
+	}
+	return ResolveAddressResult{
+		Addresses: MergeRecords(record.A, record.AAAA),
+	}, true
 }
 
 func (service *Service) ResolveReverse(ip string) ([]string, bool) {

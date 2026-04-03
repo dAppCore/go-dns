@@ -62,6 +62,36 @@ func TestServiceResolveTXTUsesWildcard(t *testing.T) {
 	}
 }
 
+func TestServiceResolveAddressReturnsMergedRecords(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A:    []string{"10.10.10.10", "10.10.10.10"},
+				AAAA: []string{"2600:1f1c:7f0:4f01:0000:0000:0000:0001"},
+			},
+		},
+	})
+
+	result, ok := service.ResolveAddress("gateway.charon.lthn")
+	if !ok {
+		t.Fatal("expected address record to resolve")
+	}
+	if len(result.Addresses) != 2 {
+		t.Fatalf("expected merged unique addresses, got %#v", result.Addresses)
+	}
+	if result.Addresses[0] != "10.10.10.10" || result.Addresses[1] != "2600:1f1c:7f0:4f01:0000:0000:0000:0001" {
+		t.Fatalf("unexpected address order or value: %#v", result.Addresses)
+	}
+}
+
+func TestServiceResolveAddressFallsBackToFalseWhenMissing(t *testing.T) {
+	service := NewService(ServiceOptions{})
+
+	if _, ok := service.ResolveAddress("missing.charon.lthn"); ok {
+		t.Fatal("expected missing record to return false")
+	}
+}
+
 func TestServiceResolveReverseUsesARecords(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{
