@@ -140,3 +140,47 @@ func TestServiceResolveReverseUsesSetAndRemove(t *testing.T) {
 		t.Fatal("expected removed reverse record to disappear")
 	}
 }
+
+func TestServiceHealthUsesDeterministicTreeRootAndUpdatesOnMutations(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A:  []string{"10.10.10.10", "10.0.0.1"},
+				NS: []string{"ns1.example.com"},
+			},
+		},
+	})
+
+	health := service.Health()
+	root, ok := health["tree_root"].(string)
+	if !ok || root == "" || root == "stubbed" {
+		t.Fatalf("expected computed tree root, got %#v", health["tree_root"])
+	}
+
+	healthRepeating := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				NS: []string{"ns1.example.com"},
+				A:  []string{"10.0.0.1", "10.10.10.10"},
+			},
+		},
+	}).Health()["tree_root"].(string)
+
+	if healthRepeating != root {
+		t.Fatalf("expected deterministic tree root, got %s and %s", healthRepeating, root)
+	}
+
+	service.SetRecord("gateway.charon.lthn", NameRecords{
+		A: []string{"10.10.10.11"},
+	})
+	updatedRoot, ok := service.Health()["tree_root"].(string)
+	if !ok || updatedRoot == root {
+		t.Fatalf("expected updated tree root after SetRecord, got %s", updatedRoot)
+	}
+
+	service.RemoveRecord("gateway.charon.lthn")
+	removedRoot, ok := service.Health()["tree_root"].(string)
+	if !ok || removedRoot == updatedRoot {
+		t.Fatalf("expected updated tree root after RemoveRecord, got %s", removedRoot)
+	}
+}

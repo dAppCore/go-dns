@@ -1,6 +1,8 @@
 package dns
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"slices"
@@ -30,6 +32,7 @@ type Service struct {
 	mu           sync.RWMutex
 	records      map[string]NameRecords
 	reverseIndex map[string][]string
+	treeRoot     string
 }
 
 type ServiceOptions struct {
@@ -41,9 +44,11 @@ func NewService(options ServiceOptions) *Service {
 	for name, record := range options.Records {
 		cached[normalizeName(name)] = record
 	}
+	treeRoot := computeTreeRoot(cached)
 	return &Service{
 		records:      cached,
 		reverseIndex: buildReverseIndex(cached),
+		treeRoot:     treeRoot,
 	}
 }
 
@@ -52,6 +57,7 @@ func (service *Service) SetRecord(name string, record NameRecords) {
 	defer service.mu.Unlock()
 	service.records[normalizeName(name)] = record
 	service.reverseIndex = buildReverseIndex(service.records)
+	service.treeRoot = computeTreeRoot(service.records)
 }
 
 func (service *Service) RemoveRecord(name string) {
@@ -59,6 +65,7 @@ func (service *Service) RemoveRecord(name string) {
 	defer service.mu.Unlock()
 	delete(service.records, normalizeName(name))
 	service.reverseIndex = buildReverseIndex(service.records)
+	service.treeRoot = computeTreeRoot(service.records)
 }
 
 func (service *Service) Resolve(name string) (ResolveAllResult, bool) {
@@ -117,7 +124,7 @@ func (service *Service) Health() map[string]any {
 	return map[string]any{
 		"status":       "ready",
 		"names_cached": len(service.records),
-		"tree_root":    "stubbed",
+		"tree_root":    service.treeRoot,
 	}
 }
 
@@ -190,6 +197,42 @@ func normalizeIP(ip string) string {
 		return ""
 	}
 	return parsed.String()
+}
+
+func computeTreeRoot(records map[string]NameRecords) string {
+	names := make([]string, 0, len(records))
+	for name := range records {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+
+	var builder strings.Builder
+	for _, name := range names {
+		record := records[name]
+		builder.WriteString(name)
+		builder.WriteByte('\n')
+		builder.WriteString("A=")
+		builder.WriteString(serializeRecordValues(record.A))
+		builder.WriteByte('\n')
+		builder.WriteString("AAAA=")
+		builder.WriteString(serializeRecordValues(record.AAAA))
+		builder.WriteByte('\n')
+		builder.WriteString("TXT=")
+		builder.WriteString(serializeRecordValues(record.TXT))
+		builder.WriteByte('\n')
+		builder.WriteString("NS=")
+		builder.WriteString(serializeRecordValues(record.NS))
+		builder.WriteByte('\n')
+	}
+
+	sum := sha256.Sum256([]byte(builder.String()))
+	return hex.EncodeToString(sum[:])
+}
+
+func serializeRecordValues(values []string) string {
+	copied := append([]string(nil), values...)
+	slices.Sort(copied)
+	return strings.Join(copied, ",")
 }
 
 func findWildcardMatch(name string, records map[string]NameRecords) (NameRecords, bool) {
