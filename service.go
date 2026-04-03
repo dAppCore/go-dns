@@ -109,6 +109,7 @@ type ServiceOptions struct {
 	ChainAliasDiscoverer         func(context.Context) ([]string, error)
 	FallbackChainAliasDiscoverer func(context.Context) ([]string, error)
 	TreeRootCheckInterval        time.Duration
+	ActionRegistrar              ActionRegistrar
 }
 
 // Options is the documented constructor shape for NewService.
@@ -156,7 +157,7 @@ func NewService(options ServiceOptions) *Service {
 		cached[normalizeName(name)] = record
 	}
 	treeRoot := computeTreeRoot(cached)
-	return &Service{
+	service := &Service{
 		records:                      cached,
 		reverseIndex:                 buildReverseIndexCache(cached),
 		treeRoot:                     treeRoot,
@@ -171,6 +172,12 @@ func NewService(options ServiceOptions) *Service {
 		fallbackChainAliasDiscoverer: options.FallbackChainAliasDiscoverer,
 		treeRootCheckInterval:        checkInterval,
 	}
+
+	if options.ActionRegistrar != nil {
+		service.RegisterActions(options.ActionRegistrar)
+	}
+
+	return service
 }
 
 func (service *Service) resolveHSDClient(client *HSDClient) (*HSDClient, error) {

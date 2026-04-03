@@ -170,9 +170,10 @@ func (service *Service) RegisterActions(registrar ActionRegistrar) {
 //	service := dns.NewServiceWithRegistrar(dns.ServiceOptions{}, registrar)
 //	// registrar now exposes dns.resolve, dns.resolve.txt, dns.resolve.all, dns.reverse, dns.serve, dns.health, dns.discover
 func NewServiceWithRegistrar(options ServiceOptions, registrar ActionRegistrar) *Service {
-	service := NewService(options)
-	service.RegisterActions(registrar)
-	return service
+	if registrar != nil {
+		options.ActionRegistrar = registrar
+	}
+	return NewService(options)
 }
 
 // HandleAction executes a DNS action by name.

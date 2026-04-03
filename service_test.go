@@ -1942,6 +1942,32 @@ func TestNewServiceWithRegistrarBuildsAndRegistersInOneStep(t *testing.T) {
 	}
 }
 
+func TestNewServiceAutoRegistersActionsWhenRegistrarIsConfigured(t *testing.T) {
+	registrar := &actionRecorder{}
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+		ActionRegistrar: registrar,
+	})
+
+	if service == nil {
+		t.Fatal("expected service to be built")
+	}
+
+	expected := service.ActionNames()
+	if len(registrar.names) != len(expected) {
+		t.Fatalf("expected constructor to auto-register %d actions, got %d: %#v", len(expected), len(registrar.names), registrar.names)
+	}
+	for index, name := range expected {
+		if registrar.names[index] != name {
+			t.Fatalf("unexpected auto-registered action at %d: got %q want %q", index, registrar.names[index], name)
+		}
+	}
+}
+
 func TestServiceActionDefinitionsHaveInvokers(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{
