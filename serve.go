@@ -9,7 +9,7 @@ import (
 	dnsprotocol "github.com/miekg/dns"
 )
 
-const dnsTTL = 300
+const defaultDNSTTL = 300
 
 // DNSServer owns the UDP+TCP DNS listeners returned by Serve.
 //
@@ -201,7 +201,7 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 				continue
 			}
 			reply.Answer = append(reply.Answer, &dnsprotocol.A{
-				Hdr: dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeA, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+				Hdr: dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeA, Class: dnsprotocol.ClassINET, Ttl: defaultDNSTTL},
 				A:   parsedIP.To4(),
 			})
 		}
@@ -215,7 +215,7 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 				continue
 			}
 			reply.Answer = append(reply.Answer, &dnsprotocol.AAAA{
-				Hdr:  dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeAAAA, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+				Hdr:  dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeAAAA, Class: dnsprotocol.ClassINET, Ttl: defaultDNSTTL},
 				AAAA: parsedIP.To16(),
 			})
 		}
@@ -225,7 +225,7 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 		}
 		for _, value := range record.TXT {
 			reply.Answer = append(reply.Answer, &dnsprotocol.TXT{
-				Hdr: dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeTXT, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+				Hdr: dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeTXT, Class: dnsprotocol.ClassINET, Ttl: defaultDNSTTL},
 				Txt: []string{value},
 			})
 		}
@@ -233,14 +233,14 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 		if found {
 			for _, value := range record.NS {
 				reply.Answer = append(reply.Answer, &dnsprotocol.NS{
-					Hdr: dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeNS, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+					Hdr: dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeNS, Class: dnsprotocol.ClassINET, Ttl: defaultDNSTTL},
 					Ns:  normalizeName(value) + ".",
 				})
 			}
 		}
 		if len(reply.Answer) == 0 && normalizeName(lookupName) == handler.service.ZoneApex() && handler.service.ZoneApex() != "" {
 			reply.Answer = append(reply.Answer, &dnsprotocol.NS{
-				Hdr: dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeNS, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+				Hdr: dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeNS, Class: dnsprotocol.ClassINET, Ttl: defaultDNSTTL},
 				Ns:  normalizeName("ns."+lookupName) + ".",
 			})
 		}
@@ -260,14 +260,14 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 		}
 		for _, value := range values {
 			reply.Answer = append(reply.Answer, &dnsprotocol.PTR{
-				Hdr: dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypePTR, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+				Hdr: dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypePTR, Class: dnsprotocol.ClassINET, Ttl: defaultDNSTTL},
 				Ptr: normalizeName(value) + ".",
 			})
 		}
 	case dnsprotocol.TypeSOA:
 		if normalizeName(lookupName) == handler.service.ZoneApex() && handler.service.ZoneApex() != "" {
 			reply.Answer = append(reply.Answer, &dnsprotocol.SOA{
-				Hdr:     dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeSOA, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+				Hdr:     dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeSOA, Class: dnsprotocol.ClassINET, Ttl: defaultDNSTTL},
 				Ns:      normalizeName("ns."+lookupName) + ".",
 				Mbox:    "hostmaster." + lookupName + ".",
 				Serial:  uint32(time.Now().Unix()),
@@ -367,7 +367,7 @@ func appendAnyAnswers(reply *dnsprotocol.Msg, questionName string, lookupName st
 			continue
 		}
 		reply.Answer = append(reply.Answer, &dnsprotocol.A{
-			Hdr: dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeA, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+			Hdr: dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeA, Class: dnsprotocol.ClassINET, Ttl: defaultDNSTTL},
 			A:   parsedIP.To4(),
 		})
 	}
@@ -378,14 +378,14 @@ func appendAnyAnswers(reply *dnsprotocol.Msg, questionName string, lookupName st
 			continue
 		}
 		reply.Answer = append(reply.Answer, &dnsprotocol.AAAA{
-			Hdr:  dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeAAAA, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+			Hdr:  dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeAAAA, Class: dnsprotocol.ClassINET, Ttl: defaultDNSTTL},
 			AAAA: parsedIP.To16(),
 		})
 	}
 
 	for _, value := range record.TXT {
 		reply.Answer = append(reply.Answer, &dnsprotocol.TXT{
-			Hdr: dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeTXT, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+			Hdr: dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeTXT, Class: dnsprotocol.ClassINET, Ttl: defaultDNSTTL},
 			Txt: []string{value},
 		})
 	}
@@ -393,7 +393,7 @@ func appendAnyAnswers(reply *dnsprotocol.Msg, questionName string, lookupName st
 	if len(record.NS) > 0 {
 		for _, value := range record.NS {
 			reply.Answer = append(reply.Answer, &dnsprotocol.NS{
-				Hdr: dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeNS, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+				Hdr: dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeNS, Class: dnsprotocol.ClassINET, Ttl: defaultDNSTTL},
 				Ns:  normalizeName(value) + ".",
 			})
 		}
@@ -402,12 +402,12 @@ func appendAnyAnswers(reply *dnsprotocol.Msg, questionName string, lookupName st
 	if normalizeName(lookupName) == normalizeName(questionName) && normalizeName(lookupName) != "" {
 		if len(record.NS) == 0 {
 			reply.Answer = append(reply.Answer, &dnsprotocol.NS{
-				Hdr: dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeNS, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+				Hdr: dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeNS, Class: dnsprotocol.ClassINET, Ttl: defaultDNSTTL},
 				Ns:  normalizeName("ns."+lookupName) + ".",
 			})
 		}
 		reply.Answer = append(reply.Answer, &dnsprotocol.SOA{
-			Hdr:     dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeSOA, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+			Hdr:     dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeSOA, Class: dnsprotocol.ClassINET, Ttl: defaultDNSTTL},
 			Ns:      normalizeName("ns."+lookupName) + ".",
 			Mbox:    "hostmaster." + lookupName + ".",
 			Serial:  uint32(time.Now().Unix()),
