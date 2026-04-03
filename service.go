@@ -58,11 +58,11 @@ type ReverseLookupResult struct {
 //	index := buildReverseIndex(records, 15*time.Second)
 //	names, ok := index.Lookup("10.10.10.10")
 type ReverseIndex struct {
-	cache *cache.Cache
+	lookupCache *cache.Cache
 }
 
 func (index *ReverseIndex) Lookup(ip string) ([]string, bool) {
-	if index == nil || index.cache == nil {
+	if index == nil || index.lookupCache == nil {
 		return nil, false
 	}
 
@@ -71,7 +71,7 @@ func (index *ReverseIndex) Lookup(ip string) ([]string, bool) {
 		return nil, false
 	}
 
-	rawNames, found := index.cache.Get(normalizedIP)
+	rawNames, found := index.lookupCache.Get(normalizedIP)
 	if !found {
 		return nil, false
 	}
@@ -989,11 +989,11 @@ func buildReverseIndex(records map[string]NameRecords, ttl time.Duration) *Rever
 	if ttl > 0 {
 		cacheTTL = ttl
 	}
-	reverseIndexCache := cache.New(cacheTTL, cacheTTL)
+	lookupCache := cache.New(cacheTTL, cacheTTL)
 	for ip, names := range reverseIndex {
-		reverseIndexCache.Set(ip, names, cacheTTL)
+		lookupCache.Set(ip, names, cacheTTL)
 	}
-	return &ReverseIndex{cache: reverseIndexCache}
+	return &ReverseIndex{lookupCache: lookupCache}
 }
 
 func normalizeIP(ip string) string {
