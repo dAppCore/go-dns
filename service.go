@@ -189,6 +189,13 @@ func NewService(options ServiceOptions) *Service {
 		checkInterval = DefaultTreeRootCheckInterval
 	}
 
+	chainAliasActionCaller := options.ChainAliasActionCaller
+	if chainAliasActionCaller == nil {
+		if actionCaller, ok := options.ActionRegistrar.(ActionCaller); ok {
+			chainAliasActionCaller = actionCaller
+		}
+	}
+
 	hsdClient := options.HSDClient
 	if hsdClient == nil {
 		hsdPassword := options.HSDPassword
@@ -242,7 +249,7 @@ func NewService(options ServiceOptions) *Service {
 		recordTTL:                    options.RecordTTL,
 		hsdClient:                    hsdClient,
 		mainchainAliasClient:         mainchainClient,
-		chainAliasActionCaller:       options.ChainAliasActionCaller,
+		chainAliasActionCaller:       chainAliasActionCaller,
 		chainAliasAction:             options.ChainAliasAction,
 		recordDiscoverer:             options.RecordDiscoverer,
 		fallbackRecordDiscoverer:     options.FallbackRecordDiscoverer,
