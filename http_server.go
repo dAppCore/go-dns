@@ -45,7 +45,7 @@ func (server *HTTPServer) Close() error {
 
 // ServeHTTPHealth starts a minimal HTTP server exposing GET /health.
 //
-//	service.ServeHTTPHealth("127.0.0.1", 5554)
+//	server, err := service.ServeHTTPHealth("127.0.0.1", 5554)
 func (service *Service) ServeHTTPHealth(bind string, port int) (*HTTPServer, error) {
 	if bind == "" {
 		bind = "127.0.0.1"

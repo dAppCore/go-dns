@@ -37,6 +37,13 @@ type MainchainRPCResponse struct {
 	Error  *HSDRPCError    `json:"error"`
 }
 
+// NewMainchainAliasClient builds a client for alias discovery on the main chain.
+//
+//	client := dns.NewMainchainAliasClient(dns.MainchainClientOptions{
+//		URL:      "http://127.0.0.1:14037",
+//		Username: "user",
+//		Password: "pass",
+//	})
 func NewMainchainAliasClient(options MainchainClientOptions) *MainchainAliasClient {
 	client := options.HTTPClient
 	if client == nil {

@@ -35,7 +35,7 @@ type ActionRegistrar interface {
 
 // ActionDefinitions returns the complete DNS action surface in registration order.
 //
-//	service.ActionDefinitions()
+//	definitions := service.ActionDefinitions()
 func (service *Service) ActionDefinitions() []ActionDefinition {
 	return []ActionDefinition{
 		{
@@ -129,7 +129,7 @@ func (service *Service) ActionDefinitions() []ActionDefinition {
 
 // ActionNames returns the names of the registered DNS actions.
 //
-//	service.ActionNames()
+//	names := service.ActionNames()
 func (service *Service) ActionNames() []string {
 	definitions := service.ActionDefinitions()
 	names := make([]string, 0, len(definitions))
@@ -153,7 +153,7 @@ func (service *Service) RegisterActions(registrar ActionRegistrar) {
 
 // HandleAction executes a DNS action by name.
 //
-//	service.HandleAction("dns.resolve", map[string]any{"name": "gateway.charon.lthn"})
+//	payload, ok, err := service.HandleAction("dns.resolve", map[string]any{"name": "gateway.charon.lthn"})
 func (service *Service) HandleAction(name string, values map[string]any) (any, bool, error) {
 	for _, definition := range service.ActionDefinitions() {
 		if definition.Name == name {

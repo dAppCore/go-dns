@@ -44,9 +44,8 @@ func (server *DNSServer) Close() error {
 }
 
 // Serve starts DNS over UDP and TCP at bind:port and returns a running server handle.
-// Example:
 //
-//	srv, err := service.Serve("127.0.0.1", 0)
+//	srv, err := service.Serve("127.0.0.1", 53)
 func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
 	if bind == "" {
 		bind = "127.0.0.1"

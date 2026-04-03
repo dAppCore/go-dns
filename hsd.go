@@ -60,6 +60,13 @@ func (err *HSDRPCError) Error() string {
 	return fmt.Sprintf("hsd rpc error (%d): %s", err.Code, err.Message)
 }
 
+// NewHSDClient builds a client for HSD JSON-RPC.
+//
+//	client := dns.NewHSDClient(dns.HSDClientOptions{
+//		URL:      "http://127.0.0.1:14037",
+//		Username: "user",
+//		Password: "pass",
+//	})
 func NewHSDClient(options HSDClientOptions) *HSDClient {
 	client := options.HTTPClient
 	if client == nil {

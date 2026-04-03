@@ -68,6 +68,13 @@ type ServiceOptions struct {
 	TreeRootCheckInterval        time.Duration
 }
 
+// NewService builds a DNS service from cached records and optional discovery hooks.
+//
+//	service := dns.NewService(dns.ServiceOptions{
+//		Records: map[string]dns.NameRecords{
+//			"gateway.charon.lthn": {A: []string{"10.10.10.10"}},
+//		},
+//	})
 func NewService(options ServiceOptions) *Service {
 	checkInterval := options.TreeRootCheckInterval
 	if checkInterval <= 0 {
@@ -334,8 +341,9 @@ func (service *Service) Discover() error {
 	return nil
 }
 
-// DiscoverAliases refreshes DNS records by scanning chain aliases through HSD RPC calls.
-// This matches the RFC `dns.discover` behavior by reusing the configured chain alias discoverers and fallback clients.
+// DiscoverAliases refreshes DNS records from chain aliases.
+//
+//	err := service.DiscoverAliases(context.Background())
 func (service *Service) DiscoverAliases(ctx context.Context) error {
 	return service.DiscoverFromChainAliases(ctx, service.hsdClient)
 }
@@ -406,7 +414,6 @@ func (service *Service) ResolveTXTRecords(name string) (ResolveTXTResult, bool) 
 }
 
 // DiscoverWithHSD refreshes DNS records for each alias by calling HSD.
-// Example:
 //
 //	err := service.DiscoverWithHSD(context.Background(), []string{"gateway.lthn"}, dns.NewHSDClient(dns.HSDClientOptions{
 //		URL:      "http://127.0.0.1:14037",
