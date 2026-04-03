@@ -73,6 +73,45 @@ func TestServiceResolveUsesExactNameBeforeWildcard(t *testing.T) {
 	}
 }
 
+func TestServiceResolveWithMatchIndicatesExactMatch(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"*.charon.lthn": {
+				A: []string{"10.69.69.165"},
+			},
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	result, ok, usedWildcard := service.ResolveWithMatch("gateway.charon.lthn")
+	if !ok {
+		t.Fatal("expected exact record to resolve")
+	}
+	if usedWildcard {
+		t.Fatalf("expected exact match to report usedWildcard=false, got %#v", result.A)
+	}
+}
+
+func TestServiceResolveWithMatchIndicatesWildcardMatch(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"*.charon.lthn": {
+				A: []string{"10.69.69.165"},
+			},
+		},
+	})
+
+	result, ok, usedWildcard := service.ResolveWithMatch("gateway.charon.lthn")
+	if !ok {
+		t.Fatal("expected wildcard record to resolve")
+	}
+	if !usedWildcard {
+		t.Fatalf("expected wildcard match to report usedWildcard=true, got %#v", result.A)
+	}
+}
+
 func TestServiceOptionsAliasBuildsService(t *testing.T) {
 	service := NewService(Options{
 		Records: map[string]NameRecords{

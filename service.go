@@ -744,6 +744,17 @@ func (service *Service) Resolve(name string) (ResolveAllResult, bool) {
 	return resolveResult(record), true
 }
 
+// ResolveWithMatch returns matching records and whether the match used a wildcard.
+//
+//	result, found, usedWildcard := service.ResolveWithMatch("node.charon.lthn")
+func (service *Service) ResolveWithMatch(name string) (ResolveAllResult, bool, bool) {
+	record, ok, usedWildcard := service.findRecordWithMatch(name)
+	if !ok {
+		return ResolveAllResult{}, false, false
+	}
+	return resolveResult(record), true, usedWildcard
+}
+
 // ResolveTXT returns only TXT values for a name.
 //
 //	txt, ok := service.ResolveTXT("gateway.charon.lthn")
@@ -946,17 +957,26 @@ func (service *Service) ResolveReverseNames(ip string) (ReverseLookupResult, boo
 
 func (service *Service) findRecord(name string) (NameRecords, bool) {
 	service.pruneExpiredRecords()
+	record, ok, _ := service.findRecordWithMatch(name)
+	return record, ok
+}
+
+func (service *Service) findRecordWithMatch(name string) (NameRecords, bool, bool) {
+	service.pruneExpiredRecords()
 
 	service.mu.RLock()
 	defer service.mu.RUnlock()
 
 	normalized := normalizeName(name)
 	if record, ok := service.records[normalized]; ok {
-		return record, true
+		return record, true, false
 	}
 
 	match, ok := findWildcardMatch(normalized, service.records)
-	return match, ok
+	if !ok {
+		return NameRecords{}, false, false
+	}
+	return match, true, true
 }
 
 func resolveResult(record NameRecords) ResolveAllResult {
