@@ -68,9 +68,18 @@ type ServiceOptions struct {
 	TreeRootCheckInterval        time.Duration
 }
 
+// Options is the documented constructor shape for NewService.
+//
+//	service := dns.NewService(dns.Options{
+//		Records: map[string]dns.NameRecords{
+//			"gateway.charon.lthn": {A: []string{"10.10.10.10"}},
+//		},
+//	})
+type Options = ServiceOptions
+
 // NewService builds a DNS service from cached records and optional discovery hooks.
 //
-//	service := dns.NewService(dns.ServiceOptions{
+//	service := dns.NewService(dns.Options{
 //		Records: map[string]dns.NameRecords{
 //			"gateway.charon.lthn": {A: []string{"10.10.10.10"}},
 //		},

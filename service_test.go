@@ -54,6 +54,24 @@ func TestServiceResolveUsesExactNameBeforeWildcard(t *testing.T) {
 	}
 }
 
+func TestServiceOptionsAliasBuildsService(t *testing.T) {
+	service := NewService(Options{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	result, ok := service.ResolveAddress("gateway.charon.lthn")
+	if !ok {
+		t.Fatal("expected service constructed from Options alias to resolve")
+	}
+	if len(result.Addresses) != 1 || result.Addresses[0] != "10.10.10.10" {
+		t.Fatalf("unexpected resolve result from Options alias: %#v", result.Addresses)
+	}
+}
+
 func TestServiceResolveUsesMostSpecificWildcard(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{
