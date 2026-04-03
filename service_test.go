@@ -130,6 +130,46 @@ func TestServiceOptionsAliasBuildsService(t *testing.T) {
 	}
 }
 
+func TestNewDNSServiceAliasToExistingConstructor(t *testing.T) {
+	service := NewDNSService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	result, ok := service.ResolveAddress("gateway.charon.lthn")
+	if !ok {
+		t.Fatal("expected service constructed from NewDNSService alias to resolve")
+	}
+	if len(result.Addresses) != 1 || result.Addresses[0] != "10.10.10.10" {
+		t.Fatalf("unexpected resolve result from NewDNSService: %#v", result.Addresses)
+	}
+}
+
+func TestNewDNSServiceWithRegistrarAliasRegistersActions(t *testing.T) {
+	recorder := &actionRecorder{}
+	service := NewDNSServiceWithRegistrar(ServiceOptions{}, recorder)
+	if service == nil {
+		t.Fatal("expected service instance from NewDNSServiceWithRegistrar")
+	}
+
+	if len(recorder.names) != len(service.ActionNames()) {
+		t.Fatalf("expected %d registered action names, got %d", len(service.ActionNames()), len(recorder.names))
+	}
+
+	expected := map[string]struct{}{}
+	for _, name := range service.ActionNames() {
+		expected[name] = struct{}{}
+	}
+	for _, name := range recorder.names {
+		if _, ok := expected[name]; !ok {
+			t.Fatalf("unexpected action name registered by NewDNSServiceWithRegistrar: %q", name)
+		}
+	}
+}
+
 func TestServiceResolveUsesMostSpecificWildcard(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{

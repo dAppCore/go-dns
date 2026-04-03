@@ -176,6 +176,8 @@ type Options = ServiceOptions
 
 // NewService builds a DNS service from cached records and optional discovery hooks.
 //
+// Deprecated: use NewDNSService for a more explicit constructor name.
+//
 //	service := dns.NewService(dns.ServiceConfig{
 //		Records: map[string]dns.NameRecords{
 //			"gateway.charon.lthn": {A: []string{"10.10.10.10"}},
@@ -263,6 +265,17 @@ func NewService(options ServiceOptions) *Service {
 	}
 
 	return service
+}
+
+// NewDNSService builds a DNS service from cached records and optional discovery hooks.
+//
+//	service := dns.NewDNSService(dns.ServiceConfiguration{
+//		Records: map[string]dns.NameRecords{
+//			"gateway.charon.lthn": {A: []string{"10.10.10.10"}},
+//		},
+//	})
+func NewDNSService(options ServiceOptions) *Service {
+	return NewService(options)
 }
 
 func (service *Service) resolveHSDClient(client *HSDClient) (*HSDClient, error) {

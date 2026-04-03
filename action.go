@@ -25,10 +25,10 @@ var (
 )
 
 const (
-	actionArgBind = "bind"
-	actionArgIP   = "ip"
-	actionArgName = "name"
-	actionArgPort = "port"
+	actionArgBind       = "bind"
+	actionArgIP         = "ip"
+	actionArgName       = "name"
+	actionArgPort       = "port"
 	actionArgHealthPort = "health_port"
 )
 
@@ -192,6 +192,8 @@ func (service *Service) RegisterActions(registrar ActionRegistrar) {
 
 // NewServiceWithRegistrar builds a DNS service and registers its actions in one step.
 //
+// Deprecated: use NewDNSServiceWithRegistrar for a more explicit constructor name.
+//
 //	service := dns.NewServiceWithRegistrar(dns.ServiceConfiguration{}, registrar)
 //	// registrar now exposes dns.resolve, dns.resolve.txt, dns.resolve.all, dns.reverse, dns.serve, dns.health, dns.discover
 func NewServiceWithRegistrar(options ServiceOptions, registrar ActionRegistrar) *Service {
@@ -199,6 +201,14 @@ func NewServiceWithRegistrar(options ServiceOptions, registrar ActionRegistrar) 
 		options.ActionRegistrar = registrar
 	}
 	return NewService(options)
+}
+
+// NewDNSServiceWithRegistrar builds a DNS service and registers its actions in one step.
+//
+//	service := dns.NewDNSServiceWithRegistrar(dns.ServiceConfiguration{}, registrar)
+//	// registrar now exposes dns.resolve, dns.resolve.txt, dns.resolve.all, dns.reverse, dns.serve, dns.health, dns.discover
+func NewDNSServiceWithRegistrar(options ServiceOptions, registrar ActionRegistrar) *Service {
+	return NewServiceWithRegistrar(options, registrar)
 }
 
 // HandleAction executes a DNS action by name.
