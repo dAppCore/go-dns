@@ -15,7 +15,7 @@ const defaultDNSTTL = 300
 //
 //	srv, err := service.Serve("127.0.0.1", 53)
 //	defer func() { _ = srv.Close() }()
-//	fmt.Println("dns at", srv.Address())
+//	fmt.Println("dns at", srv.DNSAddress())
 type DNSServer struct {
 	udpListener net.PacketConn
 	tcpListener net.Listener
@@ -29,7 +29,9 @@ type DNSServer struct {
 //	defer func() { _ = runtime.Close() }()
 //	fmt.Println(runtime.DNSAddress(), runtime.HealthAddress())
 type ServiceRuntime struct {
-	DNS  *DNSServer
+	DNS    *DNSServer
+	Health *HealthServer
+	// HTTP is retained for compatibility with older call sites.
 	HTTP *HealthServer
 }
 
@@ -37,14 +39,20 @@ func (runtime *ServiceRuntime) DNSAddress() string {
 	if runtime == nil || runtime.DNS == nil {
 		return ""
 	}
-	return runtime.DNS.Address()
+	return runtime.DNS.DNSAddress()
 }
 
 func (runtime *ServiceRuntime) HealthAddress() string {
-	if runtime == nil || runtime.HTTP == nil {
+	if runtime == nil {
 		return ""
 	}
-	return runtime.HTTP.Address()
+	if runtime.Health != nil {
+		return runtime.Health.HealthAddress()
+	}
+	if runtime.HTTP != nil {
+		return runtime.HTTP.HealthAddress()
+	}
+	return ""
 }
 
 // HTTPAddress is retained for compatibility with older call sites.
@@ -63,7 +71,12 @@ func (runtime *ServiceRuntime) Close() error {
 			firstError = err
 		}
 	}
-	if runtime.HTTP != nil {
+	if runtime.Health != nil {
+		if err := runtime.Health.Close(); err != nil && firstError == nil {
+			firstError = err
+		}
+	}
+	if runtime.HTTP != nil && runtime.HTTP != runtime.Health {
 		if err := runtime.HTTP.Close(); err != nil && firstError == nil {
 			firstError = err
 		}
@@ -71,11 +84,16 @@ func (runtime *ServiceRuntime) Close() error {
 	return firstError
 }
 
-func (server *DNSServer) Address() string {
+func (server *DNSServer) DNSAddress() string {
 	if server.udpListener == nil {
 		return ""
 	}
 	return server.udpListener.LocalAddr().String()
+}
+
+// Address is retained for compatibility with older call sites.
+func (server *DNSServer) Address() string {
+	return server.DNSAddress()
 }
 
 func (server *DNSServer) Close() error {
@@ -166,8 +184,9 @@ func (service *Service) ServeAll(bind string, dnsPort int, httpPort int) (*Servi
 	}
 
 	return &ServiceRuntime{
-		DNS:  dnsServer,
-		HTTP: httpServer,
+		DNS:    dnsServer,
+		Health: httpServer,
+		HTTP:   httpServer,
 	}, nil
 }
 

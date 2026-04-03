@@ -413,7 +413,14 @@ func TestServiceServeHTTPHealthReturnsJSON(t *testing.T) {
 		_ = httpServer.Close()
 	}()
 
-	response, err := http.Get("http://" + httpServer.Address() + "/health")
+	if httpServer.HealthAddress() == "" {
+		t.Fatal("expected health address from health server")
+	}
+	if httpServer.Address() != httpServer.HealthAddress() {
+		t.Fatalf("expected Address and HealthAddress to match, got %q and %q", httpServer.Address(), httpServer.HealthAddress())
+	}
+
+	response, err := http.Get("http://" + httpServer.HealthAddress() + "/health")
 	if err != nil {
 		t.Fatalf("expected health endpoint to respond: %v", err)
 	}
@@ -463,6 +470,9 @@ func TestServiceServeAllStartsDNSAndHTTPTogether(t *testing.T) {
 	}
 	if runtime.HealthAddress() == "" {
 		t.Fatal("expected health address from combined runtime")
+	}
+	if runtime.DNS.Address() != runtime.DNSAddress() {
+		t.Fatalf("expected DNSAddress and Address to match, got %q and %q", runtime.DNS.DNSAddress(), runtime.DNS.Address())
 	}
 	if runtime.HTTPAddress() != runtime.HealthAddress() {
 		t.Fatalf("expected HTTPAddress and HealthAddress to match, got %q and %q", runtime.HTTPAddress(), runtime.HealthAddress())
@@ -2235,8 +2245,11 @@ func TestServiceHandleActionReverseHealthServeAndDiscover(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected DNSServer payload, got %T", srvPayload)
 	}
-	if dnsServer.Address() == "" {
+	if dnsServer.DNSAddress() == "" {
 		t.Fatal("expected server address from serve action")
+	}
+	if dnsServer.Address() != dnsServer.DNSAddress() {
+		t.Fatalf("expected Address and DNSAddress to match, got %q and %q", dnsServer.Address(), dnsServer.DNSAddress())
 	}
 	_ = dnsServer.Close()
 

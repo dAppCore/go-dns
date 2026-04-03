@@ -22,11 +22,16 @@ type HealthServer struct {
 // HTTPServer is kept as a compatibility alias for HealthServer.
 type HTTPServer = HealthServer
 
-func (server *HealthServer) Address() string {
+func (server *HealthServer) HealthAddress() string {
 	if server == nil || server.listener == nil {
 		return ""
 	}
 	return server.listener.Addr().String()
+}
+
+// Address is retained for compatibility with older call sites.
+func (server *HealthServer) Address() string {
+	return server.HealthAddress()
 }
 
 func (server *HealthServer) Close() error {
@@ -54,7 +59,7 @@ func (server *HealthServer) Close() error {
 //
 //	server, err := service.ServeHTTPHealth("127.0.0.1", 5554)
 //	defer func() { _ = server.Close() }()
-//	resp, _ := http.Get("http://" + server.Address() + "/health")
+//	resp, _ := http.Get("http://" + server.HealthAddress() + "/health")
 func (service *Service) ServeHTTPHealth(bind string, port int) (*HealthServer, error) {
 	if bind == "" {
 		bind = "127.0.0.1"
