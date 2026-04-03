@@ -1212,6 +1212,33 @@ func TestServiceDiscoverFallsBackWhenPrimaryDiscovererFails(t *testing.T) {
 	}
 }
 
+func TestServiceDiscoverReturnsNilAfterFallbackDiscoverySucceeds(t *testing.T) {
+	service := NewService(ServiceOptions{
+		RecordDiscoverer: func() (map[string]NameRecords, error) {
+			return nil, errors.New("primary discoverer failed")
+		},
+		FallbackRecordDiscoverer: func() (map[string]NameRecords, error) {
+			return map[string]NameRecords{
+				"gateway.charon.lthn": {
+					A: []string{"10.10.10.10"},
+				},
+			}, nil
+		},
+	})
+
+	if err := service.Discover(); err != nil {
+		t.Fatalf("expected fallback discovery success to return nil, got %v", err)
+	}
+
+	result, ok := service.Resolve("gateway.charon.lthn")
+	if !ok {
+		t.Fatal("expected fallback record to resolve after discovery")
+	}
+	if len(result.A) != 1 || result.A[0] != "10.10.10.10" {
+		t.Fatalf("unexpected fallback resolve result: %#v", result.A)
+	}
+}
+
 func TestServiceDiscoverUsesFallbackOnlyWhenPrimaryMissing(t *testing.T) {
 	fallbackCalled := false
 

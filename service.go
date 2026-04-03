@@ -591,7 +591,7 @@ func (service *Service) Discover() error {
 			return err
 		}
 		service.replaceRecords(discovered)
-		return err
+		return nil
 	}
 	service.replaceRecords(discovered)
 	return nil
