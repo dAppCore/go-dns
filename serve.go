@@ -142,6 +142,13 @@ func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
 //	defer func() { _ = runtime.Close() }()
 //	fmt.Println("dns:", runtime.DNSAddress(), "health:", runtime.HTTPAddress())
 func (service *Service) ServeAll(bind string, dnsPort int, httpPort int) (*ServiceRuntime, error) {
+	if dnsPort == 0 {
+		dnsPort = service.dnsPort
+	}
+	if httpPort == 0 {
+		httpPort = service.httpPort
+	}
+
 	dnsServer, err := service.Serve(bind, dnsPort)
 	if err != nil {
 		return nil, err
@@ -157,6 +164,17 @@ func (service *Service) ServeAll(bind string, dnsPort int, httpPort int) (*Servi
 		DNS:  dnsServer,
 		HTTP: httpServer,
 	}, nil
+}
+
+// ServeConfigured starts DNS and health using the ports stored on the service.
+//
+//	service := dns.NewService(dns.ServiceOptions{
+//		DNSPort:  1053,
+//		HTTPPort: 5554,
+//	})
+//	runtime, err := service.ServeConfigured("127.0.0.1")
+func (service *Service) ServeConfigured(bind string) (*ServiceRuntime, error) {
+	return service.ServeAll(bind, service.dnsPort, service.httpPort)
 }
 
 type dnsRequestHandler struct {

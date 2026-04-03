@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -31,6 +33,23 @@ func exchangeWithRetry(t *testing.T, client dnsprotocol.Client, request *dnsprot
 
 	t.Fatalf("dns query failed after retrying due to startup timing")
 	return nil
+}
+
+func pickFreeTCPPort(t *testing.T) int {
+	t.Helper()
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("expected free TCP port: %v", err)
+	}
+	defer func() { _ = listener.Close() }()
+
+	tcpAddress, ok := listener.Addr().(*net.TCPAddr)
+	if !ok {
+		t.Fatalf("expected TCP listener address, got %T", listener.Addr())
+	}
+
+	return tcpAddress.Port
 }
 
 func TestServiceResolveUsesExactNameBeforeWildcard(t *testing.T) {
@@ -438,6 +457,45 @@ func TestServiceServeAllStartsDNSAndHTTPTogether(t *testing.T) {
 	}
 	if len(dnsResponse.Answer) != 1 {
 		t.Fatalf("expected one DNS answer from combined runtime, got %d", len(dnsResponse.Answer))
+	}
+}
+
+func TestServiceServeConfiguredUsesPortsFromServiceOptions(t *testing.T) {
+	dnsPort := pickFreeTCPPort(t)
+	httpPort := pickFreeTCPPort(t)
+
+	service := NewService(ServiceOptions{
+		DNSPort:  dnsPort,
+		HTTPPort: httpPort,
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	runtime, err := service.ServeConfigured("127.0.0.1")
+	if err != nil {
+		t.Fatalf("expected configured runtime to start: %v", err)
+	}
+	defer func() {
+		_ = runtime.Close()
+	}()
+
+	_, dnsActualPort, err := net.SplitHostPort(runtime.DNSAddress())
+	if err != nil {
+		t.Fatalf("expected DNS address to parse: %v", err)
+	}
+	if dnsActualPort != strconv.Itoa(dnsPort) {
+		t.Fatalf("expected configured DNS port %d, got %s", dnsPort, dnsActualPort)
+	}
+
+	_, httpActualPort, err := net.SplitHostPort(runtime.HTTPAddress())
+	if err != nil {
+		t.Fatalf("expected HTTP address to parse: %v", err)
+	}
+	if httpActualPort != strconv.Itoa(httpPort) {
+		t.Fatalf("expected configured HTTP port %d, got %s", httpPort, httpActualPort)
 	}
 }
 

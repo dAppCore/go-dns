@@ -69,6 +69,8 @@ type Service struct {
 	reverseIndex                 *cache.Cache
 	treeRoot                     string
 	zoneApex                     string
+	dnsPort                      int
+	httpPort                     int
 	lastAliasFingerprint         string
 	hsdClient                    *HSDClient
 	mainchainAliasClient         *MainchainAliasClient
@@ -96,6 +98,8 @@ type ServiceOptions struct {
 	Records                      map[string]NameRecords
 	RecordDiscoverer             func() (map[string]NameRecords, error)
 	FallbackRecordDiscoverer     func() (map[string]NameRecords, error)
+	DNSPort                      int
+	HTTPPort                     int
 	HSDURL                       string
 	HSDUsername                  string
 	HSDPassword                  string
@@ -162,6 +166,8 @@ func NewService(options ServiceOptions) *Service {
 		reverseIndex:                 buildReverseIndexCache(cached),
 		treeRoot:                     treeRoot,
 		zoneApex:                     computeZoneApex(cached),
+		dnsPort:                      options.DNSPort,
+		httpPort:                     options.HTTPPort,
 		hsdClient:                    hsdClient,
 		mainchainAliasClient:         mainchainClient,
 		chainAliasActionCaller:       options.ChainAliasActionCaller,
