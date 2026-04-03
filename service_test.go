@@ -2499,6 +2499,78 @@ func TestServiceHandleActionContextPassesThroughToDiscover(t *testing.T) {
 	}
 }
 
+func TestServiceDiscoverAliasesFallsBackToMainchainAliasRPCUsingHSDURL(t *testing.T) {
+	var chainAliasCalls int32
+	var treeRootCalls int32
+	var nameResourceCalls int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+		var payload struct {
+			Method string `json:"method"`
+			Params []any  `json:"params"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Fatalf("unexpected request payload: %v", err)
+		}
+
+		switch payload.Method {
+		case "get_all_alias_details":
+			atomic.AddInt32(&chainAliasCalls, 1)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": []any{
+					map[string]any{
+						"hns": "gateway.charon.lthn",
+					},
+				},
+			})
+		case "getblockchaininfo":
+			atomic.AddInt32(&treeRootCalls, 1)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": map[string]any{
+					"tree_root": "inferred-mainchain-root-1",
+				},
+			})
+		case "getnameresource":
+			atomic.AddInt32(&nameResourceCalls, 1)
+			responseWriter.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+				"result": map[string]any{
+					"a": []string{"10.10.10.10"},
+				},
+			})
+		default:
+			t.Fatalf("unexpected method: %s", payload.Method)
+		}
+	}))
+	defer server.Close()
+
+	service := NewService(ServiceOptions{
+		HSDURL:   server.URL,
+		Records:  map[string]NameRecords{},
+	})
+
+	if err := service.DiscoverAliases(context.Background()); err != nil {
+		t.Fatalf("expected discover to use inferred mainchain URL: %v", err)
+	}
+
+	record, ok := service.Resolve("gateway.charon.lthn")
+	if !ok || len(record.A) != 1 || record.A[0] != "10.10.10.10" {
+		t.Fatalf("expected discovered gateway A record, got %#v (ok=%t)", record, ok)
+	}
+
+	if atomic.LoadInt32(&chainAliasCalls) != 1 {
+		t.Fatalf("expected one mainchain alias call, got %d", atomic.LoadInt32(&chainAliasCalls))
+	}
+	if atomic.LoadInt32(&treeRootCalls) != 1 {
+		t.Fatalf("expected one tree-root call, got %d", atomic.LoadInt32(&treeRootCalls))
+	}
+	if atomic.LoadInt32(&nameResourceCalls) != 1 {
+		t.Fatalf("expected one name-resource call, got %d", atomic.LoadInt32(&nameResourceCalls))
+	}
+}
+
 func TestStringActionValueTrimsWhitespaceForRequiredArgument(t *testing.T) {
 	value, err := stringActionValue(map[string]any{
 		actionArgName: "  gateway.charon.lthn  ",
