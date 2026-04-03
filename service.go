@@ -68,8 +68,8 @@ type Service struct {
 	mainchainAliasClient         *MainchainAliasClient
 	chainAliasActionCaller       ActionCaller
 	chainAliasAction             func(context.Context) ([]string, error)
-	discoverer                   func() (map[string]NameRecords, error)
-	fallbackDiscoverer           func() (map[string]NameRecords, error)
+	recordDiscoverer             func() (map[string]NameRecords, error)
+	fallbackRecordDiscoverer     func() (map[string]NameRecords, error)
 	chainAliasDiscoverer         func(context.Context) ([]string, error)
 	fallbackChainAliasDiscoverer func(context.Context) ([]string, error)
 	lastTreeRootCheck            time.Time
@@ -126,8 +126,8 @@ func NewService(options ServiceOptions) *Service {
 		mainchainAliasClient:         options.MainchainAliasClient,
 		chainAliasActionCaller:       options.ChainAliasActionCaller,
 		chainAliasAction:             options.ChainAliasAction,
-		discoverer:                   options.Discoverer,
-		fallbackDiscoverer:           options.FallbackDiscoverer,
+		recordDiscoverer:             options.Discoverer,
+		fallbackRecordDiscoverer:     options.FallbackDiscoverer,
 		chainAliasDiscoverer:         options.ChainAliasDiscoverer,
 		fallbackChainAliasDiscoverer: options.FallbackChainAliasDiscoverer,
 		treeRootCheckInterval:        checkInterval,
@@ -461,12 +461,12 @@ func (service *Service) recordTreeRootState(now time.Time, treeRoot string, alia
 	service.lastAliasFingerprint = aliasFingerprint
 }
 
-// Discover refreshes the cache from the configured discoverer or fallback.
+// Discover refreshes the cache from the configured record discoverer or fallback.
 //
 //	err := service.Discover()
 func (service *Service) Discover() error {
-	discoverer := service.discoverer
-	fallback := service.fallbackDiscoverer
+	discoverer := service.recordDiscoverer
+	fallback := service.fallbackRecordDiscoverer
 	if discoverer == nil {
 		if fallback == nil {
 			return nil
