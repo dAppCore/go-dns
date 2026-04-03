@@ -289,13 +289,20 @@ func (service *Service) handleServe(ctx context.Context, values map[string]any) 
 		return nil, false, err
 	}
 	if !portProvided {
-		port = service.dnsPort
+		port = service.resolveServePort()
 	}
 	result, err := service.Serve(bind, port)
 	if err != nil {
 		return nil, false, err
 	}
 	return result, true, nil
+}
+
+func (service *Service) resolveServePort() int {
+	if service == nil || service.dnsPort <= 0 {
+		return DefaultDNSPort
+	}
+	return service.dnsPort
 }
 
 func stringActionValue(values map[string]any, key string) (string, error) {

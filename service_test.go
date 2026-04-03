@@ -2233,6 +2233,21 @@ func TestServiceHandleActionServeDefaultsPortFromServiceConfiguration(t *testing
 	_ = dnsServer.Close()
 }
 
+func TestServiceResolveServePortDefaultsToStandardDNSPort(t *testing.T) {
+	service := NewService(ServiceOptions{})
+	if service.resolveServePort() != DefaultDNSPort {
+		t.Fatalf("expected serve to default to standard DNS port %d, got %d", DefaultDNSPort, service.resolveServePort())
+	}
+
+	customPort := 1053
+	customService := NewService(ServiceOptions{
+		DNSPort: customPort,
+	})
+	if customService.resolveServePort() != customPort {
+		t.Fatalf("expected resolveServePort to honor configured DNSPort, got %d", customService.resolveServePort())
+	}
+}
+
 func TestServiceActionNamesExposeAllRFCActions(t *testing.T) {
 	service := NewService(ServiceOptions{})
 
@@ -2636,8 +2651,8 @@ func TestServiceDiscoverAliasesFallsBackToMainchainAliasRPCUsingHSDURL(t *testin
 	defer server.Close()
 
 	service := NewService(ServiceOptions{
-		HSDURL:   server.URL,
-		Records:  map[string]NameRecords{},
+		HSDURL:  server.URL,
+		Records: map[string]NameRecords{},
 	})
 
 	if err := service.DiscoverAliases(context.Background()); err != nil {
