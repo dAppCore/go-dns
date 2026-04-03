@@ -2499,6 +2499,48 @@ func TestServiceHandleActionContextPassesThroughToDiscover(t *testing.T) {
 	}
 }
 
+func TestStringActionValueTrimsWhitespaceForRequiredArgument(t *testing.T) {
+	value, err := stringActionValue(map[string]any{
+		actionArgName: "  gateway.charon.lthn  ",
+	}, actionArgName)
+	if err != nil {
+		t.Fatalf("expected trimmed string value, got error: %v", err)
+	}
+	if value != "gateway.charon.lthn" {
+		t.Fatalf("expected trimmed value, got %q", value)
+	}
+}
+
+func TestStringActionValueRejectsWhitespaceOnlyArgument(t *testing.T) {
+	_, err := stringActionValue(map[string]any{
+		actionArgName: "   ",
+	}, actionArgName)
+	if err == nil {
+		t.Fatal("expected whitespace-only argument to be rejected")
+	}
+}
+
+func TestIntActionValueRejectsNonIntegerFloat(t *testing.T) {
+	_, err := intActionValue(map[string]any{
+		actionArgPort: 53.9,
+	}, actionArgPort)
+	if err == nil {
+		t.Fatal("expected non-integer float value to be rejected")
+	}
+}
+
+func TestIntActionValueAcceptsWholeFloat(t *testing.T) {
+	value, err := intActionValue(map[string]any{
+		actionArgPort: float64(53),
+	}, actionArgPort)
+	if err != nil {
+		t.Fatalf("expected whole float to be accepted: %v", err)
+	}
+	if value != 53 {
+		t.Fatalf("expected value 53, got %d", value)
+	}
+}
+
 type actionRecorder struct {
 	names    []string
 	handlers map[string]func(map[string]any) (any, bool, error)
