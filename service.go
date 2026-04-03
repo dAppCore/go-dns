@@ -527,6 +527,13 @@ func (service *Service) recordTreeRootState(now time.Time, treeRoot string, alia
 
 // Discover refreshes the cache from the configured record discoverer or fallback.
 //
+//	service := dns.NewService(dns.ServiceOptions{
+//		RecordDiscoverer: func() (map[string]dns.NameRecords, error) {
+//			return map[string]dns.NameRecords{
+//				"gateway.charon.lthn": {A: []string{"10.10.10.10"}},
+//			}, nil
+//		},
+//	})
 //	err := service.Discover()
 func (service *Service) Discover() error {
 	discoverer := service.recordDiscoverer
@@ -561,6 +568,12 @@ func (service *Service) Discover() error {
 
 // DiscoverAliases refreshes DNS records from the configured chain alias source.
 //
+//	service := dns.NewService(dns.ServiceOptions{
+//		HSDClient: dns.NewHSDClient(dns.HSDClientOptions{URL: "http://127.0.0.1:14037"}),
+//		ChainAliasDiscoverer: func(context.Context) ([]string, error) {
+//			return []string{"gateway.charon.lthn"}, nil
+//		},
+//	})
 //	err := service.DiscoverAliases(context.Background())
 func (service *Service) DiscoverAliases(ctx context.Context) error {
 	return service.DiscoverFromChainAliases(ctx, service.hsdClient)
