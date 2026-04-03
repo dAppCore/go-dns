@@ -82,9 +82,10 @@ func (server *DNSServer) Close() error {
 	return err
 }
 
-// Serve starts DNS over UDP and TCP at bind:port and returns a running server handle.
+// Serve starts DNS over UDP and TCP.
 //
-//	srv, err := service.Serve("127.0.0.1", 53)
+//	srv, err := service.Serve("0.0.0.0", 53)
+//	defer func() { _ = srv.Close() }()
 func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
 	if bind == "" {
 		bind = "127.0.0.1"
@@ -125,9 +126,10 @@ func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
 	return run, nil
 }
 
-// ServeAll starts the DNS endpoint and the HTTP health endpoint together.
+// ServeAll starts DNS and health together.
 //
 //	runtime, err := service.ServeAll("127.0.0.1", 53, 5554)
+//	defer func() { _ = runtime.Close() }()
 func (service *Service) ServeAll(bind string, dnsPort int, httpPort int) (*ServiceRuntime, error) {
 	dnsServer, err := service.Serve(bind, dnsPort)
 	if err != nil {

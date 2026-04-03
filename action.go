@@ -29,6 +29,7 @@ type ActionDefinition struct {
 // ActionRegistrar accepts named DNS action handlers from a service.
 //
 //	service.RegisterActions(registrar)
+//	registrar.RegisterAction("dns.health", func(map[string]any) (any, bool, error) { return service.Health(), true, nil })
 type ActionRegistrar interface {
 	RegisterAction(name string, invoke func(map[string]any) (any, bool, error))
 }
