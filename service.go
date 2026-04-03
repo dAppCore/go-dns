@@ -147,18 +147,23 @@ type ServiceOptions struct {
 	ActionRegistrar              ActionRegistrar
 }
 
-// ServiceConfig is the preferred constructor shape for NewService.
+// ServiceConfiguration is the preferred constructor shape for NewService.
 //
-//	service := dns.NewService(dns.ServiceConfig{
+//	service := dns.NewService(dns.ServiceConfiguration{
 //		Records: map[string]dns.NameRecords{
 //			"gateway.charon.lthn": {A: []string{"10.10.10.10"}},
 //		},
 //	})
+type ServiceConfiguration = ServiceOptions
+
+// ServiceConfig is kept for compatibility with older call sites.
+//
+// Deprecated: use ServiceConfiguration instead.
 type ServiceConfig = ServiceOptions
 
 // Options is kept for compatibility with older call sites.
 //
-// Deprecated: use ServiceConfig instead.
+// Deprecated: use ServiceConfiguration instead.
 type Options = ServiceOptions
 
 // NewService builds a DNS service from cached records and optional discovery hooks.

@@ -29,8 +29,8 @@ type ActionDefinition struct {
 
 // ActionRegistrar publishes DNS actions into another Core surface.
 //
-//	registrar.RegisterAction(ActionHealth, func(map[string]any) (any, bool, error) {
-//		return service.Health(), true, nil
+//	registrar.RegisterAction(ActionResolve, func(values map[string]any) (any, bool, error) {
+//		return service.ResolveAddress("gateway.charon.lthn")
 //	})
 type ActionRegistrar interface {
 	RegisterAction(name string, invoke func(map[string]any) (any, bool, error))
@@ -38,7 +38,11 @@ type ActionRegistrar interface {
 
 // ActionCaller resolves named actions from another Core surface.
 //
-//	aliases, ok, err := caller.CallAction(context.Background(), "blockchain.chain.aliases", map[string]any{})
+//	aliases, ok, err := caller.CallAction(
+//		context.Background(),
+//		"blockchain.chain.aliases",
+//		map[string]any{},
+//	)
 type ActionCaller interface {
 	CallAction(ctx context.Context, name string, values map[string]any) (any, bool, error)
 }
@@ -151,7 +155,7 @@ func (service *Service) RegisterActions(registrar ActionRegistrar) {
 
 // NewServiceWithRegistrar builds a DNS service and registers its actions in one step.
 //
-//	service := dns.NewServiceWithRegistrar(dns.ServiceOptions{}, registrar)
+//	service := dns.NewServiceWithRegistrar(dns.ServiceConfiguration{}, registrar)
 //	// registrar now exposes dns.resolve, dns.resolve.txt, dns.resolve.all, dns.reverse, dns.serve, dns.health, dns.discover
 func NewServiceWithRegistrar(options ServiceOptions, registrar ActionRegistrar) *Service {
 	if registrar != nil {
