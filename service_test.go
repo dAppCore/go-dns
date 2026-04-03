@@ -638,6 +638,34 @@ func TestServiceServeConfiguredUsesPortsFromServiceOptions(t *testing.T) {
 	}
 }
 
+func TestServiceServeDefaultsPortWhenZero(t *testing.T) {
+	const configuredDNSPort = 5353
+	service := NewService(ServiceOptions{
+		DNSPort: configuredDNSPort,
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	server, err := service.Serve("127.0.0.1", 0)
+	if err != nil {
+		t.Fatalf("expected Serve to default DNS port: %v", err)
+	}
+	defer func() {
+		_ = server.Close()
+	}()
+
+	_, port, err := net.SplitHostPort(server.DNSAddress())
+	if err != nil {
+		t.Fatalf("expected DNS address to parse: %v", err)
+	}
+	if port != strconv.Itoa(configuredDNSPort) {
+		t.Fatalf("expected zero port to default to configured service DNS port %d, got %s", configuredDNSPort, port)
+	}
+}
+
 func TestServiceDiscoverReplacesRecordsFromDiscoverer(t *testing.T) {
 	records := []map[string]NameRecords{
 		{

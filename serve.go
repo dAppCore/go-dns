@@ -171,6 +171,9 @@ func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
 	if bind == "" {
 		bind = "127.0.0.1"
 	}
+	if port <= 0 {
+		port = service.ResolveDNSPort()
+	}
 	addr := net.JoinHostPort(bind, strconv.Itoa(port))
 
 	udpListener, err := net.ListenPacket("udp", addr)
@@ -213,8 +216,8 @@ func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
 //	defer func() { _ = runtime.Close() }()
 //	fmt.Println("dns:", runtime.DNSAddress(), "health:", runtime.HealthAddress())
 func (service *Service) ServeAll(bind string, dnsPort int, httpPort int) (*ServiceRuntime, error) {
-	if dnsPort == 0 {
-		dnsPort = service.dnsPort
+	if dnsPort <= 0 {
+		dnsPort = service.resolveServePort()
 	}
 	if httpPort <= 0 {
 		httpPort = service.resolveHTTPPort()
