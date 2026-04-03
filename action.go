@@ -283,7 +283,10 @@ func (service *Service) handleReverseLookup(ctx context.Context, values map[stri
 
 func (service *Service) handleServe(ctx context.Context, values map[string]any) (any, bool, error) {
 	_ = ctx
-	bind, _ := stringActionValueOptional(values, actionArgBind)
+	bind, err := stringActionValueOptional(values, actionArgBind)
+	if err != nil {
+		return nil, false, err
+	}
 	port, portProvided, err := intActionValueOptional(values, actionArgPort)
 	if err != nil {
 		return nil, false, err
