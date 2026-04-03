@@ -270,6 +270,14 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 		if !found {
 			goto noRecord
 		}
+	case dnsprotocol.TypeANY:
+		if found {
+			appendAnyAnswers(reply, question.Name, name, record)
+		} else if normalizeName(name) == handler.service.ZoneApex() && handler.service.ZoneApex() != "" {
+			appendAnyAnswers(reply, question.Name, name, NameRecords{})
+		} else {
+			goto noRecord
+		}
 	default:
 		reply.SetRcode(request, dnsprotocol.RcodeNotImplemented)
 		_ = responseWriter.WriteMsg(reply)
@@ -339,4 +347,63 @@ func parsePTRIP(name string) (string, bool) {
 		return parsed.String(), true
 	}
 	return "", false
+}
+
+func appendAnyAnswers(reply *dnsprotocol.Msg, questionName string, name string, record NameRecords) {
+	for _, value := range record.A {
+		parsedIP := net.ParseIP(value)
+		if parsedIP == nil || parsedIP.To4() == nil {
+			continue
+		}
+		reply.Answer = append(reply.Answer, &dnsprotocol.A{
+			Hdr: dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeA, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+			A:   parsedIP.To4(),
+		})
+	}
+
+	for _, value := range record.AAAA {
+		parsedIP := net.ParseIP(value)
+		if parsedIP == nil || parsedIP.To4() != nil {
+			continue
+		}
+		reply.Answer = append(reply.Answer, &dnsprotocol.AAAA{
+			Hdr:  dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeAAAA, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+			AAAA: parsedIP.To16(),
+		})
+	}
+
+	for _, value := range record.TXT {
+		reply.Answer = append(reply.Answer, &dnsprotocol.TXT{
+			Hdr: dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeTXT, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+			Txt: []string{value},
+		})
+	}
+
+	if len(record.NS) > 0 {
+		for _, value := range record.NS {
+			reply.Answer = append(reply.Answer, &dnsprotocol.NS{
+				Hdr: dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeNS, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+				Ns:  normalizeName(value) + ".",
+			})
+		}
+	}
+
+	if normalizeName(name) == normalizeName(questionName) && normalizeName(name) != "" {
+		if len(record.NS) == 0 {
+			reply.Answer = append(reply.Answer, &dnsprotocol.NS{
+				Hdr: dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeNS, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+				Ns:  normalizeName("ns."+name) + ".",
+			})
+		}
+		reply.Answer = append(reply.Answer, &dnsprotocol.SOA{
+			Hdr:     dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeSOA, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+			Ns:      normalizeName("ns."+name) + ".",
+			Mbox:    "hostmaster." + name + ".",
+			Serial:  uint32(time.Now().Unix()),
+			Refresh: 86400,
+			Retry:   3600,
+			Expire:  3600,
+			Minttl:  300,
+		})
+	}
 }

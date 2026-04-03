@@ -1143,6 +1143,51 @@ func TestServiceServeResolvesAAndAAAARecords(t *testing.T) {
 	}
 }
 
+func TestServiceServeAnswersANYWithAllRecordTypes(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A:    []string{"10.10.10.10"},
+				AAAA: []string{"2600:1f1c:7f0:4f01::1"},
+				TXT:  []string{"v=lthn1 type=gateway"},
+				NS:   []string{"ns.gateway.charon.lthn"},
+			},
+		},
+	})
+
+	srv, err := service.Serve("127.0.0.1", 0)
+	if err != nil {
+		t.Fatalf("expected server to start: %v", err)
+	}
+	defer func() { _ = srv.Close() }()
+
+	client := dnsprotocol.Client{}
+	request := new(dnsprotocol.Msg)
+	request.SetQuestion("gateway.charon.lthn.", dnsprotocol.TypeANY)
+	response := exchangeWithRetry(t, client, request, srv.Address())
+	if response.Rcode != dnsprotocol.RcodeSuccess {
+		t.Fatalf("unexpected ANY rcode: %d", response.Rcode)
+	}
+
+	var sawA, sawAAAA, sawTXT, sawNS bool
+	for _, answer := range response.Answer {
+		switch rr := answer.(type) {
+		case *dnsprotocol.A:
+			sawA = rr.A.String() == "10.10.10.10"
+		case *dnsprotocol.AAAA:
+			sawAAAA = rr.AAAA.String() == "2600:1f1c:7f0:4f01::1"
+		case *dnsprotocol.TXT:
+			sawTXT = len(rr.Txt) == 1 && rr.Txt[0] == "v=lthn1 type=gateway"
+		case *dnsprotocol.NS:
+			sawNS = rr.Ns == "ns.gateway.charon.lthn."
+		}
+	}
+
+	if !sawA || !sawAAAA || !sawTXT || !sawNS {
+		t.Fatalf("expected ANY answer to include A, AAAA, TXT, and NS records, got %#v", response.Answer)
+	}
+}
+
 func TestServiceServeResolvesWildcardAndPTRRecords(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{
