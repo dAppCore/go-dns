@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -297,6 +298,51 @@ func TestServiceHealthUsesChainTreeRootAfterDiscovery(t *testing.T) {
 	root, ok := health["tree_root"].(string)
 	if !ok || root != "chain-root-1" {
 		t.Fatalf("expected health to expose chain tree_root, got %#v", health["tree_root"])
+	}
+}
+
+func TestServiceServeHTTPHealthReturnsJSON(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	httpServer, err := service.ServeHTTPHealth("127.0.0.1", 0)
+	if err != nil {
+		t.Fatalf("expected health HTTP server to start: %v", err)
+	}
+	defer func() {
+		_ = httpServer.Close()
+	}()
+
+	response, err := http.Get("http://" + httpServer.Address() + "/health")
+	if err != nil {
+		t.Fatalf("expected health endpoint to respond: %v", err)
+	}
+	defer func() {
+		_ = response.Body.Close()
+	}()
+
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected health status: %d", response.StatusCode)
+	}
+
+	var payload map[string]any
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatalf("expected health payload: %v", err)
+	}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		t.Fatalf("expected health JSON: %v", err)
+	}
+	if payload["status"] != "ready" {
+		t.Fatalf("expected ready health status, got %#v", payload["status"])
+	}
+	if payload["names_cached"] != float64(1) {
+		t.Fatalf("expected one cached name, got %#v", payload["names_cached"])
 	}
 }
 
