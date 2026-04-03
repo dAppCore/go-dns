@@ -21,72 +21,127 @@ var (
 	errActionMissingValue = errors.New("dns action missing required value")
 )
 
+type ActionDefinition struct {
+	Name   string
+	Invoke func(map[string]any) (any, bool, error)
+}
+
+// ActionDefinitions returns the complete DNS action surface in registration order.
+//
+//	service.ActionDefinitions()
+func (service *Service) ActionDefinitions() []ActionDefinition {
+	return []ActionDefinition{
+		{
+			Name: ActionResolve,
+			Invoke: func(values map[string]any) (any, bool, error) {
+				host, err := stringActionValue(values, "name")
+				if err != nil {
+					return nil, false, err
+				}
+				result, ok := service.ResolveAddress(host)
+				if !ok {
+					return nil, false, nil
+				}
+				return result, true, nil
+			},
+		},
+		{
+			Name: ActionResolveTXT,
+			Invoke: func(values map[string]any) (any, bool, error) {
+				host, err := stringActionValue(values, "name")
+				if err != nil {
+					return nil, false, err
+				}
+				result, ok := service.ResolveTXTRecords(host)
+				if !ok {
+					return nil, false, nil
+				}
+				return result, true, nil
+			},
+		},
+		{
+			Name: ActionResolveAll,
+			Invoke: func(values map[string]any) (any, bool, error) {
+				host, err := stringActionValue(values, "name")
+				if err != nil {
+					return nil, false, err
+				}
+				result, ok := service.ResolveAll(host)
+				if !ok {
+					return nil, false, nil
+				}
+				return result, true, nil
+			},
+		},
+		{
+			Name: ActionReverse,
+			Invoke: func(values map[string]any) (any, bool, error) {
+				ip, err := stringActionValue(values, "ip")
+				if err != nil {
+					return nil, false, err
+				}
+				result, ok := service.ResolveReverseNames(ip)
+				if !ok {
+					return nil, false, nil
+				}
+				return result, true, nil
+			},
+		},
+		{
+			Name: ActionServe,
+			Invoke: func(values map[string]any) (any, bool, error) {
+				bind, _ := stringActionValueOptional(values, "bind")
+				port, err := intActionValue(values, "port")
+				if err != nil {
+					return nil, false, err
+				}
+				result, err := service.Serve(bind, port)
+				if err != nil {
+					return nil, false, err
+				}
+				return result, true, nil
+			},
+		},
+		{
+			Name: ActionHealth,
+			Invoke: func(map[string]any) (any, bool, error) {
+				return service.Health(), true, nil
+			},
+		},
+		{
+			Name: ActionDiscover,
+			Invoke: func(map[string]any) (any, bool, error) {
+				if err := service.DiscoverAliases(context.Background()); err != nil {
+					return nil, false, err
+				}
+				return service.Health(), true, nil
+			},
+		},
+	}
+}
+
+// ActionNames returns the names of the registered DNS actions.
+//
+//	service.ActionNames()
+func (service *Service) ActionNames() []string {
+	definitions := service.ActionDefinitions()
+	names := make([]string, 0, len(definitions))
+	for _, definition := range definitions {
+		names = append(names, definition.Name)
+	}
+	return names
+}
+
 // HandleAction executes a DNS action by name.
 //
 //	service.HandleAction("dns.resolve", map[string]any{"name": "gateway.charon.lthn"})
 func (service *Service) HandleAction(name string, values map[string]any) (any, bool, error) {
-	switch name {
-	case ActionResolve:
-		host, err := stringActionValue(values, "name")
-		if err != nil {
-			return nil, false, err
+	for _, definition := range service.ActionDefinitions() {
+		if definition.Name == name {
+			return definition.Invoke(values)
 		}
-		result, ok := service.ResolveAddress(host)
-		if !ok {
-			return nil, false, nil
-		}
-		return result, true, nil
-	case ActionResolveTXT:
-		host, err := stringActionValue(values, "name")
-		if err != nil {
-			return nil, false, err
-		}
-		result, ok := service.ResolveTXTRecords(host)
-		if !ok {
-			return nil, false, nil
-		}
-		return result, true, nil
-	case ActionResolveAll:
-		host, err := stringActionValue(values, "name")
-		if err != nil {
-			return nil, false, err
-		}
-		result, ok := service.ResolveAll(host)
-		if !ok {
-			return nil, false, nil
-		}
-		return result, true, nil
-	case ActionReverse:
-		ip, err := stringActionValue(values, "ip")
-		if err != nil {
-			return nil, false, err
-		}
-		result, ok := service.ResolveReverseNames(ip)
-		if !ok {
-			return nil, false, nil
-		}
-		return result, true, nil
-	case ActionServe:
-		bind, _ := stringActionValueOptional(values, "bind")
-		port, err := intActionValue(values, "port")
-		if err != nil {
-			return nil, false, err
-		}
-		result, err := service.Serve(bind, port)
-		if err != nil {
-			return nil, false, err
-		}
-		return result, true, nil
-	case ActionHealth:
-		return service.Health(), true, nil
-	case ActionDiscover:
-		if err := service.DiscoverAliases(context.Background()); err != nil {
-			return nil, false, err
-		}
-		return service.Health(), true, nil
-	default:
-		return nil, false, errActionNotFound
 	}
+	return nil, false, errActionNotFound
 }
 
 func stringActionValue(values map[string]any, key string) (string, error) {

@@ -1,6 +1,7 @@
 package dns
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -133,7 +134,7 @@ func (client *HSDClient) call(ctx context.Context, request HSDRPCRequest) (json.
 		return nil, err
 	}
 
-	httpRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, client.baseURL, io.NopCloser(io.Reader(strings.NewReader(string(body)))))
+	httpRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, client.baseURL, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}

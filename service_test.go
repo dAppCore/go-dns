@@ -1039,6 +1039,82 @@ func TestServiceHandleActionResolveAndTXTAndAll(t *testing.T) {
 	}
 }
 
+func TestServiceActionNamesExposeAllRFCActions(t *testing.T) {
+	service := NewService(ServiceOptions{})
+
+	names := service.ActionNames()
+	expected := []string{
+		ActionResolve,
+		ActionResolveTXT,
+		ActionResolveAll,
+		ActionReverse,
+		ActionServe,
+		ActionHealth,
+		ActionDiscover,
+	}
+
+	if len(names) != len(expected) {
+		t.Fatalf("expected %d action names, got %d: %#v", len(expected), len(names), names)
+	}
+	for i, name := range expected {
+		if names[i] != name {
+			t.Fatalf("unexpected action name at %d: got %q want %q", i, names[i], name)
+		}
+	}
+}
+
+func TestServiceActionDefinitionsHaveInvokers(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	definitions := service.ActionDefinitions()
+	if len(definitions) == 0 {
+		t.Fatal("expected action definitions")
+	}
+
+	for _, definition := range definitions {
+		if definition.Name == "" {
+			t.Fatal("expected action definition name")
+		}
+		if definition.Invoke == nil {
+			t.Fatalf("expected action invoke for %s", definition.Name)
+		}
+	}
+
+	resolveDefinition := definitions[0]
+	if resolveDefinition.Name != ActionResolve {
+		t.Fatalf("expected first action definition to be %s, got %s", ActionResolve, resolveDefinition.Name)
+	}
+	payload, ok, err := resolveDefinition.Invoke(map[string]any{
+		"name": "gateway.charon.lthn",
+	})
+	if err != nil {
+		t.Fatalf("unexpected action invoke error: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected resolve action definition to return a record")
+	}
+	result, ok := payload.(ResolveAddressResult)
+	if !ok || len(result.Addresses) != 1 || result.Addresses[0] != "10.10.10.10" {
+		t.Fatalf("unexpected resolve payload: %#v", payload)
+	}
+
+	handlePayload, handleOK, handleErr := service.HandleAction(ActionResolve, map[string]any{
+		"name": "gateway.charon.lthn",
+	})
+	if handleErr != nil || !handleOK {
+		t.Fatalf("unexpected handle action result: ok=%t err=%v", handleOK, handleErr)
+	}
+	if handleResult, ok := handlePayload.(ResolveAddressResult); !ok || len(handleResult.Addresses) != 1 || handleResult.Addresses[0] != "10.10.10.10" {
+		t.Fatalf("unexpected handle action payload: %#v", handlePayload)
+	}
+}
+
 func TestServiceHandleActionReverseHealthServeAndDiscover(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
 		var payload struct {
