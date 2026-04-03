@@ -168,6 +168,48 @@ func TestHSDClientGetNameResourceParsesDNSSECRecords(t *testing.T) {
 	}
 }
 
+func TestHSDClientGetNameResourceParsesSingleValueDNSSECRecords(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+		var payload struct {
+			Method string `json:"method"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Fatalf("unexpected request payload: %v", err)
+		}
+		if payload.Method != "getnameresource" {
+			t.Fatalf("expected method getnameresource, got %s", payload.Method)
+		}
+
+		responseWriter.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+			"result": map[string]any{
+				"dnskey": "257 3 13 AA==",
+				"rrsig":  "A 8 2 3600 20260101000000 20250101000000 12345 gateway.lthn. AA==",
+				"ds":     "60485 8 2 A1B2C3D4E5F60718293A4B5C6D7E8F9012345678",
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewHSDClient(HSDClientOptions{
+		URL: server.URL,
+	})
+
+	record, err := client.GetNameResource(context.Background(), "gateway.lthn")
+	if err != nil {
+		t.Fatalf("unexpected getnameresource error: %v", err)
+	}
+	if len(record.DNSKEY) != 1 || record.DNSKEY[0] != "257 3 13 AA==" {
+		t.Fatalf("unexpected DNSKEY result: %#v", record.DNSKEY)
+	}
+	if len(record.RRSIG) != 1 || record.RRSIG[0] != "A 8 2 3600 20260101000000 20250101000000 12345 gateway.lthn. AA==" {
+		t.Fatalf("unexpected RRSIG result: %#v", record.RRSIG)
+	}
+	if len(record.DS) != 1 || record.DS[0] != "60485 8 2 A1B2C3D4E5F60718293A4B5C6D7E8F9012345678" {
+		t.Fatalf("unexpected DS result: %#v", record.DS)
+	}
+}
+
 func TestHSDClientGetBlockchainInfo(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
 		var payload struct {

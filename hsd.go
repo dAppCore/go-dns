@@ -185,49 +185,114 @@ func (client *HSDClient) call(ctx context.Context, request HSDRPCRequest) (json.
 }
 
 func parseHSDNameResource(raw json.RawMessage) (NameRecords, error) {
-	var result NameRecords
 	var wrapper map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &wrapper); err != nil {
-		return result, err
+		return NameRecords{}, err
 	}
 
 	if recordsRaw, ok := wrapper["records"]; ok {
-		if err := json.Unmarshal(recordsRaw, &result); err != nil {
+		result, err := parseHSDNameResourceRecords(recordsRaw)
+		if err != nil {
 			return NameRecords{}, err
 		}
 		return result, nil
 	}
 
-	if _, ok := wrapper["a"]; ok {
-		if err := json.Unmarshal(raw, &result); err != nil {
+	if hasHSDNameResourceField(wrapper) {
+		result, err := parseHSDNameResourceRecords(raw)
+		if err != nil {
 			return NameRecords{}, err
-		}
-		return result, nil
-	}
-
-	var wrapped struct {
-		A      []string `json:"a"`
-		AAAA   []string `json:"aaaa"`
-		TXT    []string `json:"txt"`
-		NS     []string `json:"ns"`
-		DS     []string `json:"ds"`
-		DNSKEY []string `json:"dnskey"`
-		RRSIG  []string `json:"rrsig"`
-	}
-	if err := json.Unmarshal(raw, &wrapped); err == nil {
-		result = NameRecords{
-			A:      wrapped.A,
-			AAAA:   wrapped.AAAA,
-			TXT:    wrapped.TXT,
-			NS:     wrapped.NS,
-			DS:     wrapped.DS,
-			DNSKEY: wrapped.DNSKEY,
-			RRSIG:  wrapped.RRSIG,
 		}
 		return result, nil
 	}
 
 	return NameRecords{}, errors.New("unable to parse getnameresource result")
+}
+
+func parseHSDNameResourceRecords(raw json.RawMessage) (NameRecords, error) {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return NameRecords{}, err
+	}
+
+	a, err := parseHSDRecordValue(fields["a"])
+	if err != nil {
+		return NameRecords{}, err
+	}
+	aaaa, err := parseHSDRecordValue(fields["aaaa"])
+	if err != nil {
+		return NameRecords{}, err
+	}
+	txt, err := parseHSDRecordValue(fields["txt"])
+	if err != nil {
+		return NameRecords{}, err
+	}
+	ns, err := parseHSDRecordValue(fields["ns"])
+	if err != nil {
+		return NameRecords{}, err
+	}
+	ds, err := parseHSDRecordValue(fields["ds"])
+	if err != nil {
+		return NameRecords{}, err
+	}
+	dnsKey, err := parseHSDRecordValue(fields["dnskey"])
+	if err != nil {
+		return NameRecords{}, err
+	}
+	rrSig, err := parseHSDRecordValue(fields["rrsig"])
+	if err != nil {
+		return NameRecords{}, err
+	}
+
+	return NameRecords{
+		A:      a,
+		AAAA:   aaaa,
+		TXT:    txt,
+		NS:     ns,
+		DS:     ds,
+		DNSKEY: dnsKey,
+		RRSIG:  rrSig,
+	}, nil
+}
+
+func hasHSDNameResourceField(fields map[string]json.RawMessage) bool {
+	if len(fields) == 0 {
+		return false
+	}
+
+	_, hasA := fields["a"]
+	_, hasAAAA := fields["aaaa"]
+	_, hasTXT := fields["txt"]
+	_, hasNS := fields["ns"]
+	_, hasDS := fields["ds"]
+	_, hasDNSKEY := fields["dnskey"]
+	_, hasRRSIG := fields["rrsig"]
+	return hasA || hasAAAA || hasTXT || hasNS || hasDS || hasDNSKEY || hasRRSIG
+}
+
+func parseHSDRecordValue(raw json.RawMessage) ([]string, error) {
+	if len(bytes.TrimSpace(raw)) == 0 {
+		return nil, nil
+	}
+
+	if trimmed := bytes.TrimSpace(raw); bytes.Equal(trimmed, []byte("null")) {
+		return nil, nil
+	}
+
+	var values []string
+	if err := json.Unmarshal(raw, &values); err == nil {
+		return values, nil
+	}
+
+	var value string
+	if err := json.Unmarshal(raw, &value); err == nil {
+		if value == "" {
+			return nil, nil
+		}
+		return []string{value}, nil
+	}
+
+	return nil, fmt.Errorf("unable to parse DNS record field")
 }
 
 func parseHSDBlockchainInfo(raw json.RawMessage) (HSDBlockchainInfo, error) {
