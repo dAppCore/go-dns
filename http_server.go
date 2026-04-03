@@ -9,24 +9,27 @@ import (
 	"time"
 )
 
-// HTTPServer owns the health endpoint listener and server.
+// HealthServer owns the `/health` listener and server.
 //
 //	server, err := service.ServeHTTPHealth("127.0.0.1", 5554)
 //	defer func() { _ = server.Close() }()
 //	fmt.Println("health at", server.Address())
-type HTTPServer struct {
+type HealthServer struct {
 	listener net.Listener
 	server   *http.Server
 }
 
-func (server *HTTPServer) Address() string {
+// HTTPServer is kept as a compatibility alias for HealthServer.
+type HTTPServer = HealthServer
+
+func (server *HealthServer) Address() string {
 	if server == nil || server.listener == nil {
 		return ""
 	}
 	return server.listener.Addr().String()
 }
 
-func (server *HTTPServer) Close() error {
+func (server *HealthServer) Close() error {
 	if server == nil {
 		return nil
 	}
@@ -52,7 +55,7 @@ func (server *HTTPServer) Close() error {
 //	server, err := service.ServeHTTPHealth("127.0.0.1", 5554)
 //	defer func() { _ = server.Close() }()
 //	resp, _ := http.Get("http://" + server.Address() + "/health")
-func (service *Service) ServeHTTPHealth(bind string, port int) (*HTTPServer, error) {
+func (service *Service) ServeHTTPHealth(bind string, port int) (*HealthServer, error) {
 	if bind == "" {
 		bind = "127.0.0.1"
 	}
@@ -78,7 +81,7 @@ func (service *Service) ServeHTTPHealth(bind string, port int) (*HTTPServer, err
 		Handler: mux,
 	}
 
-	httpServer := &HTTPServer{
+	httpServer := &HealthServer{
 		listener: listener,
 		server:   server,
 	}

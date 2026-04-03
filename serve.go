@@ -23,14 +23,14 @@ type DNSServer struct {
 	tcpServer   *dnsprotocol.Server
 }
 
-// ServiceRuntime owns the DNS and HTTP listeners created by ServeAll.
+// ServiceRuntime owns the DNS and health listeners created by ServeAll.
 //
 //	runtime, err := service.ServeAll("127.0.0.1", 53, 5554)
 //	defer func() { _ = runtime.Close() }()
-//	fmt.Println(runtime.DNSAddress(), runtime.HTTPAddress())
+//	fmt.Println(runtime.DNSAddress(), runtime.HealthAddress())
 type ServiceRuntime struct {
 	DNS  *DNSServer
-	HTTP *HTTPServer
+	HTTP *HealthServer
 }
 
 func (runtime *ServiceRuntime) DNSAddress() string {
@@ -40,11 +40,16 @@ func (runtime *ServiceRuntime) DNSAddress() string {
 	return runtime.DNS.Address()
 }
 
-func (runtime *ServiceRuntime) HTTPAddress() string {
+func (runtime *ServiceRuntime) HealthAddress() string {
 	if runtime == nil || runtime.HTTP == nil {
 		return ""
 	}
 	return runtime.HTTP.Address()
+}
+
+// HTTPAddress is retained for compatibility with older call sites.
+func (runtime *ServiceRuntime) HTTPAddress() string {
+	return runtime.HealthAddress()
 }
 
 func (runtime *ServiceRuntime) Close() error {
@@ -140,7 +145,7 @@ func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
 //
 //	runtime, err := service.ServeAll("127.0.0.1", 53, 5554)
 //	defer func() { _ = runtime.Close() }()
-//	fmt.Println("dns:", runtime.DNSAddress(), "health:", runtime.HTTPAddress())
+//	fmt.Println("dns:", runtime.DNSAddress(), "health:", runtime.HealthAddress())
 func (service *Service) ServeAll(bind string, dnsPort int, httpPort int) (*ServiceRuntime, error) {
 	if dnsPort == 0 {
 		dnsPort = service.dnsPort

@@ -461,11 +461,14 @@ func TestServiceServeAllStartsDNSAndHTTPTogether(t *testing.T) {
 	if runtime.DNSAddress() == "" {
 		t.Fatal("expected DNS address from combined runtime")
 	}
-	if runtime.HTTPAddress() == "" {
-		t.Fatal("expected HTTP address from combined runtime")
+	if runtime.HealthAddress() == "" {
+		t.Fatal("expected health address from combined runtime")
+	}
+	if runtime.HTTPAddress() != runtime.HealthAddress() {
+		t.Fatalf("expected HTTPAddress and HealthAddress to match, got %q and %q", runtime.HTTPAddress(), runtime.HealthAddress())
 	}
 
-	response, err := http.Get("http://" + runtime.HTTPAddress() + "/health")
+	response, err := http.Get("http://" + runtime.HealthAddress() + "/health")
 	if err != nil {
 		t.Fatalf("expected combined HTTP health endpoint to respond: %v", err)
 	}
@@ -519,7 +522,7 @@ func TestServiceServeConfiguredUsesPortsFromServiceOptions(t *testing.T) {
 		t.Fatalf("expected configured DNS port %d, got %s", dnsPort, dnsActualPort)
 	}
 
-	_, httpActualPort, err := net.SplitHostPort(runtime.HTTPAddress())
+	_, httpActualPort, err := net.SplitHostPort(runtime.HealthAddress())
 	if err != nil {
 		t.Fatalf("expected HTTP address to parse: %v", err)
 	}
