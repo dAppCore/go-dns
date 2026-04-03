@@ -1710,6 +1710,66 @@ func TestServiceServeAnswersDSRecords(t *testing.T) {
 	}
 }
 
+func TestServiceServeAnswersDNSKEYRecords(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				DNSKEY: []string{"257 3 13 AA=="},
+			},
+		},
+	})
+
+	srv, err := service.Serve("127.0.0.1", 0)
+	if err != nil {
+		t.Fatalf("expected server to start: %v", err)
+	}
+	defer func() { _ = srv.Close() }()
+
+	client := dnsprotocol.Client{}
+	request := new(dnsprotocol.Msg)
+	request.SetQuestion("gateway.charon.lthn.", dnsprotocol.TypeDNSKEY)
+	response := exchangeWithRetry(t, client, request, srv.Address())
+	if response.Rcode != dnsprotocol.RcodeSuccess {
+		t.Fatalf("unexpected DNSKEY rcode: %d", response.Rcode)
+	}
+	if len(response.Answer) != 1 {
+		t.Fatalf("expected one DNSKEY answer, got %d", len(response.Answer))
+	}
+	if _, ok := response.Answer[0].(*dnsprotocol.DNSKEY); !ok {
+		t.Fatalf("expected DNSKEY answer, got %#v", response.Answer[0])
+	}
+}
+
+func TestServiceServeAnswersRRSIGRecords(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				RRSIG: []string{"A 8 2 3600 20260101000000 20250101000000 12345 gateway.charon.lthn. AA=="},
+			},
+		},
+	})
+
+	srv, err := service.Serve("127.0.0.1", 0)
+	if err != nil {
+		t.Fatalf("expected server to start: %v", err)
+	}
+	defer func() { _ = srv.Close() }()
+
+	client := dnsprotocol.Client{}
+	request := new(dnsprotocol.Msg)
+	request.SetQuestion("gateway.charon.lthn.", dnsprotocol.TypeRRSIG)
+	response := exchangeWithRetry(t, client, request, srv.Address())
+	if response.Rcode != dnsprotocol.RcodeSuccess {
+		t.Fatalf("unexpected RRSIG rcode: %d", response.Rcode)
+	}
+	if len(response.Answer) != 1 {
+		t.Fatalf("expected one RRSIG answer, got %d", len(response.Answer))
+	}
+	if _, ok := response.Answer[0].(*dnsprotocol.RRSIG); !ok {
+		t.Fatalf("expected RRSIG answer, got %#v", response.Answer[0])
+	}
+}
+
 func TestServiceServeAnswersANYWithAllRecordTypes(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{

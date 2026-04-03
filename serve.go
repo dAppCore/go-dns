@@ -344,6 +344,16 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 			goto noRecord
 		}
 		appendDNSSECResourceRecords(reply, question.Name, dnsprotocol.TypeDS, record.DS)
+	case dnsprotocol.TypeDNSKEY:
+		if !found {
+			goto noRecord
+		}
+		appendDNSSECResourceRecords(reply, question.Name, dnsprotocol.TypeDNSKEY, record.DNSKEY)
+	case dnsprotocol.TypeRRSIG:
+		if !found {
+			goto noRecord
+		}
+		appendDNSSECResourceRecords(reply, question.Name, dnsprotocol.TypeRRSIG, record.RRSIG)
 	default:
 		reply.SetRcode(request, dnsprotocol.RcodeNotImplemented)
 		_ = responseWriter.WriteMsg(reply)
@@ -452,6 +462,14 @@ func appendAnyAnswers(reply *dnsprotocol.Msg, questionName string, lookupName st
 				Ns:  normalizeName(value) + ".",
 			})
 		}
+	}
+
+	for _, value := range record.DNSKEY {
+		appendDNSSECResourceRecords(reply, questionName, dnsprotocol.TypeDNSKEY, []string{value})
+	}
+
+	for _, value := range record.RRSIG {
+		appendDNSSECResourceRecords(reply, questionName, dnsprotocol.TypeRRSIG, []string{value})
 	}
 
 	if normalizeName(lookupName) == normalizeName(zoneApex) && normalizeName(zoneApex) != "" {

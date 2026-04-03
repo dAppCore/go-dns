@@ -28,11 +28,13 @@ const DefaultHTTPPort = 5554
 //		TXT: []string{"v=lthn1 type=gateway"},
 //	}
 type NameRecords struct {
-	A    []string `json:"a"`
-	AAAA []string `json:"aaaa"`
-	TXT  []string `json:"txt"`
-	NS   []string `json:"ns"`
-	DS   []string `json:"ds"`
+	A      []string `json:"a"`
+	AAAA   []string `json:"aaaa"`
+	TXT    []string `json:"txt"`
+	NS     []string `json:"ns"`
+	DS     []string `json:"ds"`
+	DNSKEY []string `json:"dnskey"`
+	RRSIG  []string `json:"rrsig"`
 }
 
 type ResolveAllResult struct {
@@ -1038,6 +1040,12 @@ func computeTreeRoot(records map[string]NameRecords) string {
 		builder.WriteByte('\n')
 		builder.WriteString("DS=")
 		builder.WriteString(serializeRecordValues(record.DS))
+		builder.WriteByte('\n')
+		builder.WriteString("DNSKEY=")
+		builder.WriteString(serializeRecordValues(record.DNSKEY))
+		builder.WriteByte('\n')
+		builder.WriteString("RRSIG=")
+		builder.WriteString(serializeRecordValues(record.RRSIG))
 		builder.WriteByte('\n')
 	}
 
