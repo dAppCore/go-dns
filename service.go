@@ -1040,6 +1040,14 @@ func normalizeIP(ip string) string {
 	return parsed.String()
 }
 
+// NormalizeIP normalizes a raw IP string into its canonical textual form.
+//
+//	normalized := dns.NormalizeIP("010.000.000.001")
+//	// normalized == "10.0.0.1"
+func NormalizeIP(ip string) string {
+	return normalizeIP(ip)
+}
+
 func computeTreeRoot(records map[string]NameRecords) string {
 	names := make([]string, 0, len(records))
 	for name := range records {
@@ -1181,6 +1189,14 @@ func normalizeName(name string) string {
 		trimmed = strings.TrimSuffix(trimmed, ".")
 	}
 	return trimmed
+}
+
+// NormalizeName normalizes a raw DNS name for cache lookups and action handling.
+//
+//	normalized := dns.NormalizeName("Gateway.Charon.lthn.")
+//	// normalized == "gateway.charon.lthn"
+func NormalizeName(name string) string {
+	return normalizeName(name)
 }
 
 // String returns a compact debug representation of the service.

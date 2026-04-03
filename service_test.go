@@ -3016,6 +3016,22 @@ func TestStringActionValueRejectsWhitespaceOnlyArgument(t *testing.T) {
 	}
 }
 
+func TestNormalizeNameAndNormalizeIPArePublicWrappers(t *testing.T) {
+	normalizedName := NormalizeName(" Gateway.Charon.lthn. ")
+	if normalizedName != "gateway.charon.lthn" {
+		t.Fatalf("expected normalized DNS name, got %q", normalizedName)
+	}
+
+	normalizedIP := NormalizeIP(" 2001:0DB8::0001 ")
+	if normalizedIP != "2001:db8::1" {
+		t.Fatalf("expected normalized IP, got %q", normalizedIP)
+	}
+
+	if NormalizeIP("invalid") != "" {
+		t.Fatal("expected invalid IP to normalize to empty string")
+	}
+}
+
 func TestIntActionValueRejectsNonIntegerFloat(t *testing.T) {
 	_, err := intActionValue(map[string]any{
 		actionArgPort: 53.9,
