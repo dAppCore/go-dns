@@ -994,13 +994,13 @@ func (service *Service) findRecordWithMatch(name string) (NameRecords, bool, boo
 
 func resolveResult(record NameRecords) ResolveAllResult {
 	return ResolveAllResult{
-		A:      cloneStrings(record.A),
-		AAAA:   cloneStrings(record.AAAA),
-		TXT:    cloneStrings(record.TXT),
-		NS:     cloneStrings(record.NS),
-		DS:     cloneStrings(record.DS),
-		DNSKEY: cloneStrings(record.DNSKEY),
-		RRSIG:  cloneStrings(record.RRSIG),
+		A:      normalizeRecordValues(record.A),
+		AAAA:   normalizeRecordValues(record.AAAA),
+		TXT:    normalizeRecordValues(record.TXT),
+		NS:     normalizeRecordValues(record.NS),
+		DS:     normalizeRecordValues(record.DS),
+		DNSKEY: normalizeRecordValues(record.DNSKEY),
+		RRSIG:  normalizeRecordValues(record.RRSIG),
 	}
 }
 
@@ -1136,9 +1136,30 @@ func computeZoneApex(records map[string]NameRecords) string {
 }
 
 func serializeRecordValues(values []string) string {
-	copied := append([]string(nil), values...)
-	slices.Sort(copied)
-	return strings.Join(copied, ",")
+	normalized := normalizeRecordValues(values)
+	return strings.Join(normalized, ",")
+}
+
+func normalizeRecordValues(values []string) []string {
+	if len(values) == 0 {
+		return []string{}
+	}
+
+	seen := make(map[string]struct{}, len(values))
+	normalized := make([]string, 0, len(values))
+	for _, value := range values {
+		if value == "" {
+			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		normalized = append(normalized, value)
+	}
+
+	slices.Sort(normalized)
+	return normalized
 }
 
 func cloneStrings(values []string) []string {
@@ -1231,17 +1252,9 @@ func (service *Service) String() string {
 //
 //	values := MergeRecords([]string{"10.10.10.10"}, []string{"10.0.0.1", "10.10.10.10"})
 func MergeRecords(values ...[]string) []string {
-	unique := []string{}
-	seen := map[string]bool{}
+	merged := []string{}
 	for _, batch := range values {
-		for _, value := range batch {
-			if seen[value] {
-				continue
-			}
-			seen[value] = true
-			unique = append(unique, value)
-		}
+		merged = append(merged, batch...)
 	}
-	slices.Sort(unique)
-	return unique
+	return normalizeRecordValues(merged)
 }

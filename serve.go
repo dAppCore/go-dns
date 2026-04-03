@@ -315,7 +315,7 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 		if !found {
 			goto noRecord
 		}
-		for _, value := range record.A {
+		for _, value := range normalizeRecordValues(record.A) {
 			parsedIP := net.ParseIP(value)
 			if parsedIP == nil || parsedIP.To4() == nil {
 				continue
@@ -329,7 +329,7 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 		if !found {
 			goto noRecord
 		}
-		for _, value := range record.AAAA {
+		for _, value := range normalizeRecordValues(record.AAAA) {
 			parsedIP := net.ParseIP(value)
 			if parsedIP == nil || parsedIP.To4() != nil {
 				continue
@@ -343,7 +343,7 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 		if !found {
 			goto noRecord
 		}
-		for _, value := range record.TXT {
+		for _, value := range normalizeRecordValues(record.TXT) {
 			reply.Answer = append(reply.Answer, &dnsprotocol.TXT{
 				Hdr: dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeTXT, Class: dnsprotocol.ClassINET, Ttl: defaultDNSTTL},
 				Txt: []string{value},
@@ -351,7 +351,7 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 		}
 	case dnsprotocol.TypeNS:
 		if found {
-			for _, value := range record.NS {
+			for _, value := range normalizeRecordValues(record.NS) {
 				reply.Answer = append(reply.Answer, &dnsprotocol.NS{
 					Hdr: dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeNS, Class: dnsprotocol.ClassINET, Ttl: defaultDNSTTL},
 					Ns:  normalizeName(value) + ".",
@@ -413,17 +413,17 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 		if !found {
 			goto noRecord
 		}
-		appendDNSSECResourceRecords(reply, question.Name, dnsprotocol.TypeDS, record.DS)
+		appendDNSSECResourceRecords(reply, question.Name, dnsprotocol.TypeDS, normalizeRecordValues(record.DS))
 	case dnsprotocol.TypeDNSKEY:
 		if !found {
 			goto noRecord
 		}
-		appendDNSSECResourceRecords(reply, question.Name, dnsprotocol.TypeDNSKEY, record.DNSKEY)
+		appendDNSSECResourceRecords(reply, question.Name, dnsprotocol.TypeDNSKEY, normalizeRecordValues(record.DNSKEY))
 	case dnsprotocol.TypeRRSIG:
 		if !found {
 			goto noRecord
 		}
-		appendDNSSECResourceRecords(reply, question.Name, dnsprotocol.TypeRRSIG, record.RRSIG)
+		appendDNSSECResourceRecords(reply, question.Name, dnsprotocol.TypeRRSIG, normalizeRecordValues(record.RRSIG))
 	default:
 		reply.SetRcode(request, dnsprotocol.RcodeNotImplemented)
 		_ = responseWriter.WriteMsg(reply)
@@ -496,7 +496,7 @@ func parsePTRIP(name string) (string, bool) {
 }
 
 func appendAnyAnswers(reply *dnsprotocol.Msg, questionName string, lookupName string, record NameRecords, zoneApex string) {
-	for _, value := range record.A {
+	for _, value := range normalizeRecordValues(record.A) {
 		parsedIP := net.ParseIP(value)
 		if parsedIP == nil || parsedIP.To4() == nil {
 			continue
@@ -507,7 +507,7 @@ func appendAnyAnswers(reply *dnsprotocol.Msg, questionName string, lookupName st
 		})
 	}
 
-	for _, value := range record.AAAA {
+	for _, value := range normalizeRecordValues(record.AAAA) {
 		parsedIP := net.ParseIP(value)
 		if parsedIP == nil || parsedIP.To4() != nil {
 			continue
@@ -518,7 +518,7 @@ func appendAnyAnswers(reply *dnsprotocol.Msg, questionName string, lookupName st
 		})
 	}
 
-	for _, value := range record.TXT {
+	for _, value := range normalizeRecordValues(record.TXT) {
 		reply.Answer = append(reply.Answer, &dnsprotocol.TXT{
 			Hdr: dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeTXT, Class: dnsprotocol.ClassINET, Ttl: defaultDNSTTL},
 			Txt: []string{value},
@@ -526,7 +526,7 @@ func appendAnyAnswers(reply *dnsprotocol.Msg, questionName string, lookupName st
 	}
 
 	if len(record.NS) > 0 {
-		for _, value := range record.NS {
+		for _, value := range normalizeRecordValues(record.NS) {
 			reply.Answer = append(reply.Answer, &dnsprotocol.NS{
 				Hdr: dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeNS, Class: dnsprotocol.ClassINET, Ttl: defaultDNSTTL},
 				Ns:  normalizeName(value) + ".",
@@ -534,15 +534,15 @@ func appendAnyAnswers(reply *dnsprotocol.Msg, questionName string, lookupName st
 		}
 	}
 
-	for _, value := range record.DNSKEY {
+	for _, value := range normalizeRecordValues(record.DNSKEY) {
 		appendDNSSECResourceRecords(reply, questionName, dnsprotocol.TypeDNSKEY, []string{value})
 	}
 
-	for _, value := range record.DS {
+	for _, value := range normalizeRecordValues(record.DS) {
 		appendDNSSECResourceRecords(reply, questionName, dnsprotocol.TypeDS, []string{value})
 	}
 
-	for _, value := range record.RRSIG {
+	for _, value := range normalizeRecordValues(record.RRSIG) {
 		appendDNSSECResourceRecords(reply, questionName, dnsprotocol.TypeRRSIG, []string{value})
 	}
 
