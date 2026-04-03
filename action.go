@@ -26,10 +26,11 @@ type ActionDefinition struct {
 	Invoke func(map[string]any) (any, bool, error)
 }
 
-// ActionRegistrar accepts named DNS action handlers from a service.
+// ActionRegistrar is the target for publishing a service's DNS actions.
 //
-//	service.RegisterActions(registrar)
-//	registrar.RegisterAction("dns.health", func(map[string]any) (any, bool, error) { return service.Health(), true, nil })
+//	registrar.RegisterAction(ActionHealth, func(map[string]any) (any, bool, error) {
+//		return service.Health(), true, nil
+//	})
 type ActionRegistrar interface {
 	RegisterAction(name string, invoke func(map[string]any) (any, bool, error))
 }
@@ -37,6 +38,9 @@ type ActionRegistrar interface {
 // ActionDefinitions returns the complete DNS action surface in registration order.
 //
 //	definitions := service.ActionDefinitions()
+//	for _, definition := range definitions {
+//		registrar.RegisterAction(definition.Name, definition.Invoke)
+//	}
 func (service *Service) ActionDefinitions() []ActionDefinition {
 	return []ActionDefinition{
 		{
@@ -154,7 +158,9 @@ func (service *Service) RegisterActions(registrar ActionRegistrar) {
 
 // HandleAction executes a DNS action by name.
 //
-//	payload, ok, err := service.HandleAction("dns.resolve", map[string]any{"name": "gateway.charon.lthn"})
+//	payload, ok, err := service.HandleAction(ActionResolve, map[string]any{
+//		"name": "gateway.charon.lthn",
+//	})
 func (service *Service) HandleAction(name string, values map[string]any) (any, bool, error) {
 	for _, definition := range service.ActionDefinitions() {
 		if definition.Name == name {
