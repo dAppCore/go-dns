@@ -188,7 +188,7 @@ func NewService(options ServiceOptions) *Service {
 	}
 
 	hsdClient := options.HSDClient
-	if hsdClient == nil && strings.TrimSpace(options.HSDURL) != "" {
+	if hsdClient == nil {
 		hsdPassword := options.HSDPassword
 		if hsdPassword == "" {
 			hsdPassword = options.HSDApiKey

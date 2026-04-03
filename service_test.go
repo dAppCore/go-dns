@@ -1675,6 +1675,20 @@ func TestServiceDiscoverAliasesReturnsNilWithoutDiscovererOrHSDClient(t *testing
 	}
 }
 
+func TestServiceCreatesDefaultHSDClientWhenURLNotConfigured(t *testing.T) {
+	service := NewService(ServiceOptions{
+		ChainAliasDiscoverer: func(_ context.Context) ([]string, error) {
+			return []string{"gateway.charon.lthn"}, nil
+		},
+	})
+	if service.hsdClient == nil {
+		t.Fatalf("expected default HSD client to be created when HSDURL is not configured")
+	}
+	if service.hsdClient.baseURL != "http://127.0.0.1:14037" {
+		t.Fatalf("expected default HSD base URL, got %q", service.hsdClient.baseURL)
+	}
+}
+
 func TestServiceServeResolvesAAndAAAARecords(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{
