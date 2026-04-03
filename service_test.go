@@ -1615,6 +1615,25 @@ func TestServiceDiscoverReturnsNilWithoutDiscoverer(t *testing.T) {
 	}
 }
 
+func TestServiceDiscoverAliasesReturnsNilWithoutDiscovererOrHSDClient(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	if err := service.DiscoverAliases(context.Background()); err != nil {
+		t.Fatalf("expected discover aliases to no-op without sources or HSD client: %v", err)
+	}
+
+	result, ok := service.Resolve("gateway.charon.lthn")
+	if !ok || len(result.A) != 1 || result.A[0] != "10.10.10.10" {
+		t.Fatalf("expected cached record to remain intact, got %#v (ok=%t)", result, ok)
+	}
+}
+
 func TestServiceServeResolvesAAndAAAARecords(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{

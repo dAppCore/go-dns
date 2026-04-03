@@ -251,11 +251,6 @@ func (service *Service) resolveHSDClient(client *HSDClient) (*HSDClient, error) 
 }
 
 func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HSDClient) error {
-	effectiveHSDClient, err := service.resolveHSDClient(client)
-	if err != nil {
-		return err
-	}
-
 	aliases, found, err := service.discoverAliasesFromSources(
 		ctx,
 		service.chainAliasActionCaller,
@@ -269,6 +264,10 @@ func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HS
 	}
 	if !found {
 		return nil
+	}
+	effectiveHSDClient, err := service.resolveHSDClient(client)
+	if err != nil {
+		return err
 	}
 	if len(aliases) == 0 {
 		now := time.Now()
@@ -457,11 +456,6 @@ func parseActionAliasRecord(record map[string]any) (string, error) {
 //		dns.NewHSDClient(dns.HSDClientOptions{URL: "http://127.0.0.1:14037"}),
 //	)
 func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainClient *MainchainAliasClient, hsdClient *HSDClient) error {
-	effectiveHSDClient, err := service.resolveHSDClient(hsdClient)
-	if err != nil {
-		return err
-	}
-
 	effectiveChainClient := chainClient
 	if effectiveChainClient == nil {
 		effectiveChainClient = service.mainchainAliasClient
@@ -496,6 +490,10 @@ func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainC
 	}
 	if !found {
 		return nil
+	}
+	effectiveHSDClient, err := service.resolveHSDClient(hsdClient)
+	if err != nil {
+		return err
 	}
 	if len(aliases) == 0 {
 		now := time.Now()
