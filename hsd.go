@@ -14,6 +14,13 @@ import (
 
 const defaultHSDJSONRPCVersion = "1.0"
 
+// HSDClientOptions configures JSON-RPC access to HSD.
+//
+//	client := dns.NewHSDClient(dns.HSDClientOptions{
+//		URL:      "http://127.0.0.1:14037",
+//		Username: "user",
+//		Password: "pass",
+//	})
 type HSDClientOptions struct {
 	URL        string
 	Username   string

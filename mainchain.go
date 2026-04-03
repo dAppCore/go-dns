@@ -11,6 +11,13 @@ import (
 	"strings"
 )
 
+// MainchainClientOptions configures JSON-RPC access to the main chain alias source.
+//
+//	client := dns.NewMainchainAliasClient(dns.MainchainClientOptions{
+//		URL:      "http://127.0.0.1:14037",
+//		Username: "user",
+//		Password: "pass",
+//	})
 type MainchainClientOptions struct {
 	URL        string
 	Username   string

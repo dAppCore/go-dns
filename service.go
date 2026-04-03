@@ -21,6 +21,12 @@ import (
 //	fmt.Println(dns.DefaultTreeRootCheckInterval)
 const DefaultTreeRootCheckInterval = 15 * time.Second
 
+// NameRecords stores the cached DNS records for one name.
+//
+//	record := dns.NameRecords{
+//		A:   []string{"10.10.10.10"},
+//		TXT: []string{"v=lthn1 type=gateway"},
+//	}
 type NameRecords struct {
 	A    []string `json:"a"`
 	AAAA []string `json:"aaaa"`
@@ -77,6 +83,14 @@ type Service struct {
 	treeRootCheckInterval        time.Duration
 }
 
+// ServiceOptions wires cached DNS records plus the discovery clients and hooks.
+//
+//	service := dns.NewService(dns.ServiceOptions{
+//		Records: map[string]dns.NameRecords{
+//			"gateway.charon.lthn": {A: []string{"10.10.10.10"}},
+//		},
+//		HSDClient: dns.NewHSDClient(dns.HSDClientOptions{URL: "http://127.0.0.1:14037"}),
+//	})
 type ServiceOptions struct {
 	Records                      map[string]NameRecords
 	RecordDiscoverer             func() (map[string]NameRecords, error)

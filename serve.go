@@ -187,8 +187,8 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 	}
 
 	question := request.Question[0]
-	name := strings.TrimSuffix(strings.ToLower(question.Name), ".")
-	record, found := handler.service.findRecord(name)
+	lookupName := strings.TrimSuffix(strings.ToLower(question.Name), ".")
+	record, found := handler.service.findRecord(lookupName)
 
 	switch question.Qtype {
 	case dnsprotocol.TypeA:
@@ -238,17 +238,17 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 				})
 			}
 		}
-		if len(reply.Answer) == 0 && normalizeName(name) == handler.service.ZoneApex() && handler.service.ZoneApex() != "" {
+		if len(reply.Answer) == 0 && normalizeName(lookupName) == handler.service.ZoneApex() && handler.service.ZoneApex() != "" {
 			reply.Answer = append(reply.Answer, &dnsprotocol.NS{
 				Hdr: dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeNS, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
-				Ns:  normalizeName("ns."+name) + ".",
+				Ns:  normalizeName("ns."+lookupName) + ".",
 			})
 		}
 		if len(reply.Answer) == 0 && !found {
 			goto noRecord
 		}
 	case dnsprotocol.TypePTR:
-		ip, ok := parsePTRIP(name)
+		ip, ok := parsePTRIP(lookupName)
 		if !ok {
 			reply.SetRcode(request, dnsprotocol.RcodeFormatError)
 			_ = responseWriter.WriteMsg(reply)
@@ -265,11 +265,11 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 			})
 		}
 	case dnsprotocol.TypeSOA:
-		if normalizeName(name) == handler.service.ZoneApex() && handler.service.ZoneApex() != "" {
+		if normalizeName(lookupName) == handler.service.ZoneApex() && handler.service.ZoneApex() != "" {
 			reply.Answer = append(reply.Answer, &dnsprotocol.SOA{
 				Hdr:     dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeSOA, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
-				Ns:      normalizeName("ns."+name) + ".",
-				Mbox:    "hostmaster." + name + ".",
+				Ns:      normalizeName("ns."+lookupName) + ".",
+				Mbox:    "hostmaster." + lookupName + ".",
 				Serial:  uint32(time.Now().Unix()),
 				Refresh: 86400,
 				Retry:   3600,
@@ -283,9 +283,9 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 		}
 	case dnsprotocol.TypeANY:
 		if found {
-			appendAnyAnswers(reply, question.Name, name, record)
-		} else if normalizeName(name) == handler.service.ZoneApex() && handler.service.ZoneApex() != "" {
-			appendAnyAnswers(reply, question.Name, name, NameRecords{})
+			appendAnyAnswers(reply, question.Name, lookupName, record)
+		} else if normalizeName(lookupName) == handler.service.ZoneApex() && handler.service.ZoneApex() != "" {
+			appendAnyAnswers(reply, question.Name, lookupName, NameRecords{})
 		} else {
 			goto noRecord
 		}
@@ -360,7 +360,7 @@ func parsePTRIP(name string) (string, bool) {
 	return "", false
 }
 
-func appendAnyAnswers(reply *dnsprotocol.Msg, questionName string, name string, record NameRecords) {
+func appendAnyAnswers(reply *dnsprotocol.Msg, questionName string, lookupName string, record NameRecords) {
 	for _, value := range record.A {
 		parsedIP := net.ParseIP(value)
 		if parsedIP == nil || parsedIP.To4() == nil {
@@ -399,17 +399,17 @@ func appendAnyAnswers(reply *dnsprotocol.Msg, questionName string, name string, 
 		}
 	}
 
-	if normalizeName(name) == normalizeName(questionName) && normalizeName(name) != "" {
+	if normalizeName(lookupName) == normalizeName(questionName) && normalizeName(lookupName) != "" {
 		if len(record.NS) == 0 {
 			reply.Answer = append(reply.Answer, &dnsprotocol.NS{
 				Hdr: dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeNS, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
-				Ns:  normalizeName("ns."+name) + ".",
+				Ns:  normalizeName("ns."+lookupName) + ".",
 			})
 		}
 		reply.Answer = append(reply.Answer, &dnsprotocol.SOA{
 			Hdr:     dnsprotocol.RR_Header{Name: questionName, Rrtype: dnsprotocol.TypeSOA, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
-			Ns:      normalizeName("ns."+name) + ".",
-			Mbox:    "hostmaster." + name + ".",
+			Ns:      normalizeName("ns."+lookupName) + ".",
+			Mbox:    "hostmaster." + lookupName + ".",
 			Serial:  uint32(time.Now().Unix()),
 			Refresh: 86400,
 			Retry:   3600,
