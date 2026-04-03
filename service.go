@@ -111,14 +111,17 @@ func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainC
 			if service.chainAliasDiscoverer != nil {
 				return service.chainAliasDiscoverer(ctx)
 			}
-			if chainClient == nil {
-				return nil, nil
+			if chainClient != nil {
+				return chainClient.GetAllAliasDetails(ctx)
 			}
-			return chainClient.GetAllAliasDetails(ctx)
+			return nil, nil
 		},
 		func(ctx context.Context) ([]string, error) {
 			if service.fallbackChainAliasDiscoverer != nil {
 				return service.fallbackChainAliasDiscoverer(ctx)
+			}
+			if chainClient != nil && service.chainAliasDiscoverer != nil {
+				return chainClient.GetAllAliasDetails(ctx)
 			}
 			return nil, nil
 		},
