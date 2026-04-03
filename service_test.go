@@ -1136,6 +1136,27 @@ func TestServiceServeAnswersNSForDerivedZoneApexWithoutExactRecord(t *testing.T)
 	}
 }
 
+func TestServiceResolveAllSynthesizesNSForDerivedZoneApex(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+			"node.charon.lthn": {
+				AAAA: []string{"2600:1f1c:7f0:4f01::2"},
+			},
+		},
+	})
+
+	result, ok := service.ResolveAll("charon.lthn")
+	if !ok {
+		t.Fatal("expected derived zone apex to resolve")
+	}
+	if len(result.NS) != 1 || result.NS[0] != "ns.charon.lthn" {
+		t.Fatalf("expected synthesized apex NS, got %#v", result.NS)
+	}
+}
+
 func TestServiceServeReturnsNXDOMAINWhenMissing(t *testing.T) {
 	service := NewService(ServiceOptions{})
 

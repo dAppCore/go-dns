@@ -481,9 +481,18 @@ func (service *Service) ResolveReverse(ip string) ([]string, bool) {
 func (service *Service) ResolveAll(name string) (ResolveAllResult, bool) {
 	record, ok := service.findRecord(name)
 	if !ok {
+		if normalizeName(name) == service.ZoneApex() && service.ZoneApex() != "" {
+			return ResolveAllResult{
+				NS: []string{"ns." + service.ZoneApex()},
+			}, true
+		}
 		return ResolveAllResult{}, false
 	}
-	return resolveResult(record), true
+	result := resolveResult(record)
+	if normalizeName(name) == service.ZoneApex() && service.ZoneApex() != "" && len(result.NS) == 0 {
+		result.NS = []string{"ns." + service.ZoneApex()}
+	}
+	return result, true
 }
 
 func (service *Service) Health() map[string]any {
