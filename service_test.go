@@ -868,6 +868,7 @@ func TestNewServiceBuildsRPCClientsFromOptions(t *testing.T) {
 	var chainCalls int32
 	var treeRootCalls int32
 	var nameResourceCalls int32
+	expectedAuth := "Basic dXNlcjphcGkta2V5"
 
 	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
 		var payload struct {
@@ -881,6 +882,9 @@ func TestNewServiceBuildsRPCClientsFromOptions(t *testing.T) {
 		switch payload.Method {
 		case "get_all_alias_details":
 			atomic.AddInt32(&chainCalls, 1)
+			if got := request.Header.Get("Authorization"); got != "" {
+				t.Fatalf("expected no auth header for mainchain request, got %q", got)
+			}
 			responseWriter.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
 				"result": []any{
@@ -891,6 +895,9 @@ func TestNewServiceBuildsRPCClientsFromOptions(t *testing.T) {
 			})
 		case "getblockchaininfo":
 			atomic.AddInt32(&treeRootCalls, 1)
+			if got := request.Header.Get("Authorization"); got != expectedAuth {
+				t.Fatalf("expected hsd auth header %q, got %q", expectedAuth, got)
+			}
 			responseWriter.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
 				"result": map[string]any{
@@ -899,6 +906,9 @@ func TestNewServiceBuildsRPCClientsFromOptions(t *testing.T) {
 			})
 		case "getnameresource":
 			atomic.AddInt32(&nameResourceCalls, 1)
+			if got := request.Header.Get("Authorization"); got != expectedAuth {
+				t.Fatalf("expected hsd auth header %q, got %q", expectedAuth, got)
+			}
 			if len(payload.Params) != 1 || payload.Params[0] != "gateway.charon.lthn" {
 				t.Fatalf("unexpected alias lookup: %#v", payload.Params)
 			}
@@ -917,6 +927,8 @@ func TestNewServiceBuildsRPCClientsFromOptions(t *testing.T) {
 	service := NewService(ServiceOptions{
 		MainchainURL: server.URL,
 		HSDURL:       server.URL,
+		HSDUsername:  "user",
+		HSDApiKey:    "api-key",
 	})
 
 	if err := service.DiscoverAliases(context.Background()); err != nil {

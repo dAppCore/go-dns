@@ -102,12 +102,14 @@ type ServiceOptions struct {
 	RecordDiscoverer         func() (map[string]NameRecords, error)
 	FallbackRecordDiscoverer func() (map[string]NameRecords, error)
 	// RecordTTL keeps forward records and the reverse index alive for the same duration.
-	RecordTTL                    time.Duration
-	DNSPort                      int
-	HTTPPort                     int
-	HSDURL                       string
-	HSDUsername                  string
-	HSDPassword                  string
+	RecordTTL   time.Duration
+	DNSPort     int
+	HTTPPort    int
+	HSDURL      string
+	HSDUsername string
+	HSDPassword string
+	// HSDApiKey is a compatibility alias for HSDPassword when only a token is available.
+	HSDApiKey                    string
 	MainchainURL                 string
 	MainchainUsername            string
 	MainchainPassword            string
@@ -150,10 +152,14 @@ func NewService(options ServiceOptions) *Service {
 
 	hsdClient := options.HSDClient
 	if hsdClient == nil && strings.TrimSpace(options.HSDURL) != "" {
+		hsdPassword := options.HSDPassword
+		if hsdPassword == "" {
+			hsdPassword = options.HSDApiKey
+		}
 		hsdClient = NewHSDClient(HSDClientOptions{
 			URL:      options.HSDURL,
 			Username: options.HSDUsername,
-			Password: options.HSDPassword,
+			Password: hsdPassword,
 		})
 	}
 
