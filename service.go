@@ -530,7 +530,7 @@ func (service *Service) ResolveTXT(name string) ([]string, bool) {
 
 // ResolveTXTRecords returns TXT records wrapped with the RFC field name for action payloads.
 //
-//	service.ResolveTXTRecords("gateway.charon.lthn")
+//	result, ok := service.ResolveTXTRecords("gateway.charon.lthn")
 func (service *Service) ResolveTXTRecords(name string) (ResolveTXTResult, bool) {
 	record, ok := service.findRecord(name)
 	if !ok {
@@ -614,6 +614,7 @@ func (service *Service) ResolveReverse(ip string) ([]string, bool) {
 }
 
 // ResolveAll returns the full record set for a name, including synthesized apex NS data.
+// Missing names still return empty arrays so the action payload stays stable.
 //
 //	result, ok := service.ResolveAll("charon.lthn")
 func (service *Service) ResolveAll(name string) (ResolveAllResult, bool) {
@@ -624,7 +625,12 @@ func (service *Service) ResolveAll(name string) (ResolveAllResult, bool) {
 				NS: []string{"ns." + service.ZoneApex()},
 			}, true
 		}
-		return ResolveAllResult{}, false
+		return ResolveAllResult{
+			A:    []string{},
+			AAAA: []string{},
+			TXT:  []string{},
+			NS:   []string{},
+		}, true
 	}
 	result := resolveResult(record)
 	if normalizeName(name) == service.ZoneApex() && service.ZoneApex() != "" && len(result.NS) == 0 {

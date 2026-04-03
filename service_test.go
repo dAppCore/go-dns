@@ -1486,6 +1486,26 @@ func TestServiceResolveAllReturnsEmptyArraysForMissingRecordValues(t *testing.T)
 	}
 }
 
+func TestServiceResolveAllReturnsEmptyArraysForMissingName(t *testing.T) {
+	service := NewService(ServiceOptions{})
+
+	result, ok := service.ResolveAll("missing.charon.lthn")
+	if !ok {
+		t.Fatal("expected missing name to still return the array-shaped payload")
+	}
+	if len(result.A) != 0 || len(result.AAAA) != 0 || len(result.TXT) != 0 || len(result.NS) != 0 {
+		t.Fatalf("expected empty arrays for missing name, got %#v", result)
+	}
+
+	raw, err := json.Marshal(result)
+	if err != nil {
+		t.Fatalf("expected result to marshal: %v", err)
+	}
+	if string(raw) != `{"a":[],"aaaa":[],"txt":[],"ns":[]}` {
+		t.Fatalf("expected empty arrays in JSON, got %s", raw)
+	}
+}
+
 func TestServiceServeReturnsNXDOMAINWhenMissing(t *testing.T) {
 	service := NewService(ServiceOptions{})
 
