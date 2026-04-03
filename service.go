@@ -210,16 +210,14 @@ func NewService(options ServiceOptions) *Service {
 		}
 		mainchainPassword := options.MainchainPassword
 		mainchainUsername := options.MainchainUsername
-		if strings.TrimSpace(options.MainchainURL) == "" {
+		if mainchainPassword == "" {
+			mainchainPassword = options.HSDPassword
 			if mainchainPassword == "" {
-				mainchainPassword = options.HSDPassword
-				if mainchainPassword == "" {
-					mainchainPassword = options.HSDApiKey
-				}
+				mainchainPassword = options.HSDApiKey
 			}
-			if mainchainUsername == "" {
-				mainchainUsername = options.HSDUsername
-			}
+		}
+		if mainchainUsername == "" {
+			mainchainUsername = options.HSDUsername
 		}
 		mainchainClient = NewMainchainAliasClient(MainchainClientOptions{
 			URL:      mainchainURL,

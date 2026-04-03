@@ -566,3 +566,34 @@ func TestExtractAliasFromCommentParsesCaseInsensitiveHNSPrefix(t *testing.T) {
 		t.Fatalf("expected gateway.charon.lthn, got %s", got)
 	}
 }
+
+func TestNewServiceBuildsMainchainAliasClientWithHSDFallbackCredentials(t *testing.T) {
+	service := NewService(ServiceOptions{
+		MainchainURL: "http://127.0.0.1:14037",
+		HSDUsername:  "mainchain-user",
+		HSDPassword:  "mainchain-pass",
+		HSDApiKey:    "ignored-token",
+	})
+
+	if service.mainchainAliasClient == nil {
+		t.Fatal("expected default mainchain alias client with fallback credentials")
+	}
+	if got := service.mainchainAliasClient.username; got != "mainchain-user" {
+		t.Fatalf("expected mainchain username to fall back to hsd username, got %q", got)
+	}
+	if got := service.mainchainAliasClient.password; got != "mainchain-pass" {
+		t.Fatalf("expected mainchain password to fall back to hsd password, got %q", got)
+	}
+
+	serviceFromToken := NewService(ServiceOptions{
+		MainchainURL: "http://127.0.0.1:14037",
+		HSDUsername:  "token-user",
+		HSDApiKey:    "token-pass",
+	})
+	if serviceFromToken.mainchainAliasClient == nil {
+		t.Fatal("expected default mainchain alias client with fallback token credentials")
+	}
+	if got := serviceFromToken.mainchainAliasClient.password; got != "token-pass" {
+		t.Fatalf("expected mainchain password to fall back to hsd api key token, got %q", got)
+	}
+}

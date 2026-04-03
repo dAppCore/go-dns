@@ -1035,8 +1035,8 @@ func TestNewServiceBuildsRPCClientsFromOptions(t *testing.T) {
 		switch payload.Method {
 		case "get_all_alias_details":
 			atomic.AddInt32(&chainCalls, 1)
-			if got := request.Header.Get("Authorization"); got != "" {
-				t.Fatalf("expected no auth header for mainchain request, got %q", got)
+			if got := request.Header.Get("Authorization"); got != expectedAuth {
+				t.Fatalf("expected hsd-auth header for mainchain request %q, got %q", expectedAuth, got)
 			}
 			responseWriter.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(responseWriter).Encode(map[string]any{
