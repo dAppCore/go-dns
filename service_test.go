@@ -957,6 +957,49 @@ func TestServiceServeResolvesWildcardAndPTRRecords(t *testing.T) {
 	}
 }
 
+func TestServiceServeAnswersSOAOnlyForZoneApex(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"charon.lthn": {
+				NS: []string{"ns1.charon.lthn"},
+			},
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	srv, err := service.Serve("127.0.0.1", 0)
+	if err != nil {
+		t.Fatalf("expected server to start: %v", err)
+	}
+	defer func() { _ = srv.Close() }()
+
+	client := dnsprotocol.Client{}
+	apexRequest := new(dnsprotocol.Msg)
+	apexRequest.SetQuestion("charon.lthn.", dnsprotocol.TypeSOA)
+	apexResponse := exchangeWithRetry(t, client, apexRequest, srv.Address())
+	if apexResponse.Rcode != dnsprotocol.RcodeSuccess {
+		t.Fatalf("expected SOA query for apex to succeed, got %d", apexResponse.Rcode)
+	}
+	if len(apexResponse.Answer) != 1 {
+		t.Fatalf("expected one SOA answer for apex, got %d", len(apexResponse.Answer))
+	}
+	if _, ok := apexResponse.Answer[0].(*dnsprotocol.SOA); !ok {
+		t.Fatalf("expected SOA answer for apex, got %#v", apexResponse.Answer[0])
+	}
+
+	subdomainRequest := new(dnsprotocol.Msg)
+	subdomainRequest.SetQuestion("gateway.charon.lthn.", dnsprotocol.TypeSOA)
+	subdomainResponse := exchangeWithRetry(t, client, subdomainRequest, srv.Address())
+	if subdomainResponse.Rcode != dnsprotocol.RcodeSuccess {
+		t.Fatalf("expected SOA query for non-apex existing name to succeed, got %d", subdomainResponse.Rcode)
+	}
+	if len(subdomainResponse.Answer) != 0 {
+		t.Fatalf("expected no SOA answer for non-apex name, got %#v", subdomainResponse.Answer)
+	}
+}
+
 func TestServiceServeReturnsNXDOMAINWhenMissing(t *testing.T) {
 	service := NewService(ServiceOptions{})
 

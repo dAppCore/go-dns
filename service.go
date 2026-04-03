@@ -45,6 +45,7 @@ type Service struct {
 	records                      map[string]NameRecords
 	reverseIndex                 map[string][]string
 	treeRoot                     string
+	zoneApex                     string
 	hsdClient                    *HSDClient
 	mainchainAliasClient         *MainchainAliasClient
 	discoverer                   func() (map[string]NameRecords, error)
@@ -82,6 +83,7 @@ func NewService(options ServiceOptions) *Service {
 		records:                      cached,
 		reverseIndex:                 buildReverseIndex(cached),
 		treeRoot:                     treeRoot,
+		zoneApex:                     computeZoneApex(cached),
 		hsdClient:                    options.HSDClient,
 		mainchainAliasClient:         options.MainchainAliasClient,
 		discoverer:                   options.Discoverer,
@@ -353,6 +355,7 @@ func (service *Service) replaceRecords(discovered map[string]NameRecords) {
 	service.records = cached
 	service.reverseIndex = buildReverseIndex(service.records)
 	service.treeRoot = computeTreeRoot(service.records)
+	service.zoneApex = computeZoneApex(service.records)
 }
 
 func (service *Service) SetRecord(name string, record NameRecords) {
@@ -361,6 +364,7 @@ func (service *Service) SetRecord(name string, record NameRecords) {
 	service.records[normalizeName(name)] = record
 	service.reverseIndex = buildReverseIndex(service.records)
 	service.treeRoot = computeTreeRoot(service.records)
+	service.zoneApex = computeZoneApex(service.records)
 }
 
 func (service *Service) RemoveRecord(name string) {
@@ -369,6 +373,7 @@ func (service *Service) RemoveRecord(name string) {
 	delete(service.records, normalizeName(name))
 	service.reverseIndex = buildReverseIndex(service.records)
 	service.treeRoot = computeTreeRoot(service.records)
+	service.zoneApex = computeZoneApex(service.records)
 }
 
 func (service *Service) Resolve(name string) (ResolveAllResult, bool) {
@@ -481,6 +486,12 @@ func (service *Service) Health() map[string]any {
 	}
 }
 
+func (service *Service) ZoneApex() string {
+	service.mu.RLock()
+	defer service.mu.RUnlock()
+	return service.zoneApex
+}
+
 func (service *Service) ResolveReverseNames(ip string) (ReverseLookupResult, bool) {
 	names, ok := service.ResolveReverse(ip)
 	if !ok {
@@ -588,6 +599,36 @@ func computeTreeRoot(records map[string]NameRecords) string {
 
 	sum := sha256.Sum256([]byte(builder.String()))
 	return hex.EncodeToString(sum[:])
+}
+
+func computeZoneApex(records map[string]NameRecords) string {
+	names := make([]string, 0, len(records))
+	for name := range records {
+		if strings.HasPrefix(name, "*.") {
+			continue
+		}
+		names = append(names, name)
+	}
+	if len(names) == 0 {
+		return ""
+	}
+
+	commonLabels := strings.Split(names[0], ".")
+	for _, name := range names[1:] {
+		labels := strings.Split(name, ".")
+		commonSuffixLength := 0
+		for commonSuffixLength < len(commonLabels) && commonSuffixLength < len(labels) {
+			if commonLabels[len(commonLabels)-1-commonSuffixLength] != labels[len(labels)-1-commonSuffixLength] {
+				break
+			}
+			commonSuffixLength++
+		}
+		if commonSuffixLength == 0 {
+			return ""
+		}
+		commonLabels = commonLabels[len(commonLabels)-commonSuffixLength:]
+	}
+	return strings.Join(commonLabels, ".")
 }
 
 func serializeRecordValues(values []string) string {

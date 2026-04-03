@@ -188,16 +188,18 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 		if !found {
 			goto noRecord
 		}
-		reply.Answer = append(reply.Answer, &dnsprotocol.SOA{
-			Hdr:     dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeSOA, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
-			Ns:      normalizeName("ns."+name) + ".",
-			Mbox:    "hostmaster." + name + ".",
-			Serial:  uint32(time.Now().Unix()),
-			Refresh: 86400,
-			Retry:   3600,
-			Expire:  3600,
-			Minttl:  300,
-		})
+		if normalizeName(name) == handler.service.ZoneApex() {
+			reply.Answer = append(reply.Answer, &dnsprotocol.SOA{
+				Hdr:     dnsprotocol.RR_Header{Name: question.Name, Rrtype: dnsprotocol.TypeSOA, Class: dnsprotocol.ClassINET, Ttl: dnsTTL},
+				Ns:      normalizeName("ns."+name) + ".",
+				Mbox:    "hostmaster." + name + ".",
+				Serial:  uint32(time.Now().Unix()),
+				Refresh: 86400,
+				Retry:   3600,
+				Expire:  3600,
+				Minttl:  300,
+			})
+		}
 	default:
 		reply.SetRcode(request, dnsprotocol.RcodeNotImplemented)
 		_ = responseWriter.WriteMsg(reply)
