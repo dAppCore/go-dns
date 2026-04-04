@@ -175,6 +175,24 @@ func TestNewDNSServiceAliasToExistingConstructor(t *testing.T) {
 	}
 }
 
+func TestNewDNSServiceFromConfigurationAliasBuildsService(t *testing.T) {
+	service := NewDNSServiceFromConfiguration(DNSServiceConfiguration{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	result, ok := service.ResolveAddress("gateway.charon.lthn")
+	if !ok {
+		t.Fatal("expected service constructed from NewDNSServiceFromConfiguration alias to resolve")
+	}
+	if len(result.Addresses) != 1 || result.Addresses[0] != "10.10.10.10" {
+		t.Fatalf("unexpected resolve result from NewDNSServiceFromConfiguration: %#v", result.Addresses)
+	}
+}
+
 func TestNewDNSServiceWithRegistrarAliasRegistersActions(t *testing.T) {
 	recorder := &actionRecorder{}
 	service := NewDNSServiceWithRegistrar(ServiceOptions{}, recorder)

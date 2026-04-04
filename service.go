@@ -178,10 +178,24 @@ type ServiceOptions struct {
 //	})
 type ServiceConfiguration = ServiceOptions
 
+// DNSServiceConfiguration is the explicit DNS-prefixed configuration alias.
+//
+//	service := dns.NewDNSServiceFromConfiguration(dns.DNSServiceConfiguration{
+//		Records: map[string]dns.NameRecords{
+//			"gateway.charon.lthn": {A: []string{"10.10.10.10"}},
+//		},
+//	})
+type DNSServiceConfiguration = ServiceOptions
+
 // ServiceConfig is kept for compatibility with older call sites.
 //
 // Deprecated: use ServiceConfiguration instead.
 type ServiceConfig = ServiceOptions
+
+// DNSServiceConfig is kept for compatibility with older call sites.
+//
+// Deprecated: use DNSServiceConfiguration instead.
+type DNSServiceConfig = ServiceOptions
 
 // DNSServiceOptions is the preferred long-form type name for service configuration.
 //
@@ -314,6 +328,17 @@ func NewDNSService(options ServiceOptions) *Service {
 //		},
 //	})
 func NewDNSServiceFromOptions(options DNSServiceOptions) *Service {
+	return NewDNSService(options)
+}
+
+// NewDNSServiceFromConfiguration is the explicit constructor name for the DNS configuration alias.
+//
+//	service := dns.NewDNSServiceFromConfiguration(dns.DNSServiceConfiguration{
+//		Records: map[string]dns.NameRecords{
+//			"gateway.charon.lthn": {A: []string{"10.10.10.10"}},
+//		},
+//	})
+func NewDNSServiceFromConfiguration(options DNSServiceConfiguration) *Service {
 	return NewDNSService(options)
 }
 
