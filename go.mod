@@ -2,7 +2,10 @@ module dappco.re/go/dns
 
 go 1.22
 
-require github.com/miekg/dns v1.1.62
+require (
+	github.com/miekg/dns v1.1.62
+	github.com/patrickmn/go-cache v2.1.0+incompatible
+)
 
 require (
 	golang.org/x/mod v0.18.0 // indirect

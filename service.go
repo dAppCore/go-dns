@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	cache "github.com/patrickmn/go-cache"
 )
 
 // DefaultTreeRootCheckInterval is the cadence used to re-check the HSD tree root
@@ -83,16 +85,16 @@ type ReverseLookupResult struct {
 	Names []string `json:"names"`
 }
 
-// ReverseIndex maps one IP to the names that point at it.
+// ReverseIndex stores one IP to the names that point at it in a TTL-backed cache.
 //
-//	index := buildReverseIndex(records)
+//	index := buildReverseIndex(records, 15*time.Second)
 //	names, ok := index.Lookup("10.10.10.10")
 type ReverseIndex struct {
-	ipToNames map[string][]string
+	namesByIP *cache.Cache
 }
 
 func (index *ReverseIndex) Lookup(ip string) ([]string, bool) {
-	if index == nil || len(index.ipToNames) == 0 {
+	if index == nil || index.namesByIP == nil {
 		return nil, false
 	}
 
@@ -101,12 +103,17 @@ func (index *ReverseIndex) Lookup(ip string) ([]string, bool) {
 		return nil, false
 	}
 
-	names, found := index.ipToNames[normalizedIP]
-	if !found || len(names) == 0 {
+	names, found := index.namesByIP.Get(normalizedIP)
+	if !found {
 		return nil, false
 	}
 
-	return append([]string(nil), names...), true
+	typedNames, ok := names.([]string)
+	if !ok || len(typedNames) == 0 {
+		return nil, false
+	}
+
+	return append([]string(nil), typedNames...), true
 }
 
 // HealthResult is the typed payload returned by Health and dns.health.
@@ -302,7 +309,7 @@ func NewService(options ServiceOptions) *Service {
 	service := &Service{
 		records:                      cached,
 		recordExpiry:                 make(map[string]time.Time, len(cached)),
-		reverseIndex:                 buildReverseIndex(cached),
+		reverseIndex:                 buildReverseIndex(cached, options.RecordTTL),
 		treeRoot:                     treeRoot,
 		zoneApex:                     computeZoneApex(cached),
 		dnsPort:                      options.DNSPort,
@@ -1048,7 +1055,7 @@ func (service *Service) pruneExpiredRecords() {
 }
 
 func (service *Service) refreshDerivedStateLocked() {
-	service.reverseIndex = buildReverseIndex(service.records)
+	service.reverseIndex = buildReverseIndex(service.records, service.recordTTL)
 	service.treeRoot = computeTreeRoot(service.records)
 	service.zoneApex = computeZoneApex(service.records)
 }
@@ -1319,45 +1326,55 @@ func emptyResolveAllResult() ResolveAllResult {
 	}
 }
 
-func buildReverseIndex(records map[string]NameRecords) *ReverseIndex {
-	raw := map[string]map[string]struct{}{}
-	for name, record := range records {
-		for _, ip := range record.A {
-			normalized := normalizeIP(ip)
-			if normalized == "" {
-				continue
-			}
-			index := raw[normalized]
-			if index == nil {
-				index = map[string]struct{}{}
-				raw[normalized] = index
-			}
-			index[name] = struct{}{}
-		}
-		for _, ip := range record.AAAA {
-			normalized := normalizeIP(ip)
-			if normalized == "" {
-				continue
-			}
-			index := raw[normalized]
-			if index == nil {
-				index = map[string]struct{}{}
-				raw[normalized] = index
-			}
-			index[name] = struct{}{}
-		}
+func buildReverseIndex(records map[string]NameRecords, ttl time.Duration) *ReverseIndex {
+	expiration := cache.NoExpiration
+	if ttl > 0 {
+		expiration = ttl
 	}
 
-	reverseIndex := make(map[string][]string, len(raw))
-	for ip, names := range raw {
-		unique := make([]string, 0, len(names))
-		for name := range names {
-			unique = append(unique, name)
-		}
-		slices.Sort(unique)
-		reverseIndex[ip] = unique
+	namesByIP := cache.New(expiration, ttl)
+	for name, record := range records {
+		collectReverseName(namesByIP, name, record.A, expiration)
+		collectReverseName(namesByIP, name, record.AAAA, expiration)
 	}
-	return &ReverseIndex{ipToNames: reverseIndex}
+
+	for ip, item := range namesByIP.Items() {
+		typedNames, ok := item.Object.([]string)
+		if !ok {
+			namesByIP.Delete(ip)
+			continue
+		}
+		namesByIP.Set(ip, normalizeRecordValues(typedNames), expiration)
+	}
+
+	return &ReverseIndex{namesByIP: namesByIP}
+}
+
+func collectReverseName(namesByIP *cache.Cache, name string, ips []string, expiration time.Duration) {
+	if namesByIP == nil || len(ips) == 0 {
+		return
+	}
+
+	for _, ip := range ips {
+		normalized := normalizeIP(ip)
+		if normalized == "" {
+			continue
+		}
+
+		current, found := namesByIP.Get(normalized)
+		if !found {
+			namesByIP.Set(normalized, []string{name}, expiration)
+			continue
+		}
+
+		typedNames, ok := current.([]string)
+		if !ok {
+			namesByIP.Set(normalized, []string{name}, expiration)
+			continue
+		}
+
+		namesByIP.Set(normalized, append(typedNames, name), expiration)
+	}
 }
 
 func normalizeIP(ip string) string {
