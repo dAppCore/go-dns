@@ -25,18 +25,19 @@ var (
 )
 
 const (
-	actionArgBind            = "bind"
-	actionArgBindAddress     = "bindAddress"
-	actionArgIP              = "ip"
-	actionArgAddress         = "address"
-	actionArgName            = "name"
-	actionArgHost            = "host"
-	actionArgHostName        = "hostname"
-	actionArgPort            = "port"
-	actionArgDNSPort         = "dnsPort"
-	actionArgDNSPortSnake    = "dns_port"
-	actionArgHealthPort      = "health_port"
-	actionArgHealthPortCamel = "healthPort"
+	actionArgBind             = "bind"
+	actionArgBindAddress      = "bindAddress"
+	actionArgBindAddressSnake = "bind_address"
+	actionArgIP               = "ip"
+	actionArgAddress          = "address"
+	actionArgName             = "name"
+	actionArgHost             = "host"
+	actionArgHostName         = "hostname"
+	actionArgPort             = "port"
+	actionArgDNSPort          = "dnsPort"
+	actionArgDNSPortSnake     = "dns_port"
+	actionArgHealthPort       = "health_port"
+	actionArgHealthPortCamel  = "healthPort"
 )
 
 type ActionDefinition struct {
@@ -301,7 +302,7 @@ func (service *Service) handleReverseLookup(ctx context.Context, values map[stri
 
 func (service *Service) handleServe(ctx context.Context, values map[string]any) (any, bool, error) {
 	_ = ctx
-	bind, _, err := stringActionValueOptionalFromKeys(values, actionArgBind, actionArgBindAddress)
+	bind, _, err := stringActionValueOptionalFromKeys(values, actionArgBind, actionArgBindAddress, actionArgBindAddressSnake)
 	if err != nil {
 		return nil, false, err
 	}

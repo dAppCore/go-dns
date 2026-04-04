@@ -2925,6 +2925,46 @@ func TestServiceHandleActionServeSnakeCaseAliases(t *testing.T) {
 	}
 }
 
+func TestServiceHandleActionServeSnakeCaseBindAddress(t *testing.T) {
+	dnsPort := pickFreeTCPPort(t)
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	payload, ok, err := service.HandleAction(ActionServe, map[string]any{
+		"bind_address": "127.0.0.1",
+		"dns_port":     dnsPort,
+	})
+	if err != nil {
+		t.Fatalf("expected serve action to start with snake_case bind_address: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected serve action to succeed with snake_case bind_address")
+	}
+
+	server, ok := payload.(*DNSServer)
+	if !ok {
+		t.Fatalf("expected DNSServer payload, got %T", payload)
+	}
+	if server == nil {
+		t.Fatal("expected dns server from serve action")
+	}
+
+	_, runtimeDNSPort, err := net.SplitHostPort(server.DNSAddress())
+	if err != nil {
+		t.Fatalf("expected dns address to include port: %v", err)
+	}
+	if runtimeDNSPort != strconv.Itoa(dnsPort) {
+		t.Fatalf("expected dns port %d, got %q", dnsPort, runtimeDNSPort)
+	}
+
+	_ = server.Close()
+}
+
 func TestServiceResolveServePortDefaultsToStandardDNSPort(t *testing.T) {
 	service := NewService(ServiceOptions{})
 	if service.ResolveDNSPort() != DefaultDNSPort {
