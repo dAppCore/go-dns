@@ -686,6 +686,25 @@ func TestServiceDescribeReturnsSemanticSnapshot(t *testing.T) {
 	}
 }
 
+func TestServiceSnapshotMatchesDescribe(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+		DNSPort:  1053,
+		HTTPPort: 5555,
+	})
+
+	snapshot := service.Snapshot()
+	description := service.Describe()
+
+	if snapshot != description {
+		t.Fatalf("expected Snapshot to match Describe, got %#v and %#v", snapshot, description)
+	}
+}
+
 func TestServiceServeHTTPHealthReturnsJSON(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{

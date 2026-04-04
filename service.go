@@ -1169,11 +1169,11 @@ func (service *Service) Health() HealthResult {
 	}
 }
 
-// Describe returns a structured snapshot that is easier to inspect than String().
+// Snapshot returns a structured view of the service state.
 //
-//	snapshot := service.Describe()
+//	snapshot := service.Snapshot()
 //	fmt.Printf("%+v\n", snapshot)
-func (service *Service) Describe() ServiceDescription {
+func (service *Service) Snapshot() ServiceDescription {
 	if service == nil {
 		return ServiceDescription{
 			Status: "not_ready",
@@ -1209,6 +1209,14 @@ func (service *Service) Describe() ServiceDescription {
 		HTTPPort:  httpPort,
 		RecordTTL: service.recordTTL.String(),
 	}
+}
+
+// Describe is the compatibility alias for Snapshot.
+//
+//	snapshot := service.Describe()
+//	fmt.Printf("%+v\n", snapshot)
+func (service *Service) Describe() ServiceDescription {
+	return service.Snapshot()
 }
 
 // ZoneApex returns the computed apex for the current record set.
