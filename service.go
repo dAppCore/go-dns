@@ -137,7 +137,7 @@ type ServiceDescription struct {
 type Service struct {
 	mutex                        sync.RWMutex
 	records                      map[string]NameRecords
-	recordExpiry                 map[string]time.Time
+	recordExpirationsByName      map[string]time.Time
 	reverseIndex                 *ReverseIndex
 	treeRoot                     string
 	zoneApex                     string
@@ -317,7 +317,7 @@ func NewService(options ServiceOptions) *Service {
 	treeRoot := computeTreeRoot(cached)
 	service := &Service{
 		records:                      cached,
-		recordExpiry:                 make(map[string]time.Time, len(cached)),
+		recordExpirationsByName:      make(map[string]time.Time, len(cached)),
 		reverseIndex:                 buildReverseIndex(cached, options.RecordTTL),
 		treeRoot:                     treeRoot,
 		zoneApex:                     computeZoneApex(cached),
@@ -342,7 +342,7 @@ func NewService(options ServiceOptions) *Service {
 	if options.RecordTTL > 0 {
 		expiresAt := time.Now().Add(options.RecordTTL)
 		for name := range cached {
-			service.recordExpiry[name] = expiresAt
+			service.recordExpirationsByName[name] = expiresAt
 		}
 	}
 
@@ -838,7 +838,7 @@ func (service *Service) DiscoverAliases(ctx context.Context) error {
 
 func (service *Service) replaceRecords(discovered map[string]NameRecords) {
 	cached := make(map[string]NameRecords, len(discovered))
-	expiry := make(map[string]time.Time, len(discovered))
+	expirationsByName := make(map[string]time.Time, len(discovered))
 	now := time.Now()
 	for name, record := range discovered {
 		normalizedName := normalizeName(name)
@@ -847,14 +847,14 @@ func (service *Service) replaceRecords(discovered map[string]NameRecords) {
 		}
 		cached[normalizedName] = record
 		if service.recordTTL > 0 {
-			expiry[normalizedName] = now.Add(service.recordTTL)
+			expirationsByName[normalizedName] = now.Add(service.recordTTL)
 		}
 	}
 
 	service.mutex.Lock()
 	defer service.mutex.Unlock()
 	service.records = cached
-	service.recordExpiry = expiry
+	service.recordExpirationsByName = expirationsByName
 	service.chainTreeRoot = ""
 	service.lastTreeRootCheck = time.Time{}
 	service.lastAliasFingerprint = ""
@@ -874,12 +874,12 @@ func (service *Service) SetRecord(name string, record NameRecords) {
 	}
 	service.records[normalizedName] = record
 	if service.recordTTL > 0 {
-		if service.recordExpiry == nil {
-			service.recordExpiry = make(map[string]time.Time)
+		if service.recordExpirationsByName == nil {
+			service.recordExpirationsByName = make(map[string]time.Time)
 		}
-		service.recordExpiry[normalizedName] = now.Add(service.recordTTL)
-	} else if service.recordExpiry != nil {
-		delete(service.recordExpiry, normalizedName)
+		service.recordExpirationsByName[normalizedName] = now.Add(service.recordTTL)
+	} else if service.recordExpirationsByName != nil {
+		delete(service.recordExpirationsByName, normalizedName)
 	}
 	service.chainTreeRoot = ""
 	service.lastTreeRootCheck = time.Time{}
@@ -898,8 +898,8 @@ func (service *Service) RemoveRecord(name string) {
 		return
 	}
 	delete(service.records, normalizedName)
-	if service.recordExpiry != nil {
-		delete(service.recordExpiry, normalizedName)
+	if service.recordExpirationsByName != nil {
+		delete(service.recordExpirationsByName, normalizedName)
 	}
 	service.chainTreeRoot = ""
 	service.lastTreeRootCheck = time.Time{}
@@ -1041,16 +1041,16 @@ func (service *Service) pruneExpiredRecords() {
 	service.mutex.Lock()
 	defer service.mutex.Unlock()
 
-	if len(service.recordExpiry) == 0 {
+	if len(service.recordExpirationsByName) == 0 {
 		return
 	}
 
 	changed := false
-	for name, expiresAt := range service.recordExpiry {
+	for name, expiresAt := range service.recordExpirationsByName {
 		if expiresAt.IsZero() || now.Before(expiresAt) {
 			continue
 		}
-		delete(service.recordExpiry, name)
+		delete(service.recordExpirationsByName, name)
 		delete(service.records, name)
 		changed = true
 	}
