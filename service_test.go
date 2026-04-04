@@ -679,8 +679,9 @@ func TestServiceDescribeReturnsSemanticSnapshot(t *testing.T) {
 				A: []string{"10.10.10.11"},
 			},
 		},
-		DNSPort:  1053,
-		HTTPPort: 5555,
+		DNSPort:    1053,
+		HealthPort: 5555,
+		HTTPPort:   4444,
 	})
 
 	snapshot := service.Describe()
@@ -696,7 +697,7 @@ func TestServiceDescribeReturnsSemanticSnapshot(t *testing.T) {
 	if snapshot.TreeRoot == "" {
 		t.Fatal("expected tree root in service snapshot")
 	}
-	if snapshot.DNSPort != 1053 || snapshot.HTTPPort != 5555 {
+	if snapshot.DNSPort != 1053 || snapshot.HealthPort != 5555 || snapshot.HTTPPort != 5555 {
 		t.Fatalf("expected configured ports in snapshot, got %#v", snapshot)
 	}
 	if snapshot.RecordTTL != "0s" {
@@ -707,7 +708,7 @@ func TestServiceDescribeReturnsSemanticSnapshot(t *testing.T) {
 	if !strings.Contains(description, "zone_apex=\"charon.lthn\"") {
 		t.Fatalf("expected string description to include zone apex, got %q", description)
 	}
-	if !strings.Contains(description, "dns_port=1053") || !strings.Contains(description, "http_port=5555") {
+	if !strings.Contains(description, "dns_port=1053") || !strings.Contains(description, "health_port=5555") || !strings.Contains(description, "http_port=5555") {
 		t.Fatalf("expected string description to include configured ports, got %q", description)
 	}
 }
@@ -3175,22 +3176,23 @@ func TestServiceResolveServePortDefaultsToStandardDNSPort(t *testing.T) {
 
 	customPort := 1053
 	customService := NewService(ServiceOptions{
-		DNSPort: customPort,
+		DNSListenPort: customPort,
+		DNSPort:       5454,
 	})
 	if customService.ResolveDNSPort() != customPort {
-		t.Fatalf("expected ResolveDNSPort to honor configured DNSPort, got %d", customService.ResolveDNSPort())
+		t.Fatalf("expected ResolveDNSPort to honor configured DNSListenPort, got %d", customService.ResolveDNSPort())
 	}
 	if customService.DNSPort() != customPort {
-		t.Fatalf("expected DNSPort alias to honor configured DNSPort, got %d", customService.DNSPort())
+		t.Fatalf("expected DNSPort alias to honor configured DNSListenPort, got %d", customService.DNSPort())
 	}
 	if customService.DNSListenPort() != customPort {
-		t.Fatalf("expected DNSListenPort to honor configured DNSPort, got %d", customService.DNSListenPort())
+		t.Fatalf("expected DNSListenPort to honor configured DNSListenPort, got %d", customService.DNSListenPort())
 	}
 	if customService.resolveServePort() != customPort {
-		t.Fatalf("expected resolveServePort helper to honor configured DNSPort, got %d", customService.resolveServePort())
+		t.Fatalf("expected resolveServePort helper to honor configured DNSListenPort, got %d", customService.resolveServePort())
 	}
 	if customService.resolveDNSListenPort() != customPort {
-		t.Fatalf("expected resolveDNSListenPort helper to honor configured DNSPort, got %d", customService.resolveDNSListenPort())
+		t.Fatalf("expected resolveDNSListenPort helper to honor configured DNSListenPort, got %d", customService.resolveDNSListenPort())
 	}
 }
 
@@ -3199,37 +3201,68 @@ func TestServiceResolveHTTPPortDefaultsToStandardHTTPPort(t *testing.T) {
 	if service.ResolveHTTPPort() != DefaultHTTPPort {
 		t.Fatalf("expected ResolveHTTPPort to default to %d, got %d", DefaultHTTPPort, service.ResolveHTTPPort())
 	}
+	if service.ResolveHealthPort() != DefaultHTTPPort {
+		t.Fatalf("expected ResolveHealthPort to default to %d, got %d", DefaultHTTPPort, service.ResolveHealthPort())
+	}
 	if service.HTTPPort() != DefaultHTTPPort {
 		t.Fatalf("expected HTTPPort alias to return default %d, got %d", DefaultHTTPPort, service.HTTPPort())
+	}
+	if service.HealthPort() != DefaultHTTPPort {
+		t.Fatalf("expected HealthPort alias to return default %d, got %d", DefaultHTTPPort, service.HealthPort())
 	}
 	if service.HTTPListenPort() != DefaultHTTPPort {
 		t.Fatalf("expected HTTPListenPort to return default %d, got %d", DefaultHTTPPort, service.HTTPListenPort())
 	}
+	if service.HealthListenPort() != DefaultHTTPPort {
+		t.Fatalf("expected HealthListenPort to return default %d, got %d", DefaultHTTPPort, service.HealthListenPort())
+	}
 	if service.resolveHTTPPort() != DefaultHTTPPort {
 		t.Fatalf("expected resolveHTTPPort helper to return default %d, got %d", DefaultHTTPPort, service.resolveHTTPPort())
+	}
+	if service.resolveHealthPort() != DefaultHTTPPort {
+		t.Fatalf("expected resolveHealthPort helper to return default %d, got %d", DefaultHTTPPort, service.resolveHealthPort())
 	}
 	if service.resolveHTTPListenPort() != DefaultHTTPPort {
 		t.Fatalf("expected resolveHTTPListenPort helper to return default %d, got %d", DefaultHTTPPort, service.resolveHTTPListenPort())
 	}
+	if service.resolveHealthListenPort() != DefaultHTTPPort {
+		t.Fatalf("expected resolveHealthListenPort helper to return default %d, got %d", DefaultHTTPPort, service.resolveHealthListenPort())
+	}
 
 	customPort := 5555
 	customService := NewService(ServiceOptions{
-		HTTPPort: customPort,
+		HealthPort: customPort,
+		HTTPPort:   4444,
 	})
 	if customService.ResolveHTTPPort() != customPort {
-		t.Fatalf("expected ResolveHTTPPort to honor configured HTTPPort, got %d", customService.ResolveHTTPPort())
+		t.Fatalf("expected ResolveHTTPPort to honor configured HealthPort, got %d", customService.ResolveHTTPPort())
+	}
+	if customService.ResolveHealthPort() != customPort {
+		t.Fatalf("expected ResolveHealthPort to honor configured HealthPort, got %d", customService.ResolveHealthPort())
 	}
 	if customService.HTTPPort() != customPort {
-		t.Fatalf("expected HTTPPort alias to honor configured HTTPPort, got %d", customService.HTTPPort())
+		t.Fatalf("expected HTTPPort alias to honor configured HealthPort, got %d", customService.HTTPPort())
+	}
+	if customService.HealthPort() != customPort {
+		t.Fatalf("expected HealthPort alias to honor configured HealthPort, got %d", customService.HealthPort())
 	}
 	if customService.HTTPListenPort() != customPort {
-		t.Fatalf("expected HTTPListenPort to honor configured HTTPPort, got %d", customService.HTTPListenPort())
+		t.Fatalf("expected HTTPListenPort to honor configured HealthPort, got %d", customService.HTTPListenPort())
+	}
+	if customService.HealthListenPort() != customPort {
+		t.Fatalf("expected HealthListenPort to honor configured HealthPort, got %d", customService.HealthListenPort())
 	}
 	if customService.resolveHTTPPort() != customPort {
-		t.Fatalf("expected resolveHTTPPort helper to honor configured HTTPPort, got %d", customService.resolveHTTPPort())
+		t.Fatalf("expected resolveHTTPPort helper to honor configured HealthPort, got %d", customService.resolveHTTPPort())
+	}
+	if customService.resolveHealthPort() != customPort {
+		t.Fatalf("expected resolveHealthPort helper to honor configured HealthPort, got %d", customService.resolveHealthPort())
 	}
 	if customService.resolveHTTPListenPort() != customPort {
-		t.Fatalf("expected resolveHTTPListenPort helper to honor configured HTTPPort, got %d", customService.resolveHTTPListenPort())
+		t.Fatalf("expected resolveHTTPListenPort helper to honor configured HealthPort, got %d", customService.resolveHTTPListenPort())
+	}
+	if customService.resolveHealthListenPort() != customPort {
+		t.Fatalf("expected resolveHealthListenPort helper to honor configured HealthPort, got %d", customService.resolveHealthListenPort())
 	}
 }
 

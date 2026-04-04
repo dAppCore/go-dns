@@ -184,6 +184,14 @@ func (service *Service) resolveServePort() int {
 //	port := service.ResolveHTTPPort()
 //	healthServer, err := service.ServeHTTPHealth("127.0.0.1", port)
 func (service *Service) ResolveHTTPPort() int {
+	return service.ResolveHealthPort()
+}
+
+// ResolveHealthPort returns the health listener port used by `ServeHTTPHealth`.
+//
+//	port := service.ResolveHealthPort()
+//	healthServer, err := service.ServeHTTPHealth("127.0.0.1", port)
+func (service *Service) ResolveHealthPort() int {
 	if service == nil {
 		return DefaultHTTPPort
 	}
@@ -198,10 +206,23 @@ func (service *Service) ResolveHTTPPort() int {
 //	port := service.HTTPListenPort()
 //	server, err := service.ServeHTTPHealth("127.0.0.1", port)
 func (service *Service) HTTPListenPort() int {
-	if service == nil {
-		return DefaultHTTPPort
-	}
-	return service.ResolveHTTPPort()
+	return service.ResolveHealthPort()
+}
+
+// HealthListenPort is the explicit alias for ResolveHealthPort.
+//
+//	port := service.HealthListenPort()
+//	server, err := service.ServeHTTPHealth("127.0.0.1", port)
+func (service *Service) HealthListenPort() int {
+	return service.ResolveHealthPort()
+}
+
+// HealthPort returns the health listener port used by `ServeHTTPHealth`.
+//
+//	port := service.HealthPort()
+//	healthServer, err := service.ServeHTTPHealth("127.0.0.1", port)
+func (service *Service) HealthPort() int {
+	return service.ResolveHealthPort()
 }
 
 // HTTPPort is an explicit alias for ResolveHTTPPort.
@@ -209,26 +230,27 @@ func (service *Service) HTTPListenPort() int {
 //	port := service.HTTPPort()
 //	healthServer, err := service.ServeHTTPHealth("127.0.0.1", port)
 func (service *Service) HTTPPort() int {
-	if service == nil {
-		return DefaultHTTPPort
-	}
-	return service.ResolveHTTPPort()
+	return service.ResolveHealthPort()
 }
 
 // resolveHTTPListenPort keeps internal callers aligned with explicit naming.
 func (service *Service) resolveHTTPListenPort() int {
-	if service == nil {
-		return DefaultHTTPPort
-	}
-	return service.HTTPListenPort()
+	return service.ResolveHealthPort()
+}
+
+// resolveHealthListenPort keeps internal callers aligned with explicit naming.
+func (service *Service) resolveHealthListenPort() int {
+	return service.ResolveHealthPort()
 }
 
 // resolveHTTPPort is a legacy compatibility helper.
 func (service *Service) resolveHTTPPort() int {
-	if service == nil {
-		return DefaultHTTPPort
-	}
-	return service.ResolveHTTPPort()
+	return service.ResolveHealthPort()
+}
+
+// resolveHealthPort is a legacy compatibility helper.
+func (service *Service) resolveHealthPort() int {
+	return service.ResolveHealthPort()
 }
 
 // Serve starts DNS over UDP and TCP.
@@ -317,7 +339,7 @@ func (service *Service) ServeAll(bind string, dnsPort int, httpPort int) (*Servi
 		dnsPort = service.resolveDNSListenPort()
 	}
 	if httpPort <= 0 {
-		httpPort = service.resolveHTTPListenPort()
+		httpPort = service.resolveHealthListenPort()
 	}
 
 	dnsServer, err := service.Serve(bind, dnsPort)

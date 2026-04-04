@@ -72,7 +72,7 @@ func (service *Service) ServeHTTPHealth(bind string, port int) (*HealthServer, e
 		bind = "127.0.0.1"
 	}
 	if port <= 0 {
-		port = service.resolveHTTPPort()
+		port = service.resolveHealthPort()
 	}
 
 	address := net.JoinHostPort(bind, strconv.Itoa(port))

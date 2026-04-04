@@ -131,13 +131,14 @@ type HealthResult struct {
 //	snapshot := service.Describe()
 //	fmt.Println(snapshot.Status, snapshot.ZoneApex, snapshot.TreeRoot)
 type ServiceDescription struct {
-	Status    string `json:"status"`
-	Records   int    `json:"records"`
-	ZoneApex  string `json:"zone_apex"`
-	TreeRoot  string `json:"tree_root"`
-	DNSPort   int    `json:"dns_port"`
-	HTTPPort  int    `json:"http_port"`
-	RecordTTL string `json:"record_ttl"`
+	Status     string `json:"status"`
+	Records    int    `json:"records"`
+	ZoneApex   string `json:"zone_apex"`
+	TreeRoot   string `json:"tree_root"`
+	DNSPort    int    `json:"dns_port"`
+	HealthPort int    `json:"health_port"`
+	HTTPPort   int    `json:"http_port"`
+	RecordTTL  string `json:"record_ttl"`
 }
 
 type Service struct {
@@ -179,8 +180,14 @@ type ServiceOptions struct {
 	RecordDiscoverer         func() (map[string]NameRecords, error)
 	FallbackRecordDiscoverer func() (map[string]NameRecords, error)
 	// RecordTTL keeps forward records and the reverse index alive for the same duration.
-	RecordTTL   time.Duration
-	DNSPort     int
+	RecordTTL time.Duration
+	// DNSListenPort is the explicit port for the DNS listener.
+	DNSListenPort int
+	// HealthPort is the explicit port for the `/health` listener.
+	HealthPort int
+	// DNSPort is kept for compatibility with older call sites.
+	DNSPort int
+	// HTTPPort is kept for compatibility with older call sites.
 	HTTPPort    int
 	HSDURL      string
 	HSDUsername string
@@ -257,6 +264,15 @@ func NewService(options ServiceOptions) *Service {
 		checkInterval = DefaultTreeRootCheckInterval
 	}
 
+	dnsPort := options.DNSListenPort
+	if dnsPort <= 0 {
+		dnsPort = options.DNSPort
+	}
+	healthPort := options.HealthPort
+	if healthPort <= 0 {
+		healthPort = options.HTTPPort
+	}
+
 	chainAliasActionCaller := options.ChainAliasActionCaller
 	if chainAliasActionCaller == nil {
 		if actionCaller, ok := options.ActionRegistrar.(ActionCaller); ok {
@@ -312,8 +328,8 @@ func NewService(options ServiceOptions) *Service {
 		reverseIndex:                 buildReverseIndex(cached, options.RecordTTL),
 		treeRoot:                     treeRoot,
 		zoneApex:                     computeZoneApex(cached),
-		dnsPort:                      options.DNSPort,
-		httpPort:                     options.HTTPPort,
+		dnsPort:                      dnsPort,
+		httpPort:                     healthPort,
 		recordTTL:                    options.RecordTTL,
 		hsdClient:                    hsdClient,
 		mainchainAliasClient:         mainchainClient,
@@ -1217,13 +1233,14 @@ func (service *Service) Snapshot() ServiceDescription {
 	}
 
 	return ServiceDescription{
-		Status:    "ready",
-		Records:   len(service.records),
-		ZoneApex:  service.zoneApex,
-		TreeRoot:  treeRoot,
-		DNSPort:   dnsPort,
-		HTTPPort:  httpPort,
-		RecordTTL: service.recordTTL.String(),
+		Status:     "ready",
+		Records:    len(service.records),
+		ZoneApex:   service.zoneApex,
+		TreeRoot:   treeRoot,
+		DNSPort:    dnsPort,
+		HealthPort: httpPort,
+		HTTPPort:   httpPort,
+		RecordTTL:  service.recordTTL.String(),
 	}
 }
 
@@ -1571,12 +1588,13 @@ func NormalizeName(name string) string {
 func (service *Service) String() string {
 	snapshot := service.Describe()
 	return fmt.Sprintf(
-		"dns.Service{status=%q records=%d zone_apex=%q tree_root=%q dns_port=%d http_port=%d record_ttl=%q}",
+		"dns.Service{status=%q records=%d zone_apex=%q tree_root=%q dns_port=%d health_port=%d http_port=%d record_ttl=%q}",
 		snapshot.Status,
 		snapshot.Records,
 		snapshot.ZoneApex,
 		snapshot.TreeRoot,
 		snapshot.DNSPort,
+		snapshot.HealthPort,
 		snapshot.HTTPPort,
 		snapshot.RecordTTL,
 	)
