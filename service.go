@@ -147,7 +147,7 @@ type Service struct {
 	hsdClient                    *HSDClient
 	mainchainAliasClient         *MainchainAliasClient
 	chainAliasActionCaller       ActionCaller
-	chainAliasAction             func(context.Context) ([]string, error)
+	chainAliasActionFunc         func(context.Context) ([]string, error)
 	recordDiscoverer             func() (map[string]NameRecords, error)
 	fallbackRecordDiscoverer     func() (map[string]NameRecords, error)
 	chainAliasDiscoverer         func(context.Context) ([]string, error)
@@ -311,7 +311,7 @@ func NewService(options ServiceOptions) *Service {
 		hsdClient:                    hsdClient,
 		mainchainAliasClient:         mainchainClient,
 		chainAliasActionCaller:       chainAliasActionCaller,
-		chainAliasAction:             options.ChainAliasAction,
+		chainAliasActionFunc:         options.ChainAliasAction,
 		recordDiscoverer:             options.RecordDiscoverer,
 		fallbackRecordDiscoverer:     options.FallbackRecordDiscoverer,
 		chainAliasDiscoverer:         options.ChainAliasDiscoverer,
@@ -387,7 +387,7 @@ func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HS
 	aliases, found, err := service.discoverAliasesFromSources(
 		ctx,
 		service.chainAliasActionCaller,
-		service.chainAliasAction,
+		service.chainAliasActionFunc,
 		service.chainAliasDiscoverer,
 		service.fallbackChainAliasDiscoverer,
 		service.mainchainAliasClient,
@@ -629,6 +629,9 @@ func parseActionAliasRecord(record map[string]any) (string, error) {
 //		dns.NewMainchainAliasClient(dns.MainchainClientOptions{URL: "http://127.0.0.1:14037"}),
 //		dns.NewHSDClient(dns.HSDClientOptions{URL: "http://127.0.0.1:14037"}),
 //	)
+//
+//	// The cache now reflects the aliases returned by get_all_alias_details
+//	// plus the DNS records fetched from getnameresource.
 func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainClient *MainchainAliasClient, hsdClient *HSDClient) error {
 	effectiveChainClient := chainClient
 	if effectiveChainClient == nil {
@@ -807,6 +810,9 @@ func (service *Service) Discover() error {
 //		},
 //	})
 //	err := service.DiscoverAliases(context.Background())
+//
+//	// The service will call blockchain.chain.aliases first, then fall back to
+//	// the configured discoverers or main-chain RPC if needed.
 func (service *Service) DiscoverAliases(ctx context.Context) error {
 	return service.DiscoverFromChainAliases(ctx, service.hsdClient)
 }
