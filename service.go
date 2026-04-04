@@ -790,6 +790,17 @@ func (service *Service) Resolve(name string) (ResolveAllResult, bool) {
 	return resolveResult(record), true
 }
 
+// ResolveWithWildcardMatch returns all record types and whether the match used a wildcard.
+//
+//	result, ok, usedWildcard := service.ResolveWithWildcardMatch("node.charon.lthn")
+func (service *Service) ResolveWithWildcardMatch(name string) (ResolveAllResult, bool, bool) {
+	record, ok, usedWildcard := service.findRecordWithMatch(name)
+	if !ok {
+		return ResolveAllResult{}, false, false
+	}
+	return resolveResult(record), true, usedWildcard
+}
+
 // ResolveWithMatch returns matching records and whether the match used a wildcard.
 //
 //	result, found, usedWildcard := service.ResolveWithMatch("node.charon.lthn")
