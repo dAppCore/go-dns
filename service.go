@@ -37,6 +37,15 @@ type NameRecords struct {
 	RRSIG  []string `json:"rrsig"`
 }
 
+// ResolveAllResult returns the full record shape for `dns.resolve.all`.
+//
+//	result, ok := service.ResolveAll("gateway.charon.lthn")
+//	// result = dns.ResolveAllResult{
+//	//   A: []string{"10.10.10.10"},
+//	//   AAAA: []string{},
+//	//   TXT: []string{"v=lthn1 type=gateway"},
+//	//   NS: []string{"ns.charon.lthn"},
+//	// }
 type ResolveAllResult struct {
 	A      []string `json:"a"`
 	AAAA   []string `json:"aaaa"`
@@ -47,14 +56,26 @@ type ResolveAllResult struct {
 	RRSIG  []string `json:"rrsig,omitempty"`
 }
 
+// ResolveAddressResult returns the merged address list for `dns.resolve`.
+//
+//	addresses, ok := service.ResolveAddresses("gateway.charon.lthn")
+//	// addresses = dns.ResolveAddressResult{Addresses: []string{"10.10.10.10", "2600:1f1c:7f0:4f01::1"}}
 type ResolveAddressResult struct {
 	Addresses []string `json:"addresses"`
 }
 
+// ResolveTXTResult returns the TXT payload for `dns.resolve.txt`.
+//
+//	txt, ok := service.ResolveTXTRecords("gateway.charon.lthn")
+//	// txt = dns.ResolveTXTResult{TXT: []string{"v=lthn1 type=gateway"}}
 type ResolveTXTResult struct {
 	TXT []string `json:"txt"`
 }
 
+// ReverseLookupResult returns the names resolved by `dns.reverse`.
+//
+//	names, ok := service.ResolveReverseNames("10.10.10.10")
+//	// names = dns.ReverseLookupResult{Names: []string{"gateway.charon.lthn"}}
 type ReverseLookupResult struct {
 	Names []string `json:"names"`
 }
@@ -110,7 +131,7 @@ type ServiceDescription struct {
 }
 
 type Service struct {
-	mu                           sync.RWMutex
+	mutex                        sync.RWMutex
 	records                      map[string]NameRecords
 	recordExpiry                 map[string]time.Time
 	reverseIndex                 *ReverseIndex
@@ -686,8 +707,8 @@ func (service *Service) discoverFromChainAliasesUsingTreeRoot(ctx context.Contex
 }
 
 func (service *Service) shouldUseCachedTreeRoot(now time.Time, aliasFingerprint string) bool {
-	service.mu.RLock()
-	defer service.mu.RUnlock()
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
 	if service.lastAliasFingerprint != aliasFingerprint {
 		return false
 	}
@@ -701,33 +722,33 @@ func (service *Service) shouldUseCachedTreeRoot(now time.Time, aliasFingerprint 
 }
 
 func (service *Service) getChainTreeRoot() string {
-	service.mu.RLock()
-	defer service.mu.RUnlock()
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
 	return service.chainTreeRoot
 }
 
 func (service *Service) getLastAliasFingerprint() string {
-	service.mu.RLock()
-	defer service.mu.RUnlock()
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
 	return service.lastAliasFingerprint
 }
 
 func (service *Service) recordAliasFingerprint(aliasFingerprint string) {
-	service.mu.Lock()
-	defer service.mu.Unlock()
+	service.mutex.Lock()
+	defer service.mutex.Unlock()
 	service.lastAliasFingerprint = aliasFingerprint
 }
 
 func (service *Service) recordTreeRootCheck(now time.Time, aliasFingerprint string) {
-	service.mu.Lock()
-	defer service.mu.Unlock()
+	service.mutex.Lock()
+	defer service.mutex.Unlock()
 	service.lastTreeRootCheck = now
 	service.lastAliasFingerprint = aliasFingerprint
 }
 
 func (service *Service) recordTreeRootState(now time.Time, treeRoot string, aliasFingerprint string) {
-	service.mu.Lock()
-	defer service.mu.Unlock()
+	service.mutex.Lock()
+	defer service.mutex.Unlock()
 	service.lastTreeRootCheck = now
 	service.chainTreeRoot = treeRoot
 	service.lastAliasFingerprint = aliasFingerprint
@@ -802,8 +823,8 @@ func (service *Service) replaceRecords(discovered map[string]NameRecords) {
 		}
 	}
 
-	service.mu.Lock()
-	defer service.mu.Unlock()
+	service.mutex.Lock()
+	defer service.mutex.Unlock()
 	service.records = cached
 	service.recordExpiry = expiry
 	service.chainTreeRoot = ""
@@ -818,8 +839,8 @@ func (service *Service) replaceRecords(discovered map[string]NameRecords) {
 func (service *Service) SetRecord(name string, record NameRecords) {
 	normalizedName := normalizeName(name)
 	now := time.Now()
-	service.mu.Lock()
-	defer service.mu.Unlock()
+	service.mutex.Lock()
+	defer service.mutex.Unlock()
 	if normalizedName == "" {
 		return
 	}
@@ -843,8 +864,8 @@ func (service *Service) SetRecord(name string, record NameRecords) {
 //	service.RemoveRecord("gateway.charon.lthn")
 func (service *Service) RemoveRecord(name string) {
 	normalizedName := normalizeName(name)
-	service.mu.Lock()
-	defer service.mu.Unlock()
+	service.mutex.Lock()
+	defer service.mutex.Unlock()
 	if normalizedName == "" {
 		return
 	}
@@ -989,8 +1010,8 @@ func (service *Service) pruneExpiredRecords() {
 	}
 
 	now := time.Now()
-	service.mu.Lock()
-	defer service.mu.Unlock()
+	service.mutex.Lock()
+	defer service.mutex.Unlock()
 
 	if len(service.recordExpiry) == 0 {
 		return
@@ -1055,9 +1076,9 @@ func (service *Service) ResolveReverse(ip string) ([]string, bool) {
 		return nil, false
 	}
 	service.pruneExpiredRecords()
-	service.mu.RLock()
+	service.mutex.RLock()
 	reverseIndex := service.reverseIndex
-	service.mu.RUnlock()
+	service.mutex.RUnlock()
 
 	if reverseIndex == nil {
 		return nil, false
@@ -1135,8 +1156,8 @@ func (service *Service) Health() HealthResult {
 	}
 	service.pruneExpiredRecords()
 
-	service.mu.RLock()
-	defer service.mu.RUnlock()
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
 
 	treeRoot := service.treeRoot
 	if service.chainTreeRoot != "" {
@@ -1163,8 +1184,8 @@ func (service *Service) Describe() ServiceDescription {
 
 	service.pruneExpiredRecords()
 
-	service.mu.RLock()
-	defer service.mu.RUnlock()
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
 
 	treeRoot := service.treeRoot
 	if service.chainTreeRoot != "" {
@@ -1202,8 +1223,8 @@ func (service *Service) ZoneApex() string {
 	}
 	service.pruneExpiredRecords()
 
-	service.mu.RLock()
-	defer service.mu.RUnlock()
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
 	return service.zoneApex
 }
 
@@ -1230,8 +1251,8 @@ func (service *Service) findRecord(name string) (NameRecords, bool) {
 func (service *Service) findRecordWithMatch(name string) (NameRecords, bool, bool) {
 	service.pruneExpiredRecords()
 
-	service.mu.RLock()
-	defer service.mu.RUnlock()
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
 
 	normalized := normalizeName(name)
 	if record, ok := service.records[normalized]; ok {
