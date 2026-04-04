@@ -3399,6 +3399,22 @@ func TestParseActionAliasListAcceptsStringMapSlice(t *testing.T) {
 	}
 }
 
+func TestParseActionAliasListAcceptsAliasMap(t *testing.T) {
+	aliases, err := parseActionAliasList(map[string]any{
+		"gateway": "gateway.charon.lthn",
+		"node":    "node.charon.lthn",
+	})
+	if err != nil {
+		t.Fatalf("unexpected alias map parse error: %v", err)
+	}
+	if len(aliases) != 2 {
+		t.Fatalf("expected two aliases, got %#v", aliases)
+	}
+	if aliases[0] != "gateway.charon.lthn" || aliases[1] != "node.charon.lthn" {
+		t.Fatalf("unexpected alias map parsing result: %#v", aliases)
+	}
+}
+
 func TestNormalizeNameAndNormalizeIPArePublicWrappers(t *testing.T) {
 	normalizedName := NormalizeName(" Gateway.Charon.lthn. ")
 	if normalizedName != "gateway.charon.lthn" {

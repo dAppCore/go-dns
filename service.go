@@ -475,6 +475,19 @@ func parseActionAliasList(value any) ([]string, error) {
 		if name != "" {
 			return []string{name}, nil
 		}
+		if len(aliases) > 0 {
+			parsed := make([]string, 0, len(aliases))
+			for _, rawAlias := range aliases {
+				alias, err := parseActionAliasValue(rawAlias)
+				if err != nil {
+					continue
+				}
+				if alias != "" {
+					parsed = append(parsed, alias)
+				}
+			}
+			return normalizeAliasList(parsed), nil
+		}
 	}
 
 	return nil, fmt.Errorf("blockchain.chain.aliases action returned unsupported result type %T", value)
