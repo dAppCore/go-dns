@@ -45,15 +45,18 @@ type NameRecords struct {
 //	//   AAAA: []string{},
 //	//   TXT: []string{"v=lthn1 type=gateway"},
 //	//   NS: []string{"ns.charon.lthn"},
+//	//   DS: []string{},
+//	//   DNSKEY: []string{},
+//	//   RRSIG: []string{},
 //	// }
 type ResolveAllResult struct {
 	A      []string `json:"a"`
 	AAAA   []string `json:"aaaa"`
 	TXT    []string `json:"txt"`
 	NS     []string `json:"ns"`
-	DS     []string `json:"ds,omitempty"`
-	DNSKEY []string `json:"dnskey,omitempty"`
-	RRSIG  []string `json:"rrsig,omitempty"`
+	DS     []string `json:"ds"`
+	DNSKEY []string `json:"dnskey"`
+	RRSIG  []string `json:"rrsig"`
 }
 
 // ResolveAddressResult returns the merged address list for `dns.resolve`.
@@ -1116,26 +1119,21 @@ func normalizeReverseLookupInput(value string) (string, bool) {
 //	// ok = true
 //
 // Missing names still return empty arrays so the action payload stays stable.
+//
+//	result, ok := service.ResolveAll("missing.charon.lthn")
+//	// result = dns.ResolveAllResult{A: []string{}, AAAA: []string{}, TXT: []string{}, NS: []string{}, DS: []string{}, DNSKEY: []string{}, RRSIG: []string{}}
 func (service *Service) ResolveAll(name string) (ResolveAllResult, bool) {
 	if service == nil {
 		return ResolveAllResult{}, false
 	}
 	record, ok := service.findRecord(name)
 	if !ok {
+		empty := emptyResolveAllResult()
 		if normalizeName(name) == service.ZoneApex() && service.ZoneApex() != "" {
-			return ResolveAllResult{
-				A:    []string{},
-				AAAA: []string{},
-				TXT:  []string{},
-				NS:   []string{"ns." + service.ZoneApex()},
-			}, true
+			empty.NS = []string{"ns." + service.ZoneApex()}
+			return empty, true
 		}
-		return ResolveAllResult{
-			A:    []string{},
-			AAAA: []string{},
-			TXT:  []string{},
-			NS:   []string{},
-		}, true
+		return empty, true
 	}
 	result := resolveResult(record)
 	if normalizeName(name) == service.ZoneApex() && service.ZoneApex() != "" && len(result.NS) == 0 {
@@ -1275,6 +1273,18 @@ func resolveResult(record NameRecords) ResolveAllResult {
 		DS:     normalizeRecordValues(record.DS),
 		DNSKEY: normalizeRecordValues(record.DNSKEY),
 		RRSIG:  normalizeRecordValues(record.RRSIG),
+	}
+}
+
+func emptyResolveAllResult() ResolveAllResult {
+	return ResolveAllResult{
+		A:      []string{},
+		AAAA:   []string{},
+		TXT:    []string{},
+		NS:     []string{},
+		DS:     []string{},
+		DNSKEY: []string{},
+		RRSIG:  []string{},
 	}
 }
 

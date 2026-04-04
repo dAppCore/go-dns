@@ -2596,7 +2596,7 @@ func TestServiceResolveAllReturnsStableShapeForDerivedZoneApex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected derived apex payload to marshal: %v", err)
 	}
-	if string(raw) != `{"a":[],"aaaa":[],"txt":[],"ns":["ns.charon.lthn"]}` {
+	if string(raw) != `{"a":[],"aaaa":[],"txt":[],"ns":["ns.charon.lthn"],"ds":[],"dnskey":[],"rrsig":[]}` {
 		t.Fatalf("expected stable JSON shape for derived apex, got %s", raw)
 	}
 }
@@ -2631,7 +2631,7 @@ func TestServiceResolveAllReturnsEmptyArraysForMissingRecordValues(t *testing.T)
 	if err != nil {
 		t.Fatalf("expected result to marshal: %v", err)
 	}
-	if string(raw) != `{"a":["10.10.10.10"],"aaaa":[],"txt":[],"ns":[]}` {
+	if string(raw) != `{"a":["10.10.10.10"],"aaaa":[],"txt":[],"ns":[],"ds":[],"dnskey":[],"rrsig":[]}` {
 		t.Fatalf("expected empty arrays in JSON, got %s", raw)
 	}
 }
@@ -2651,7 +2651,7 @@ func TestServiceResolveAllReturnsEmptyArraysForMissingName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected result to marshal: %v", err)
 	}
-	if string(raw) != `{"a":[],"aaaa":[],"txt":[],"ns":[]}` {
+	if string(raw) != `{"a":[],"aaaa":[],"txt":[],"ns":[],"ds":[],"dnskey":[],"rrsig":[]}` {
 		t.Fatalf("expected empty arrays in JSON, got %s", raw)
 	}
 }
