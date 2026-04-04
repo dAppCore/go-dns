@@ -396,6 +396,27 @@ func TestServiceResolveReverseNamesReturnsNamedField(t *testing.T) {
 	}
 }
 
+func TestServiceResolveReverseIgnoresWildcardTemplateNames(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"*.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	names, ok := service.ResolveReverse("10.10.10.10")
+	if !ok {
+		t.Fatal("expected reverse lookup to resolve")
+	}
+	if len(names) != 1 || names[0] != "gateway.charon.lthn" {
+		t.Fatalf("expected reverse lookup to omit wildcard names, got %#v", names)
+	}
+}
+
 func TestServiceResolvePTRAliasesMatchReverseLookup(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{

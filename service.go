@@ -1359,6 +1359,10 @@ func collectReverseName(namesByIP *cache.Cache, name string, ips []string, expir
 		return
 	}
 
+	if strings.HasPrefix(normalizeName(name), "*.") {
+		return
+	}
+
 	for _, ip := range ips {
 		normalized := normalizeIP(ip)
 		if normalized == "" {
