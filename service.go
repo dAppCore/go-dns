@@ -373,7 +373,7 @@ func NewDNSServiceWithContextRegistrar(options DNSServiceOptions, registrar Acti
 	return NewDNSServiceWithRegistrar(options, registrar)
 }
 
-func (service *Service) resolveHSDClient(client *HSDClient) (*HSDClient, error) {
+func (service *Service) requireHSDClient(client *HSDClient) (*HSDClient, error) {
 	if client != nil {
 		return client, nil
 	}
@@ -405,7 +405,7 @@ func (service *Service) DiscoverFromChainAliases(ctx context.Context, client *HS
 		service.recordTreeRootState(now, "", fingerprint)
 		return nil
 	}
-	effectiveHSDClient, err := service.resolveHSDClient(client)
+	effectiveHSDClient, err := service.requireHSDClient(client)
 	if err != nil {
 		return err
 	}
@@ -630,6 +630,13 @@ func parseActionAliasRecord(record map[string]any) (string, error) {
 //		dns.NewHSDClient(dns.HSDClientOptions{URL: "http://127.0.0.1:14037"}),
 //	)
 //
+//	_ = service.DiscoverFromMainchainAliases(
+//		context.Background(),
+//		dns.NewMainchainAliasClient(dns.MainchainClientOptions{URL: "http://127.0.0.1:14037"}),
+//		dns.NewHSDClient(dns.HSDClientOptions{URL: "http://127.0.0.1:14037"}),
+//	)
+//	record, ok := service.Resolve("gateway.charon.lthn")
+//
 //	// The cache now reflects the aliases returned by get_all_alias_details
 //	// plus the DNS records fetched from getnameresource.
 func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainClient *MainchainAliasClient, hsdClient *HSDClient) error {
@@ -675,7 +682,7 @@ func (service *Service) DiscoverFromMainchainAliases(ctx context.Context, chainC
 		service.recordTreeRootState(now, "", fingerprint)
 		return nil
 	}
-	effectiveHSDClient, err := service.resolveHSDClient(hsdClient)
+	effectiveHSDClient, err := service.requireHSDClient(hsdClient)
 	if err != nil {
 		return err
 	}
@@ -809,7 +816,8 @@ func (service *Service) Discover() error {
 //			return []string{"gateway.charon.lthn"}, nil
 //		},
 //	})
-//	err := service.DiscoverAliases(context.Background())
+//	_ = service.DiscoverAliases(context.Background())
+//	record, ok := service.Resolve("gateway.charon.lthn")
 //
 //	// The service will call blockchain.chain.aliases first, then fall back to
 //	// the configured discoverers or main-chain RPC if needed.
