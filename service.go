@@ -1257,6 +1257,20 @@ func (service *Service) ResolveReverseNames(ip string) (ReverseLookupResult, boo
 	return ReverseLookupResult{Names: names}, true
 }
 
+// ResolvePTRNames is the explicit PTR-oriented alias for ResolveReverseNames.
+//
+//	names, ok := service.ResolvePTRNames("10.10.10.10")
+func (service *Service) ResolvePTRNames(ip string) (ReverseLookupResult, bool) {
+	return service.ResolveReverseNames(ip)
+}
+
+// ResolvePTR is the explicit PTR-oriented alias for ResolveReverse.
+//
+//	names, ok := service.ResolvePTR("10.10.10.10")
+func (service *Service) ResolvePTR(ip string) ([]string, bool) {
+	return service.ResolveReverse(ip)
+}
+
 func (service *Service) findRecord(name string) (NameRecords, bool) {
 	service.pruneExpiredRecords()
 	record, ok, _ := service.findRecordWithMatch(name)

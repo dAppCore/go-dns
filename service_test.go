@@ -396,6 +396,32 @@ func TestServiceResolveReverseNamesReturnsNamedField(t *testing.T) {
 	}
 }
 
+func TestServiceResolvePTRAliasesMatchReverseLookup(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	ptrNames, ok := service.ResolvePTRNames("10.10.10.10")
+	if !ok {
+		t.Fatal("expected PTR names alias to resolve")
+	}
+	if len(ptrNames.Names) != 1 || ptrNames.Names[0] != "gateway.charon.lthn" {
+		t.Fatalf("unexpected PTR names alias result: %#v", ptrNames)
+	}
+
+	ptr, ok := service.ResolvePTR("10.10.10.10")
+	if !ok {
+		t.Fatal("expected PTR alias to resolve")
+	}
+	if len(ptr) != 1 || ptr[0] != "gateway.charon.lthn" {
+		t.Fatalf("unexpected PTR alias result: %#v", ptr)
+	}
+}
+
 func TestServiceResolveReverseFallsBackToFalseWhenUnknown(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{
