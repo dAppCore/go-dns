@@ -1069,6 +1069,16 @@ func (service *Service) refreshDerivedStateLocked() {
 	service.zoneApex = computeZoneApex(service.records)
 }
 
+func (service *Service) currentTreeRootLocked() string {
+	if service == nil {
+		return ""
+	}
+	if service.chainTreeRoot != "" {
+		return service.chainTreeRoot
+	}
+	return service.treeRoot
+}
+
 // ResolveAddresses returns A and AAAA values merged into one address list.
 //
 //	addresses, ok := service.ResolveAddresses("gateway.charon.lthn")
@@ -1182,16 +1192,27 @@ func (service *Service) Health() HealthResult {
 	service.mutex.RLock()
 	defer service.mutex.RUnlock()
 
-	treeRoot := service.treeRoot
-	if service.chainTreeRoot != "" {
-		treeRoot = service.chainTreeRoot
-	}
-
 	return HealthResult{
 		Status:      "ready",
 		NamesCached: len(service.records),
-		TreeRoot:    treeRoot,
+		TreeRoot:    service.currentTreeRootLocked(),
 	}
+}
+
+// CurrentTreeRoot returns the active tree root used by health and snapshot data.
+//
+//	treeRoot := service.CurrentTreeRoot()
+//	fmt.Println(treeRoot)
+func (service *Service) CurrentTreeRoot() string {
+	if service == nil {
+		return ""
+	}
+	service.pruneExpiredRecords()
+
+	service.mutex.RLock()
+	defer service.mutex.RUnlock()
+
+	return service.currentTreeRootLocked()
 }
 
 // Snapshot returns a structured view of the service state.
@@ -1210,11 +1231,6 @@ func (service *Service) Snapshot() ServiceDescription {
 	service.mutex.RLock()
 	defer service.mutex.RUnlock()
 
-	treeRoot := service.treeRoot
-	if service.chainTreeRoot != "" {
-		treeRoot = service.chainTreeRoot
-	}
-
 	dnsPort := service.dnsPort
 	if dnsPort <= 0 {
 		dnsPort = DefaultDNSPort
@@ -1229,7 +1245,7 @@ func (service *Service) Snapshot() ServiceDescription {
 		Status:     "ready",
 		Records:    len(service.records),
 		ZoneApex:   service.zoneApex,
-		TreeRoot:   treeRoot,
+		TreeRoot:   service.currentTreeRootLocked(),
 		DNSPort:    dnsPort,
 		HealthPort: httpPort,
 		HTTPPort:   httpPort,

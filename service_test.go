@@ -3857,6 +3857,31 @@ func TestServiceMethodsHandleNilReceiverWithoutPanicking(t *testing.T) {
 	if got := service.Health().Status; got != "not_ready" {
 		t.Fatalf("expected nil service health status \"not_ready\", got %q", got)
 	}
+	if got := service.CurrentTreeRoot(); got != "" {
+		t.Fatalf("expected nil service current tree root to be empty, got %q", got)
+	}
+}
+
+func TestServiceCurrentTreeRootPrefersChainRootWhenPresent(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	if got := service.CurrentTreeRoot(); got == "" {
+		t.Fatal("expected current tree root to be populated from cached records")
+	}
+
+	service.mutex.Lock()
+	service.chainTreeRoot = "chain-root-1"
+	service.mutex.Unlock()
+
+	if got := service.CurrentTreeRoot(); got != "chain-root-1" {
+		t.Fatalf("expected current tree root to prefer chain root, got %q", got)
+	}
 }
 
 func TestServiceServeReturnsErrorOnNilReceiver(t *testing.T) {
