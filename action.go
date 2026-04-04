@@ -49,7 +49,7 @@ type ActionDefinition struct {
 // ActionRegistrar publishes DNS actions into another Core surface.
 //
 //	registrar.RegisterAction(ActionResolve, func(values map[string]any) (any, bool, error) {
-//		return service.ResolveAddress("gateway.charon.lthn")
+//		return service.ResolveAddresses("gateway.charon.lthn")
 //	})
 type ActionRegistrar interface {
 	RegisterAction(name string, invoke func(map[string]any) (any, bool, error))
@@ -254,7 +254,7 @@ func (service *Service) handleResolveAddress(ctx context.Context, values map[str
 	if err != nil {
 		return nil, false, err
 	}
-	result, ok := service.ResolveAddress(host)
+	result, ok := service.ResolveAddresses(host)
 	if !ok {
 		return nil, false, nil
 	}

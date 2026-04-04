@@ -960,10 +960,10 @@ func (service *Service) refreshDerivedStateLocked() {
 	service.zoneApex = computeZoneApex(service.records)
 }
 
-// ResolveAddress returns A and AAAA values merged into one address list.
+// ResolveAddresses returns A and AAAA values merged into one address list.
 //
-//	addresses, ok := service.ResolveAddress("gateway.charon.lthn")
-func (service *Service) ResolveAddress(name string) (ResolveAddressResult, bool) {
+//	addresses, ok := service.ResolveAddresses("gateway.charon.lthn")
+func (service *Service) ResolveAddresses(name string) (ResolveAddressResult, bool) {
 	if service == nil {
 		return ResolveAddressResult{}, false
 	}
@@ -974,6 +974,13 @@ func (service *Service) ResolveAddress(name string) (ResolveAddressResult, bool)
 	return ResolveAddressResult{
 		Addresses: MergeRecords(record.A, record.AAAA),
 	}, true
+}
+
+// ResolveAddress is a compatibility alias for ResolveAddresses.
+//
+//	addresses, ok := service.ResolveAddress("gateway.charon.lthn")
+func (service *Service) ResolveAddress(name string) (ResolveAddressResult, bool) {
+	return service.ResolveAddresses(name)
 }
 
 // ResolveReverse returns the names that map back to an IP address.

@@ -130,6 +130,33 @@ func TestServiceOptionsAliasBuildsService(t *testing.T) {
 	}
 }
 
+func TestServiceResolveAddressesAliasMatchesResolveAddress(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A:    []string{"10.10.10.10"},
+				AAAA: []string{"2001:db8::10"},
+			},
+		},
+	})
+
+	addresses, ok := service.ResolveAddresses("gateway.charon.lthn")
+	if !ok {
+		t.Fatal("expected explicit addresses alias to resolve")
+	}
+	if len(addresses.Addresses) != 2 {
+		t.Fatalf("expected merged A and AAAA values, got %#v", addresses.Addresses)
+	}
+
+	compat, ok := service.ResolveAddress("gateway.charon.lthn")
+	if !ok {
+		t.Fatal("expected compatibility alias to resolve")
+	}
+	if len(compat.Addresses) != len(addresses.Addresses) {
+		t.Fatalf("expected compatibility alias to match explicit alias, got %#v and %#v", compat.Addresses, addresses.Addresses)
+	}
+}
+
 func TestNewDNSServiceAliasToExistingConstructor(t *testing.T) {
 	service := NewDNSService(ServiceOptions{
 		Records: map[string]NameRecords{
