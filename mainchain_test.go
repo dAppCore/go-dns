@@ -579,6 +579,13 @@ func TestExtractAliasFromCommentParsesCaseInsensitiveHNSPrefix(t *testing.T) {
 	}
 }
 
+func TestExtractAliasFromCommentParsesSpacedHNSAssignment(t *testing.T) {
+	got := extractAliasFromComment("gateway alias hns = gateway.charon.lthn;")
+	if got != "gateway.charon.lthn" {
+		t.Fatalf("expected gateway.charon.lthn, got %s", got)
+	}
+}
+
 func TestNewServiceBuildsMainchainAliasClientWithHSDFallbackCredentials(t *testing.T) {
 	service := NewService(ServiceOptions{
 		MainchainURL: "http://127.0.0.1:14037",

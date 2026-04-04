@@ -259,10 +259,23 @@ func decodeString(raw json.RawMessage) (string, bool) {
 }
 
 func extractAliasFromComment(comment string) string {
-	for _, token := range strings.Fields(comment) {
-		switch normalizedToken := strings.ToLower(token); {
+	fields := strings.Fields(comment)
+	for index, token := range fields {
+		normalizedToken := strings.ToLower(strings.TrimSpace(token))
+		switch {
 		case strings.HasPrefix(normalizedToken, "hns="):
-			alias := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(normalizedToken, "hns="), ";"))
+			alias := strings.TrimSuffix(strings.TrimPrefix(normalizedToken, "hns="), ";")
+			if alias != "" {
+				return normalizeName(alias)
+			}
+		case normalizedToken == "hns" && index+2 < len(fields):
+			nextToken := strings.TrimSpace(strings.ToLower(fields[index+1]))
+			if nextToken != "=" && nextToken != ":" && nextToken != ":=" {
+				continue
+			}
+			alias := strings.TrimSpace(fields[index+2])
+			alias = strings.TrimSuffix(alias, ";")
+			alias = strings.TrimSuffix(alias, ",")
 			if alias != "" {
 				return normalizeName(alias)
 			}
@@ -270,13 +283,15 @@ func extractAliasFromComment(comment string) string {
 	}
 
 	commentLower := strings.ToLower(comment)
-	if marker := strings.Index(commentLower, "hns="); marker >= 0 {
-		alias := comment[marker+4:]
-		if trim := strings.IndexAny(alias, " ;,"); trim >= 0 {
+	if marker := strings.Index(commentLower, "hns"); marker >= 0 {
+		alias := comment[marker+3:]
+		alias = strings.TrimLeft(alias, " \t:=;")
+		if trim := strings.IndexAny(alias, " ;,\t\r\n"); trim >= 0 {
 			alias = alias[:trim]
 		}
 		alias = strings.TrimSpace(alias)
 		alias = strings.TrimSuffix(alias, ";")
+		alias = strings.TrimSuffix(alias, ",")
 		return normalizeName(alias)
 	}
 
