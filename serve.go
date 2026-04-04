@@ -45,6 +45,13 @@ type ServiceRuntime struct {
 	HTTPServer *HealthServer
 }
 
+// DNSServiceRuntime is the explicit long-form alias for ServiceRuntime.
+//
+//	runtime, err := service.ServeAll("127.0.0.1", 53, 5554)
+//	var dnsRuntime dns.DNSServiceRuntime = *runtime
+//	fmt.Println(dnsRuntime.DNSAddress(), dnsRuntime.HealthAddress())
+type DNSServiceRuntime = ServiceRuntime
+
 // Address is the compatibility alias for HealthAddress.
 //
 //	runtime, err := service.ServeAll("127.0.0.1", 53, 5554)

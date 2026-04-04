@@ -821,24 +821,25 @@ func TestServiceServeAllStartsDNSAndHTTPTogether(t *testing.T) {
 	defer func() {
 		_ = runtime.Close()
 	}()
+	var dnsRuntime DNSServiceRuntime = *runtime
 
-	if runtime.DNSAddress() == "" {
+	if dnsRuntime.DNSAddress() == "" {
 		t.Fatal("expected DNS address from combined runtime")
 	}
-	if runtime.HealthAddress() == "" {
+	if dnsRuntime.HealthAddress() == "" {
 		t.Fatal("expected health address from combined runtime")
 	}
-	if runtime.Address() != runtime.HealthAddress() {
-		t.Fatalf("expected runtime Address alias to match HealthAddress, got %q and %q", runtime.Address(), runtime.HealthAddress())
+	if dnsRuntime.Address() != dnsRuntime.HealthAddress() {
+		t.Fatalf("expected runtime Address alias to match HealthAddress, got %q and %q", dnsRuntime.Address(), dnsRuntime.HealthAddress())
 	}
-	if runtime.DNS.Address() != runtime.DNSAddress() {
-		t.Fatalf("expected DNSAddress and Address to match, got %q and %q", runtime.DNS.DNSAddress(), runtime.DNS.Address())
+	if dnsRuntime.DNS.Address() != dnsRuntime.DNSAddress() {
+		t.Fatalf("expected DNSAddress and Address to match, got %q and %q", dnsRuntime.DNS.DNSAddress(), dnsRuntime.DNS.Address())
 	}
-	if runtime.HTTPAddress() != runtime.HealthAddress() {
-		t.Fatalf("expected HTTPAddress and HealthAddress to match, got %q and %q", runtime.HTTPAddress(), runtime.HealthAddress())
+	if dnsRuntime.HTTPAddress() != dnsRuntime.HealthAddress() {
+		t.Fatalf("expected HTTPAddress and HealthAddress to match, got %q and %q", dnsRuntime.HTTPAddress(), dnsRuntime.HealthAddress())
 	}
 
-	response, err := http.Get("http://" + runtime.HealthAddress() + "/health")
+	response, err := http.Get("http://" + dnsRuntime.HealthAddress() + "/health")
 	if err != nil {
 		t.Fatalf("expected combined HTTP health endpoint to respond: %v", err)
 	}
@@ -853,7 +854,7 @@ func TestServiceServeAllStartsDNSAndHTTPTogether(t *testing.T) {
 	client := dnsprotocol.Client{}
 	request := new(dnsprotocol.Msg)
 	request.SetQuestion("gateway.charon.lthn.", dnsprotocol.TypeA)
-	dnsResponse := exchangeWithRetry(t, client, request, runtime.DNSAddress())
+	dnsResponse := exchangeWithRetry(t, client, request, dnsRuntime.DNSAddress())
 	if dnsResponse.Rcode != dnsprotocol.RcodeSuccess {
 		t.Fatalf("unexpected combined DNS rcode: %d", dnsResponse.Rcode)
 	}
