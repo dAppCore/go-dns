@@ -291,7 +291,7 @@ func (service *Service) handleResolveAll(ctx context.Context, values map[string]
 
 func (service *Service) handleReverseLookup(ctx context.Context, values map[string]any) (any, bool, error) {
 	_ = ctx
-	ip, err := stringActionValueFromKeys(values, actionArgIP, actionArgAddress)
+	ip, err := stringActionValueFromKeys(values, actionArgIP, actionArgAddress, actionArgName, actionArgHost, actionArgHostName)
 	if err != nil {
 		return nil, false, err
 	}

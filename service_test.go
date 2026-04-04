@@ -3560,6 +3560,23 @@ func TestServiceHandleActionReverseHealthServeAndDiscover(t *testing.T) {
 		t.Fatalf("unexpected reverse result: %#v", reverse.Names)
 	}
 
+	ptrPayload, ok, err := service.HandleAction(ActionReverse, map[string]any{
+		"name": "20.10.10.10.in-addr.arpa.",
+	})
+	if err != nil {
+		t.Fatalf("unexpected reverse action error for PTR name: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected reverse action to accept PTR-style names")
+	}
+	ptr, ok := ptrPayload.(ReverseLookupResult)
+	if !ok {
+		t.Fatalf("expected ReverseLookupResult payload for PTR name, got %T", ptrPayload)
+	}
+	if len(ptr.Names) != 1 || ptr.Names[0] != "gateway.charon.lthn" {
+		t.Fatalf("unexpected PTR reverse result: %#v", ptr.Names)
+	}
+
 	healthPayload, ok, err := service.HandleAction(ActionHealth, nil)
 	if err != nil {
 		t.Fatalf("unexpected health action error: %v", err)
