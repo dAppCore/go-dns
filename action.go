@@ -147,13 +147,13 @@ func (service *Service) ActionDefinitions() []ActionDefinition {
 				if err := service.DiscoverAliases(context.Background()); err != nil {
 					return nil, false, err
 				}
-				return service.Health(), true, nil
+				return nil, true, nil
 			},
 			InvokeContext: func(ctx context.Context, _ map[string]any) (any, bool, error) {
 				if err := service.DiscoverAliases(ctx); err != nil {
 					return nil, false, err
 				}
-				return service.Health(), true, nil
+				return nil, true, nil
 			},
 		},
 	}

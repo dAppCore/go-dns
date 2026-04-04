@@ -3499,18 +3499,11 @@ func TestServiceHandleActionReverseHealthServeAndDiscover(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected discover action error: %v", err)
 	}
-	if discoverPayload == nil || !ok {
-		t.Fatal("expected discover action payload")
-	}
 	if !ok {
 		t.Fatal("expected discover action to succeed")
 	}
-	discoverHealth, ok := discoverPayload.(HealthResult)
-	if !ok {
-		t.Fatalf("expected discover action payload HealthResult, got %T", discoverPayload)
-	}
-	if discoverHealth.TreeRoot != "discover-root" {
-		t.Fatalf("expected discover to refresh tree root, got %#v", discoverHealth.TreeRoot)
+	if discoverPayload != nil {
+		t.Fatalf("expected discover action to be side-effect only, got %#v", discoverPayload)
 	}
 }
 
