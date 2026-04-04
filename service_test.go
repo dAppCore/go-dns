@@ -2818,6 +2818,49 @@ func TestServiceHandleActionServeCamelCaseAliases(t *testing.T) {
 	}
 }
 
+func TestServiceHandleActionServeSnakeCaseAliases(t *testing.T) {
+	dnsPort := pickFreeTCPPort(t)
+	healthPort := pickFreeTCPPort(t)
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	payload, ok, err := service.HandleAction(ActionServe, map[string]any{
+		"bind":       "127.0.0.1",
+		"dns_port":   dnsPort,
+		"healthPort": healthPort,
+	})
+	if err != nil {
+		t.Fatalf("expected serve action to start runtime with snake_case dns port: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected serve action to succeed with snake_case dns port")
+	}
+
+	runtime, ok := payload.(*ServiceRuntime)
+	if !ok {
+		t.Fatalf("expected ServiceRuntime payload, got %T", payload)
+	}
+	if runtime == nil {
+		t.Fatal("expected service runtime from serve action")
+	}
+	defer func() {
+		_ = runtime.Close()
+	}()
+
+	_, runtimeDNSPort, err := net.SplitHostPort(runtime.DNSAddress())
+	if err != nil {
+		t.Fatalf("expected dns address to include port: %v", err)
+	}
+	if runtimeDNSPort != strconv.Itoa(dnsPort) {
+		t.Fatalf("expected dns port %d, got %q", dnsPort, runtimeDNSPort)
+	}
+}
+
 func TestServiceResolveServePortDefaultsToStandardDNSPort(t *testing.T) {
 	service := NewService(ServiceOptions{})
 	if service.ResolveDNSPort() != DefaultDNSPort {

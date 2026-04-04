@@ -25,16 +25,17 @@ var (
 )
 
 const (
-	actionArgBind       = "bind"
-	actionArgBindAddress = "bindAddress"
-	actionArgIP         = "ip"
-	actionArgAddress    = "address"
-	actionArgName       = "name"
-	actionArgHost       = "host"
-	actionArgHostName   = "hostname"
-	actionArgPort       = "port"
-	actionArgDNSPort    = "dnsPort"
-	actionArgHealthPort = "health_port"
+	actionArgBind            = "bind"
+	actionArgBindAddress     = "bindAddress"
+	actionArgIP              = "ip"
+	actionArgAddress         = "address"
+	actionArgName            = "name"
+	actionArgHost            = "host"
+	actionArgHostName        = "hostname"
+	actionArgPort            = "port"
+	actionArgDNSPort         = "dnsPort"
+	actionArgDNSPortSnake    = "dns_port"
+	actionArgHealthPort      = "health_port"
 	actionArgHealthPortCamel = "healthPort"
 )
 
@@ -304,7 +305,7 @@ func (service *Service) handleServe(ctx context.Context, values map[string]any) 
 	if err != nil {
 		return nil, false, err
 	}
-	port, portProvided, err := intActionValueOptionalFromKeys(values, actionArgPort, actionArgDNSPort)
+	port, portProvided, err := intActionValueOptionalFromKeys(values, actionArgPort, actionArgDNSPort, actionArgDNSPortSnake)
 	if err != nil {
 		return nil, false, err
 	}
