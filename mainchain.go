@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 )
 
@@ -260,5 +261,6 @@ func normalizeAliasList(raw []string) []string {
 		seen[next] = true
 		normalized = append(normalized, next)
 	}
+	slices.Sort(normalized)
 	return normalized
 }

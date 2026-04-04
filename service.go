@@ -983,8 +983,11 @@ func (service *Service) ResolveReverse(ip string) ([]string, bool) {
 	if service == nil {
 		return nil, false
 	}
+	normalizedIP, ok := normalizeReverseLookupInput(ip)
+	if !ok {
+		return nil, false
+	}
 	service.pruneExpiredRecords()
-
 	service.mu.RLock()
 	reverseIndex := service.reverseIndex
 	service.mu.RUnlock()
@@ -993,7 +996,29 @@ func (service *Service) ResolveReverse(ip string) ([]string, bool) {
 		return nil, false
 	}
 
-	return reverseIndex.Lookup(ip)
+	return reverseIndex.Lookup(normalizedIP)
+}
+
+func normalizeReverseLookupInput(value string) (string, bool) {
+	normalized := strings.TrimSpace(strings.ToLower(value))
+	if normalized == "" {
+		return "", false
+	}
+
+	if strings.HasSuffix(normalized, ".in-addr.arpa.") || strings.HasSuffix(normalized, ".in-addr.arpa") {
+		parsed, ok := parsePTRIP(normalized)
+		return parsed, ok
+	}
+	if strings.HasSuffix(normalized, ".ip6.arpa.") || strings.HasSuffix(normalized, ".ip6.arpa") {
+		parsed, ok := parsePTRIP(normalized)
+		return parsed, ok
+	}
+
+	parsed := normalizeIP(normalized)
+	if parsed == "" {
+		return "", false
+	}
+	return parsed, true
 }
 
 // ResolveAll returns the full record set for a name, including synthesized apex NS data.

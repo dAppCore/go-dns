@@ -336,6 +336,42 @@ func TestServiceResolveReverseFallsBackToFalseWhenUnknown(t *testing.T) {
 	}
 }
 
+func TestServiceResolveReverseAcceptsInAddrARPAQueryName(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	names, ok := service.ResolveReverse("10.10.10.10.in-addr.arpa.")
+	if !ok {
+		t.Fatal("expected reverse lookup by PTR name to resolve")
+	}
+	if len(names) != 1 || names[0] != "gateway.charon.lthn" {
+		t.Fatalf("unexpected reverse results for PTR name: %#v", names)
+	}
+}
+
+func TestServiceResolveReverseAcceptsIPv6ARPAQueryName(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				AAAA: []string{"2001:db8::4f01:0000:0000:0000:0001"},
+			},
+		},
+	})
+
+	names, ok := service.ResolveReverse("1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.1.0.f.4.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa")
+	if !ok {
+		t.Fatal("expected reverse lookup by IPv6 PTR name to resolve")
+	}
+	if len(names) != 1 || names[0] != "gateway.charon.lthn" {
+		t.Fatalf("unexpected reverse results for IPv6 PTR name: %#v", names)
+	}
+}
+
 func TestServiceResolveReverseUsesSetAndRemove(t *testing.T) {
 	service := NewService(ServiceOptions{})
 	service.SetRecord("gateway.charon.lthn", NameRecords{
