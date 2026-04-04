@@ -84,6 +84,7 @@ type ActionCaller interface {
 //	for _, definition := range definitions {
 //		fmt.Println(definition.Name)
 //	}
+//	// dns.resolve, dns.resolve.txt, dns.resolve.all, dns.reverse, dns.serve, dns.health, dns.discover
 func (service *Service) ActionDefinitions() []ActionDefinition {
 	return []ActionDefinition{
 		{
@@ -175,6 +176,7 @@ func (service *Service) ActionNames() []string {
 //
 //	service.RegisterActions(registrar)
 //	// registrar.RegisterAction("dns.health", ...)
+//	// registrar.RegisterActionContext("dns.discover", func(ctx context.Context, values map[string]any) (any, bool, error) { ... })
 func (service *Service) RegisterActions(registrar ActionRegistrar) {
 	if registrar == nil {
 		return
