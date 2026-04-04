@@ -26,6 +26,20 @@ type MainchainClientOptions struct {
 	HTTPClient *http.Client
 }
 
+// MainchainAliasClientConfiguration is the explicit long-form alias for MainchainClientOptions.
+//
+//	client := dns.NewMainchainAliasClientFromConfiguration(dns.MainchainAliasClientConfiguration{
+//		URL:      "http://127.0.0.1:14037",
+//		Username: "user",
+//		Password: "pass",
+//	})
+type MainchainAliasClientConfiguration = MainchainClientOptions
+
+// MainchainAliasClientConfig is kept for compatibility with older call sites.
+//
+// Deprecated: use MainchainAliasClientConfiguration instead.
+type MainchainAliasClientConfig = MainchainClientOptions
+
 type MainchainAliasClient struct {
 	baseURL    string
 	username   string
@@ -69,6 +83,28 @@ func NewMainchainAliasClient(options MainchainClientOptions) *MainchainAliasClie
 		password:   options.Password,
 		httpClient: client,
 	}
+}
+
+// NewMainchainAliasClientFromOptions is the explicit long-form constructor name.
+//
+//	client := dns.NewMainchainAliasClientFromOptions(dns.MainchainClientOptions{
+//		URL:      "http://127.0.0.1:14037",
+//		Username: "user",
+//		Password: "pass",
+//	})
+func NewMainchainAliasClientFromOptions(options MainchainClientOptions) *MainchainAliasClient {
+	return NewMainchainAliasClient(options)
+}
+
+// NewMainchainAliasClientFromConfiguration is the explicit constructor name for the main-chain configuration alias.
+//
+//	client := dns.NewMainchainAliasClientFromConfiguration(dns.MainchainAliasClientConfiguration{
+//		URL:      "http://127.0.0.1:14037",
+//		Username: "user",
+//		Password: "pass",
+//	})
+func NewMainchainAliasClientFromConfiguration(options MainchainAliasClientConfiguration) *MainchainAliasClient {
+	return NewMainchainAliasClient(options)
 }
 
 // GetAllAliasDetails returns alias names mapped to HNS DNS names.

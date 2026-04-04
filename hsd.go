@@ -28,6 +28,20 @@ type HSDClientOptions struct {
 	HTTPClient *http.Client
 }
 
+// HSDClientConfiguration is the explicit long-form alias for HSDClientOptions.
+//
+//	client := dns.NewHSDClientFromConfiguration(dns.HSDClientConfiguration{
+//		URL:      "http://127.0.0.1:14037",
+//		Username: "user",
+//		Password: "pass",
+//	})
+type HSDClientConfiguration = HSDClientOptions
+
+// HSDClientConfig is kept for compatibility with older call sites.
+//
+// Deprecated: use HSDClientConfiguration instead.
+type HSDClientConfig = HSDClientOptions
+
 type HSDClient struct {
 	baseURL    string
 	username   string
@@ -91,6 +105,28 @@ func NewHSDClient(options HSDClientOptions) *HSDClient {
 		password:   options.Password,
 		httpClient: client,
 	}
+}
+
+// NewHSDClientFromOptions is the explicit long-form constructor name.
+//
+//	client := dns.NewHSDClientFromOptions(dns.HSDClientOptions{
+//		URL:      "http://127.0.0.1:14037",
+//		Username: "user",
+//		Password: "pass",
+//	})
+func NewHSDClientFromOptions(options HSDClientOptions) *HSDClient {
+	return NewHSDClient(options)
+}
+
+// NewHSDClientFromConfiguration is the explicit constructor name for the HSD configuration alias.
+//
+//	client := dns.NewHSDClientFromConfiguration(dns.HSDClientConfiguration{
+//		URL:      "http://127.0.0.1:14037",
+//		Username: "user",
+//		Password: "pass",
+//	})
+func NewHSDClientFromConfiguration(options HSDClientConfiguration) *HSDClient {
+	return NewHSDClient(options)
 }
 
 func (client *HSDClient) GetNameResource(ctx context.Context, name string) (NameRecords, error) {

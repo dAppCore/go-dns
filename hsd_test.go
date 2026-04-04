@@ -52,6 +52,18 @@ func TestHSDClientGetNameResourceCallsRPCAndParsesResult(t *testing.T) {
 	}
 }
 
+func TestNewHSDClientFromOptionsMatchesNewHSDClient(t *testing.T) {
+	clientFromOptions := NewHSDClientFromOptions(HSDClientOptions{URL: "http://127.0.0.1:14037"})
+	clientFromConfiguration := NewHSDClientFromConfiguration(HSDClientConfiguration{URL: "http://127.0.0.1:14037"})
+
+	if clientFromOptions == nil || clientFromConfiguration == nil {
+		t.Fatal("expected explicit HSD constructors to return clients")
+	}
+	if clientFromOptions.baseURL != clientFromConfiguration.baseURL {
+		t.Fatalf("expected explicit HSD constructors to normalize the same base URL, got %q and %q", clientFromOptions.baseURL, clientFromConfiguration.baseURL)
+	}
+}
+
 func TestHSDClientGetNameResourceParsesWrappedRecords(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
 		var payload struct {

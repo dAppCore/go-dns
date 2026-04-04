@@ -54,6 +54,18 @@ func TestMainchainClientGetsAliasDetailsAndParsesHNSComments(t *testing.T) {
 	}
 }
 
+func TestNewMainchainAliasClientFromOptionsMatchesNewMainchainAliasClient(t *testing.T) {
+	clientFromOptions := NewMainchainAliasClientFromOptions(MainchainClientOptions{URL: "http://127.0.0.1:14037"})
+	clientFromConfiguration := NewMainchainAliasClientFromConfiguration(MainchainAliasClientConfiguration{URL: "http://127.0.0.1:14037"})
+
+	if clientFromOptions == nil || clientFromConfiguration == nil {
+		t.Fatal("expected explicit main-chain constructors to return clients")
+	}
+	if clientFromOptions.baseURL != clientFromConfiguration.baseURL {
+		t.Fatalf("expected explicit main-chain constructors to normalize the same base URL, got %q and %q", clientFromOptions.baseURL, clientFromConfiguration.baseURL)
+	}
+}
+
 func TestServiceDiscoverFromMainchainAliasesUsesMainchainThenHSD(t *testing.T) {
 	var chainCalls int32
 	var hsdTreeRootCalls int32
