@@ -39,18 +39,11 @@ type NameRecords struct {
 	RRSIG  []string `json:"rrsig"`
 }
 
-// ResolveAllResult returns the full record shape for `dns.resolve.all`.
+// ResolveAllResult is the payload returned by `dns.resolve.all`.
 //
 //	result, ok := service.ResolveAll("gateway.charon.lthn")
-//	// result = dns.ResolveAllResult{
-//	//   A: []string{"10.10.10.10"},
-//	//   AAAA: []string{},
-//	//   TXT: []string{"v=lthn1 type=gateway"},
-//	//   NS: []string{"ns.charon.lthn"},
-//	//   DS: []string{},
-//	//   DNSKEY: []string{},
-//	//   RRSIG: []string{},
-//	// }
+//	fmt.Println(result.A, result.NS)
+//	// ["10.10.10.10"] ["ns.charon.lthn"]
 type ResolveAllResult struct {
 	A      []string `json:"a"`
 	AAAA   []string `json:"aaaa"`
@@ -61,26 +54,29 @@ type ResolveAllResult struct {
 	RRSIG  []string `json:"rrsig"`
 }
 
-// ResolveAddressResult returns the merged address list for `dns.resolve`.
+// ResolveAddressResult is the payload returned by `dns.resolve`.
 //
 //	addresses, ok := service.ResolveAddresses("gateway.charon.lthn")
-//	// addresses = dns.ResolveAddressResult{Addresses: []string{"10.10.10.10", "2600:1f1c:7f0:4f01::1"}}
+//	fmt.Println(addresses.Addresses)
+//	// ["10.10.10.10" "2600:1f1c:7f0:4f01::1"]
 type ResolveAddressResult struct {
 	Addresses []string `json:"addresses"`
 }
 
-// ResolveTXTResult returns the TXT payload for `dns.resolve.txt`.
+// ResolveTXTResult is the payload returned by `dns.resolve.txt`.
 //
 //	txt, ok := service.ResolveTXTRecords("gateway.charon.lthn")
-//	// txt = dns.ResolveTXTResult{TXT: []string{"v=lthn1 type=gateway"}}
+//	fmt.Println(txt.TXT)
+//	// ["v=lthn1 type=gateway"]
 type ResolveTXTResult struct {
 	TXT []string `json:"txt"`
 }
 
-// ReverseLookupResult returns the names resolved by `dns.reverse`.
+// ReverseLookupResult is the payload returned by `dns.reverse`.
 //
 //	names, ok := service.ResolveReverseNames("10.10.10.10")
-//	// names = dns.ReverseLookupResult{Names: []string{"gateway.charon.lthn"}}
+//	fmt.Println(names.Names)
+//	// ["gateway.charon.lthn"]
 type ReverseLookupResult struct {
 	Names []string `json:"names"`
 }
@@ -116,7 +112,7 @@ func (index *ReverseIndex) Lookup(ip string) ([]string, bool) {
 	return append([]string(nil), typedNames...), true
 }
 
-// HealthResult is the typed payload returned by Health and dns.health.
+// HealthResult is the payload returned by `dns.health`.
 //
 //	health := service.Health()
 //	fmt.Println(health.Status, health.NamesCached, health.TreeRoot)
@@ -126,7 +122,7 @@ type HealthResult struct {
 	TreeRoot    string `json:"tree_root"`
 }
 
-// ServiceDescription is a semantic snapshot of the service state.
+// ServiceDescription is the payload returned by `service.Describe()`.
 //
 //	snapshot := service.Describe()
 //	fmt.Println(snapshot.Status, snapshot.ZoneApex, snapshot.TreeRoot)
