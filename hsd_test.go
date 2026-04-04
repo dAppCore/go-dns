@@ -92,6 +92,50 @@ func TestHSDClientGetNameResourceParsesWrappedRecords(t *testing.T) {
 	}
 }
 
+func TestHSDClientGetNameResourceParsesCaseInsensitiveFields(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
+		var payload struct {
+			Method string `json:"method"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
+			t.Fatalf("unexpected request payload: %v", err)
+		}
+		if payload.Method != "getnameresource" {
+			t.Fatalf("expected method getnameresource, got %s", payload.Method)
+		}
+
+		responseWriter.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(responseWriter).Encode(map[string]any{
+			"result": map[string]any{
+				"records": map[string]any{
+					"A":   []string{"10.10.10.10"},
+					"Txt": []string{"v=lthn1 type=case"},
+					"NS":  []string{"ns.example.lthn"},
+				},
+			},
+		})
+	}))
+	defer server.Close()
+
+	client := NewHSDClient(HSDClientOptions{
+		URL: server.URL,
+	})
+
+	record, err := client.GetNameResource(context.Background(), "case.lthn")
+	if err != nil {
+		t.Fatalf("unexpected getnameresource error: %v", err)
+	}
+	if len(record.A) != 1 || record.A[0] != "10.10.10.10" {
+		t.Fatalf("unexpected wrapped A result with mixed-case key: %#v", record.A)
+	}
+	if len(record.TXT) != 1 || record.TXT[0] != "v=lthn1 type=case" {
+		t.Fatalf("unexpected wrapped TXT result with mixed-case key: %#v", record.TXT)
+	}
+	if len(record.NS) != 1 || record.NS[0] != "ns.example.lthn" {
+		t.Fatalf("unexpected wrapped NS result with mixed-case key: %#v", record.NS)
+	}
+}
+
 func TestHSDClientGetNameResourceParsesDSRecords(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
 		var payload struct {

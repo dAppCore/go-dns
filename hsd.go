@@ -209,37 +209,49 @@ func parseHSDNameResource(raw json.RawMessage) (NameRecords, error) {
 	return NameRecords{}, errors.New("unable to parse getnameresource result")
 }
 
+func getCaseInsensitiveRecordField(fields map[string]json.RawMessage, key string) json.RawMessage {
+	if fields == nil {
+		return nil
+	}
+	for candidate, value := range fields {
+		if strings.EqualFold(candidate, key) {
+			return value
+		}
+	}
+	return nil
+}
+
 func parseHSDNameResourceRecords(raw json.RawMessage) (NameRecords, error) {
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(raw, &fields); err != nil {
 		return NameRecords{}, err
 	}
 
-	a, err := parseHSDRecordValue(fields["a"])
+	a, err := parseHSDRecordValue(getCaseInsensitiveRecordField(fields, "a"))
 	if err != nil {
 		return NameRecords{}, err
 	}
-	aaaa, err := parseHSDRecordValue(fields["aaaa"])
+	aaaa, err := parseHSDRecordValue(getCaseInsensitiveRecordField(fields, "aaaa"))
 	if err != nil {
 		return NameRecords{}, err
 	}
-	txt, err := parseHSDRecordValue(fields["txt"])
+	txt, err := parseHSDRecordValue(getCaseInsensitiveRecordField(fields, "txt"))
 	if err != nil {
 		return NameRecords{}, err
 	}
-	ns, err := parseHSDRecordValue(fields["ns"])
+	ns, err := parseHSDRecordValue(getCaseInsensitiveRecordField(fields, "ns"))
 	if err != nil {
 		return NameRecords{}, err
 	}
-	ds, err := parseHSDRecordValue(fields["ds"])
+	ds, err := parseHSDRecordValue(getCaseInsensitiveRecordField(fields, "ds"))
 	if err != nil {
 		return NameRecords{}, err
 	}
-	dnsKey, err := parseHSDRecordValue(fields["dnskey"])
+	dnsKey, err := parseHSDRecordValue(getCaseInsensitiveRecordField(fields, "dnskey"))
 	if err != nil {
 		return NameRecords{}, err
 	}
-	rrSig, err := parseHSDRecordValue(fields["rrsig"])
+	rrSig, err := parseHSDRecordValue(getCaseInsensitiveRecordField(fields, "rrsig"))
 	if err != nil {
 		return NameRecords{}, err
 	}
@@ -260,14 +272,13 @@ func hasHSDNameResourceField(fields map[string]json.RawMessage) bool {
 		return false
 	}
 
-	_, hasA := fields["a"]
-	_, hasAAAA := fields["aaaa"]
-	_, hasTXT := fields["txt"]
-	_, hasNS := fields["ns"]
-	_, hasDS := fields["ds"]
-	_, hasDNSKEY := fields["dnskey"]
-	_, hasRRSIG := fields["rrsig"]
-	return hasA || hasAAAA || hasTXT || hasNS || hasDS || hasDNSKEY || hasRRSIG
+	return getCaseInsensitiveRecordField(fields, "a") != nil ||
+		getCaseInsensitiveRecordField(fields, "aaaa") != nil ||
+		getCaseInsensitiveRecordField(fields, "txt") != nil ||
+		getCaseInsensitiveRecordField(fields, "ns") != nil ||
+		getCaseInsensitiveRecordField(fields, "ds") != nil ||
+		getCaseInsensitiveRecordField(fields, "dnskey") != nil ||
+		getCaseInsensitiveRecordField(fields, "rrsig") != nil
 }
 
 func parseHSDRecordValue(raw json.RawMessage) ([]string, error) {
