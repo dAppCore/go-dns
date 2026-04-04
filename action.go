@@ -357,26 +357,44 @@ func stringActionValue(values map[string]any, key string) (string, error) {
 	return "", errActionMissingValue
 }
 
-func stringActionValueFromKeys(values map[string]any, keys ...string) (string, error) {
-	for _, key := range keys {
-		value, exists := values[key]
-		if !exists {
-			continue
-		}
-
-		text, ok := value.(string)
-		if !ok {
-			return "", fmt.Errorf("%w: %s", errActionMissingValue, key)
-		}
-
-		text = strings.TrimSpace(text)
-		if text == "" {
-			return "", errActionMissingValue
-		}
-		return text, nil
+func lookupActionValue(values map[string]any, keys ...string) (any, string, bool) {
+	if values == nil {
+		return nil, "", false
 	}
 
-	return "", errActionMissingValue
+	for _, key := range keys {
+		if value, exists := values[key]; exists {
+			return value, key, true
+		}
+	}
+
+	for _, key := range keys {
+		for alias, value := range values {
+			if strings.EqualFold(alias, key) {
+				return value, alias, true
+			}
+		}
+	}
+
+	return nil, "", false
+}
+
+func stringActionValueFromKeys(values map[string]any, keys ...string) (string, error) {
+	value, key, found := lookupActionValue(values, keys...)
+	if !found {
+		return "", errActionMissingValue
+	}
+	text, ok := value.(string)
+	if !ok {
+		return "", fmt.Errorf("%w: %s", errActionMissingValue, key)
+	}
+
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return "", errActionMissingValue
+	}
+
+	return text, nil
 }
 
 func stringActionValueOptional(values map[string]any, key string) (string, error) {
@@ -395,18 +413,15 @@ func stringActionValueOptional(values map[string]any, key string) (string, error
 }
 
 func stringActionValueOptionalFromKeys(values map[string]any, keys ...string) (string, bool, error) {
-	for _, key := range keys {
-		raw, exists := values[key]
-		if !exists {
-			continue
-		}
-		value, ok := raw.(string)
-		if !ok {
-			return "", false, fmt.Errorf("%w: %s", errActionMissingValue, key)
-		}
-		return strings.TrimSpace(value), true, nil
+	value, key, found := lookupActionValue(values, keys...)
+	if !found {
+		return "", false, nil
 	}
-	return "", false, nil
+	text, ok := value.(string)
+	if !ok {
+		return "", false, fmt.Errorf("%w: %s", errActionMissingValue, key)
+	}
+	return strings.TrimSpace(text), true, nil
 }
 
 func intActionValue(values map[string]any, key string) (int, error) {
@@ -506,5 +521,15 @@ func intActionValueOptionalFromKeys(values map[string]any, keys ...string) (int,
 			return value, true, nil
 		}
 	}
-	return 0, false, nil
+
+	value, key, found := lookupActionValue(values, keys...)
+	if !found {
+		return 0, false, nil
+	}
+	intValue, err := intActionValue(map[string]any{key: value}, key)
+	if err != nil {
+		return 0, false, err
+	}
+
+	return intValue, true, nil
 }

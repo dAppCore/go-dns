@@ -2692,6 +2692,34 @@ func TestServiceHandleActionServeDefaultsPortFromServiceConfiguration(t *testing
 	_ = dnsServer.Close()
 }
 
+func TestServiceHandleActionResolveAcceptsCaseInsensitiveNameArgument(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	payload, ok, err := service.HandleAction(ActionResolve, map[string]any{
+		"Name": "gateway.charon.lthn",
+	})
+	if err != nil {
+		t.Fatalf("expected resolve action with case-insensitive key to succeed: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected resolve action with case-insensitive key to succeed")
+	}
+
+	result, ok := payload.(ResolveAddressResult)
+	if !ok {
+		t.Fatalf("expected ResolveAddressResult payload, got %T", payload)
+	}
+	if len(result.Addresses) != 1 || result.Addresses[0] != "10.10.10.10" {
+		t.Fatalf("unexpected resolve result from case-insensitive payload: %#v", result)
+	}
+}
+
 func TestServiceHandleActionServeHealthPortStartsRuntime(t *testing.T) {
 	desiredHealthPort := pickFreeTCPPort(t)
 	service := NewService(ServiceOptions{
