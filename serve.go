@@ -30,7 +30,10 @@ type DNSServer struct {
 //	defer func() { _ = runtime.Close() }()
 //	fmt.Println(runtime.DNSAddress(), runtime.HealthAddress())
 type ServiceRuntime struct {
-	DNS    *DNSServer
+	DNS *DNSServer
+	// HealthServer is the explicit name for the `/health` listener.
+	HealthServer *HealthServer
+	// Health is retained for compatibility with older call sites.
 	Health *HealthServer
 	// HTTP is retained for compatibility with older call sites.
 	HTTP *HealthServer
@@ -55,6 +58,9 @@ func (runtime *ServiceRuntime) DNSAddress() string {
 func (runtime *ServiceRuntime) HealthAddress() string {
 	if runtime == nil {
 		return ""
+	}
+	if runtime.HealthServer != nil {
+		return runtime.HealthServer.HealthAddress()
 	}
 	if runtime.Health != nil {
 		return runtime.Health.HealthAddress()
@@ -81,12 +87,17 @@ func (runtime *ServiceRuntime) Close() error {
 			firstError = err
 		}
 	}
-	if runtime.Health != nil {
+	if runtime.HealthServer != nil {
+		if err := runtime.HealthServer.Close(); err != nil && firstError == nil {
+			firstError = err
+		}
+	}
+	if runtime.Health != nil && runtime.Health != runtime.HealthServer {
 		if err := runtime.Health.Close(); err != nil && firstError == nil {
 			firstError = err
 		}
 	}
-	if runtime.HTTP != nil && runtime.HTTP != runtime.Health {
+	if runtime.HTTP != nil && runtime.HTTP != runtime.HealthServer && runtime.HTTP != runtime.Health {
 		if err := runtime.HTTP.Close(); err != nil && firstError == nil {
 			firstError = err
 		}
@@ -354,9 +365,10 @@ func (service *Service) ServeAll(bind string, dnsPort int, httpPort int) (*Servi
 	}
 
 	return &ServiceRuntime{
-		DNS:    dnsServer,
-		Health: httpServer,
-		HTTP:   httpServer,
+		DNS:          dnsServer,
+		HealthServer: httpServer,
+		Health:       httpServer,
+		HTTP:         httpServer,
 	}, nil
 }
 
