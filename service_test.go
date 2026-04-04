@@ -617,6 +617,49 @@ func TestServiceLocalMutationClearsChainTreeRoot(t *testing.T) {
 	}
 }
 
+func TestServiceDescribeReturnsSemanticSnapshot(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+			"node.charon.lthn": {
+				A: []string{"10.10.10.11"},
+			},
+		},
+		DNSPort:  1053,
+		HTTPPort: 5555,
+	})
+
+	snapshot := service.Describe()
+	if snapshot.Status != "ready" {
+		t.Fatalf("expected ready status, got %#v", snapshot.Status)
+	}
+	if snapshot.Records != 2 {
+		t.Fatalf("expected two cached records, got %#v", snapshot.Records)
+	}
+	if snapshot.ZoneApex != "charon.lthn" {
+		t.Fatalf("expected zone apex charon.lthn, got %#v", snapshot.ZoneApex)
+	}
+	if snapshot.TreeRoot == "" {
+		t.Fatal("expected tree root in service snapshot")
+	}
+	if snapshot.DNSPort != 1053 || snapshot.HTTPPort != 5555 {
+		t.Fatalf("expected configured ports in snapshot, got %#v", snapshot)
+	}
+	if snapshot.RecordTTL != "0s" {
+		t.Fatalf("expected zero TTL string for default service, got %#v", snapshot.RecordTTL)
+	}
+
+	description := service.String()
+	if !strings.Contains(description, "zone_apex=\"charon.lthn\"") {
+		t.Fatalf("expected string description to include zone apex, got %q", description)
+	}
+	if !strings.Contains(description, "dns_port=1053") || !strings.Contains(description, "http_port=5555") {
+		t.Fatalf("expected string description to include configured ports, got %q", description)
+	}
+}
+
 func TestServiceServeHTTPHealthReturnsJSON(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{

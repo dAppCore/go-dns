@@ -95,6 +95,20 @@ type HealthResult struct {
 	TreeRoot    string `json:"tree_root"`
 }
 
+// ServiceDescription is a semantic snapshot of the service state.
+//
+//	snapshot := service.Describe()
+//	fmt.Println(snapshot.Status, snapshot.ZoneApex, snapshot.TreeRoot)
+type ServiceDescription struct {
+	Status    string `json:"status"`
+	Records   int    `json:"records"`
+	ZoneApex  string `json:"zone_apex"`
+	TreeRoot  string `json:"tree_root"`
+	DNSPort   int    `json:"dns_port"`
+	HTTPPort  int    `json:"http_port"`
+	RecordTTL string `json:"record_ttl"`
+}
+
 type Service struct {
 	mu                           sync.RWMutex
 	records                      map[string]NameRecords
@@ -1104,6 +1118,48 @@ func (service *Service) Health() HealthResult {
 	}
 }
 
+// Describe returns a structured snapshot that is easier to inspect than String().
+//
+//	snapshot := service.Describe()
+//	fmt.Printf("%+v\n", snapshot)
+func (service *Service) Describe() ServiceDescription {
+	if service == nil {
+		return ServiceDescription{
+			Status: "not_ready",
+		}
+	}
+
+	service.pruneExpiredRecords()
+
+	service.mu.RLock()
+	defer service.mu.RUnlock()
+
+	treeRoot := service.treeRoot
+	if service.chainTreeRoot != "" {
+		treeRoot = service.chainTreeRoot
+	}
+
+	dnsPort := service.dnsPort
+	if dnsPort <= 0 {
+		dnsPort = DefaultDNSPort
+	}
+
+	httpPort := service.httpPort
+	if httpPort <= 0 {
+		httpPort = DefaultHTTPPort
+	}
+
+	return ServiceDescription{
+		Status:    "ready",
+		Records:   len(service.records),
+		ZoneApex:  service.zoneApex,
+		TreeRoot:  treeRoot,
+		DNSPort:   dnsPort,
+		HTTPPort:  httpPort,
+		RecordTTL: service.recordTTL.String(),
+	}
+}
+
 // ZoneApex returns the computed apex for the current record set.
 //
 //	apex := service.ZoneApex()
@@ -1402,14 +1458,16 @@ func NormalizeName(name string) string {
 //
 //	fmt.Println(service)
 func (service *Service) String() string {
-	service.mu.RLock()
-	defer service.mu.RUnlock()
-
+	snapshot := service.Describe()
 	return fmt.Sprintf(
-		"dns.Service{records=%d zone_apex=%q tree_root=%q}",
-		len(service.records),
-		service.zoneApex,
-		service.treeRoot,
+		"dns.Service{status=%q records=%d zone_apex=%q tree_root=%q dns_port=%d http_port=%d record_ttl=%q}",
+		snapshot.Status,
+		snapshot.Records,
+		snapshot.ZoneApex,
+		snapshot.TreeRoot,
+		snapshot.DNSPort,
+		snapshot.HTTPPort,
+		snapshot.RecordTTL,
 	)
 }
 
