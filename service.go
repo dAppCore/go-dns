@@ -868,7 +868,7 @@ func (service *Service) ResolveTXT(name string) ([]string, bool) {
 	if service == nil {
 		return nil, false
 	}
-	result, ok := service.ResolveTXTRecords(name)
+	result, ok, _ := service.ResolveTXTWithMatch(name)
 	if !ok {
 		return nil, false
 	}
@@ -882,13 +882,27 @@ func (service *Service) ResolveTXTRecords(name string) (ResolveTXTResult, bool) 
 	if service == nil {
 		return ResolveTXTResult{}, false
 	}
-	record, ok := service.findRecord(name)
+	result, ok, _ := service.ResolveTXTWithMatch(name)
 	if !ok {
 		return ResolveTXTResult{}, false
 	}
+	return result, true
+}
+
+// ResolveTXTWithMatch returns TXT values and whether the match used a wildcard.
+//
+//	result, ok, usedWildcard := service.ResolveTXTWithMatch("node1.gateway.charon.lthn")
+func (service *Service) ResolveTXTWithMatch(name string) (ResolveTXTResult, bool, bool) {
+	if service == nil {
+		return ResolveTXTResult{}, false, false
+	}
+	record, ok, usedWildcard := service.findRecordWithMatch(name)
+	if !ok {
+		return ResolveTXTResult{}, false, false
+	}
 	return ResolveTXTResult{
 		TXT: cloneStrings(record.TXT),
-	}, true
+	}, true, usedWildcard
 }
 
 // DiscoverWithHSD refreshes DNS records for each alias by calling HSD.

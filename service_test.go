@@ -265,6 +265,27 @@ func TestServiceResolveTXTUsesWildcard(t *testing.T) {
 	}
 }
 
+func TestServiceResolveTXTWithMatchReportsWildcard(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"*.gateway.charon.lthn": {
+				TXT: []string{"v=lthn1 type=gateway"},
+			},
+		},
+	})
+
+	result, ok, usedWildcard := service.ResolveTXTWithMatch("node1.gateway.charon.lthn.")
+	if !ok {
+		t.Fatal("expected wildcard TXT record")
+	}
+	if !usedWildcard {
+		t.Fatal("expected wildcard TXT lookup to report usedWildcard=true")
+	}
+	if len(result.TXT) != 1 || result.TXT[0] != "v=lthn1 type=gateway" {
+		t.Fatalf("unexpected TXT record: %#v", result.TXT)
+	}
+}
+
 func TestServiceResolveTXTRecordsReturnsNamedField(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{
