@@ -630,11 +630,6 @@ func parseActionAliasRecord(record map[string]any) (string, error) {
 //		dns.NewHSDClient(dns.HSDClientOptions{URL: "http://127.0.0.1:14037"}),
 //	)
 //
-//	_ = service.DiscoverFromMainchainAliases(
-//		context.Background(),
-//		dns.NewMainchainAliasClient(dns.MainchainClientOptions{URL: "http://127.0.0.1:14037"}),
-//		dns.NewHSDClient(dns.HSDClientOptions{URL: "http://127.0.0.1:14037"}),
-//	)
 //	record, ok := service.Resolve("gateway.charon.lthn")
 //
 //	// The cache now reflects the aliases returned by get_all_alias_details
