@@ -2963,7 +2963,16 @@ func TestServiceHandleActionServeHealthPortStartsRuntime(t *testing.T) {
 	if runtime.HealthServer == nil {
 		t.Fatal("expected explicit HealthServer field on runtime")
 	}
-	if runtime.HealthServer != runtime.Health || runtime.HealthServer != runtime.HTTP {
+	if runtime.DNSServer == nil {
+		t.Fatal("expected explicit DNSServer field on runtime")
+	}
+	if runtime.HTTPServer == nil {
+		t.Fatal("expected explicit HTTPServer field on runtime")
+	}
+	if runtime.DNSServer != runtime.DNS {
+		t.Fatal("expected runtime DNS aliases to point at the same server")
+	}
+	if runtime.HealthServer != runtime.Health || runtime.HealthServer != runtime.HTTP || runtime.HealthServer != runtime.HTTPServer {
 		t.Fatal("expected runtime health aliases to point at the same server")
 	}
 	if runtime.DNSAddress() == "" {

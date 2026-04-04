@@ -30,6 +30,9 @@ type DNSServer struct {
 //	defer func() { _ = runtime.Close() }()
 //	fmt.Println(runtime.DNSAddress(), runtime.HealthAddress())
 type ServiceRuntime struct {
+	// DNSServer is the explicit name for the DNS listener.
+	DNSServer *DNSServer
+	// DNS is retained for compatibility with older call sites.
 	DNS *DNSServer
 	// HealthServer is the explicit name for the `/health` listener.
 	HealthServer *HealthServer
@@ -37,6 +40,9 @@ type ServiceRuntime struct {
 	Health *HealthServer
 	// HTTP is retained for compatibility with older call sites.
 	HTTP *HealthServer
+	// HTTPServer is the explicit name for the `/health` listener when the
+	// HTTP surface is addressed directly.
+	HTTPServer *HealthServer
 }
 
 // Address is the compatibility alias for HealthAddress.
@@ -49,10 +55,16 @@ func (runtime *ServiceRuntime) Address() string {
 }
 
 func (runtime *ServiceRuntime) DNSAddress() string {
-	if runtime == nil || runtime.DNS == nil {
+	if runtime == nil {
 		return ""
 	}
-	return runtime.DNS.DNSAddress()
+	if runtime.DNSServer != nil {
+		return runtime.DNSServer.DNSAddress()
+	}
+	if runtime.DNS != nil {
+		return runtime.DNS.DNSAddress()
+	}
+	return ""
 }
 
 func (runtime *ServiceRuntime) HealthAddress() string {
@@ -61,6 +73,9 @@ func (runtime *ServiceRuntime) HealthAddress() string {
 	}
 	if runtime.HealthServer != nil {
 		return runtime.HealthServer.HealthAddress()
+	}
+	if runtime.HTTPServer != nil {
+		return runtime.HTTPServer.HealthAddress()
 	}
 	if runtime.Health != nil {
 		return runtime.Health.HealthAddress()
@@ -82,13 +97,23 @@ func (runtime *ServiceRuntime) Close() error {
 	}
 
 	var firstError error
-	if runtime.DNS != nil {
+	if runtime.DNSServer != nil {
+		if err := runtime.DNSServer.Close(); err != nil && firstError == nil {
+			firstError = err
+		}
+	}
+	if runtime.DNS != nil && runtime.DNS != runtime.DNSServer {
 		if err := runtime.DNS.Close(); err != nil && firstError == nil {
 			firstError = err
 		}
 	}
 	if runtime.HealthServer != nil {
 		if err := runtime.HealthServer.Close(); err != nil && firstError == nil {
+			firstError = err
+		}
+	}
+	if runtime.HTTPServer != nil && runtime.HTTPServer != runtime.HealthServer {
+		if err := runtime.HTTPServer.Close(); err != nil && firstError == nil {
 			firstError = err
 		}
 	}
@@ -365,10 +390,12 @@ func (service *Service) ServeAll(bind string, dnsPort int, httpPort int) (*Servi
 	}
 
 	return &ServiceRuntime{
+		DNSServer:    dnsServer,
 		DNS:          dnsServer,
 		HealthServer: httpServer,
 		Health:       httpServer,
 		HTTP:         httpServer,
+		HTTPServer:   httpServer,
 	}, nil
 }
 
