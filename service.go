@@ -45,13 +45,10 @@ type NameRecords struct {
 //	fmt.Println(result.A, result.NS)
 //	// ["10.10.10.10"] ["ns.charon.lthn"]
 type ResolveAllResult struct {
-	A      []string `json:"a"`
-	AAAA   []string `json:"aaaa"`
-	TXT    []string `json:"txt"`
-	NS     []string `json:"ns"`
-	DS     []string `json:"ds"`
-	DNSKEY []string `json:"dnskey"`
-	RRSIG  []string `json:"rrsig"`
+	A    []string `json:"a"`
+	AAAA []string `json:"aaaa"`
+	TXT  []string `json:"txt"`
+	NS   []string `json:"ns"`
 }
 
 // ResolveAddressResult is the payload returned by `dns.resolve`.
@@ -1149,7 +1146,7 @@ func normalizeReverseLookupInput(value string) (string, bool) {
 // Missing names still return empty arrays so the action payload stays stable.
 //
 //	result, ok := service.ResolveAll("missing.charon.lthn")
-//	// result = dns.ResolveAllResult{A: []string{}, AAAA: []string{}, TXT: []string{}, NS: []string{}, DS: []string{}, DNSKEY: []string{}, RRSIG: []string{}}
+//	// result = dns.ResolveAllResult{A: []string{}, AAAA: []string{}, TXT: []string{}, NS: []string{}}
 func (service *Service) ResolveAll(name string) (ResolveAllResult, bool) {
 	if service == nil {
 		return ResolveAllResult{}, false
@@ -1317,25 +1314,19 @@ func (service *Service) findRecordWithMatch(name string) (NameRecords, bool, boo
 
 func resolveResult(record NameRecords) ResolveAllResult {
 	return ResolveAllResult{
-		A:      normalizeRecordValues(record.A),
-		AAAA:   normalizeRecordValues(record.AAAA),
-		TXT:    normalizeRecordValues(record.TXT),
-		NS:     normalizeRecordValues(record.NS),
-		DS:     normalizeRecordValues(record.DS),
-		DNSKEY: normalizeRecordValues(record.DNSKEY),
-		RRSIG:  normalizeRecordValues(record.RRSIG),
+		A:    normalizeRecordValues(record.A),
+		AAAA: normalizeRecordValues(record.AAAA),
+		TXT:  normalizeRecordValues(record.TXT),
+		NS:   normalizeRecordValues(record.NS),
 	}
 }
 
 func emptyResolveAllResult() ResolveAllResult {
 	return ResolveAllResult{
-		A:      []string{},
-		AAAA:   []string{},
-		TXT:    []string{},
-		NS:     []string{},
-		DS:     []string{},
-		DNSKEY: []string{},
-		RRSIG:  []string{},
+		A:    []string{},
+		AAAA: []string{},
+		TXT:  []string{},
+		NS:   []string{},
 	}
 }
 

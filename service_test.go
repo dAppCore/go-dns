@@ -2645,7 +2645,7 @@ func TestServiceResolveAllReturnsStableShapeForDerivedZoneApex(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected derived apex payload to marshal: %v", err)
 	}
-	if string(raw) != `{"a":[],"aaaa":[],"txt":[],"ns":["ns.charon.lthn"],"ds":[],"dnskey":[],"rrsig":[]}` {
+	if string(raw) != `{"a":[],"aaaa":[],"txt":[],"ns":["ns.charon.lthn"]}` {
 		t.Fatalf("expected stable JSON shape for derived apex, got %s", raw)
 	}
 }
@@ -2680,7 +2680,7 @@ func TestServiceResolveAllReturnsEmptyArraysForMissingRecordValues(t *testing.T)
 	if err != nil {
 		t.Fatalf("expected result to marshal: %v", err)
 	}
-	if string(raw) != `{"a":["10.10.10.10"],"aaaa":[],"txt":[],"ns":[],"ds":[],"dnskey":[],"rrsig":[]}` {
+	if string(raw) != `{"a":["10.10.10.10"],"aaaa":[],"txt":[],"ns":[]}` {
 		t.Fatalf("expected empty arrays in JSON, got %s", raw)
 	}
 }
@@ -2700,12 +2700,12 @@ func TestServiceResolveAllReturnsEmptyArraysForMissingName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected result to marshal: %v", err)
 	}
-	if string(raw) != `{"a":[],"aaaa":[],"txt":[],"ns":[],"ds":[],"dnskey":[],"rrsig":[]}` {
+	if string(raw) != `{"a":[],"aaaa":[],"txt":[],"ns":[]}` {
 		t.Fatalf("expected empty arrays in JSON, got %s", raw)
 	}
 }
 
-func TestServiceResolveAllIncludesDNSSECRecords(t *testing.T) {
+func TestServiceResolveAllOmitsDNSSECRecords(t *testing.T) {
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{
 			"gateway.charon.lthn": {
@@ -2724,14 +2724,11 @@ func TestServiceResolveAllIncludesDNSSECRecords(t *testing.T) {
 	if len(result.A) != 1 || result.A[0] != "10.10.10.10" {
 		t.Fatalf("unexpected A records in dns.resolve.all payload: %#v", result.A)
 	}
-	if len(result.DS) != 1 || result.DS[0] != "60485 8 2 A1B2C3D4E5F60718293A4B5C6D7E8F9012345678" {
-		t.Fatalf("expected DS payload in resolve.all, got %#v", result.DS)
+	if len(result.AAAA) != 0 || len(result.TXT) != 0 {
+		t.Fatalf("expected resolve.all to keep empty non-present record types, got %#v", result)
 	}
-	if len(result.DNSKEY) != 1 || result.DNSKEY[0] != "257 3 13 AA==" {
-		t.Fatalf("expected DNSKEY payload in resolve.all, got %#v", result.DNSKEY)
-	}
-	if len(result.RRSIG) != 1 || result.RRSIG[0] != "A 8 2 3600 20260101000000 20250101000000 12345 gateway.charon.lthn. AA==" {
-		t.Fatalf("expected RRSIG payload in resolve.all, got %#v", result.RRSIG)
+	if len(result.NS) != 1 || result.NS[0] != "ns.gateway.charon.lthn" {
+		t.Fatalf("expected resolve.all to synthesize the zone apex NS, got %#v", result.NS)
 	}
 }
 
