@@ -36,6 +36,15 @@ type ServiceRuntime struct {
 	HTTP *HealthServer
 }
 
+// Address is the compatibility alias for HealthAddress.
+//
+//	runtime, err := service.ServeAll("127.0.0.1", 53, 5554)
+//	defer func() { _ = runtime.Close() }()
+//	fmt.Println(runtime.Address())
+func (runtime *ServiceRuntime) Address() string {
+	return runtime.HealthAddress()
+}
+
 func (runtime *ServiceRuntime) DNSAddress() string {
 	if runtime == nil || runtime.DNS == nil {
 		return ""
@@ -104,14 +113,18 @@ func (server *DNSServer) Close() error {
 	if server.tcpListener != nil {
 		_ = server.tcpListener.Close()
 	}
-	var err error
+	var firstError error
 	if server.udpServer != nil {
-		err = server.udpServer.Shutdown()
+		if err := server.udpServer.Shutdown(); err != nil && firstError == nil {
+			firstError = err
+		}
 	}
 	if server.tcpServer != nil {
-		err = server.tcpServer.Shutdown()
+		if err := server.tcpServer.Shutdown(); err != nil && firstError == nil {
+			firstError = err
+		}
 	}
-	return err
+	return firstError
 }
 
 // ResolveDNSPort returns the DNS port used for `dns.serve` and `Serve`.

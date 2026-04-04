@@ -761,6 +761,9 @@ func TestServiceServeAllStartsDNSAndHTTPTogether(t *testing.T) {
 	if runtime.HealthAddress() == "" {
 		t.Fatal("expected health address from combined runtime")
 	}
+	if runtime.Address() != runtime.HealthAddress() {
+		t.Fatalf("expected runtime Address alias to match HealthAddress, got %q and %q", runtime.Address(), runtime.HealthAddress())
+	}
 	if runtime.DNS.Address() != runtime.DNSAddress() {
 		t.Fatalf("expected DNSAddress and Address to match, got %q and %q", runtime.DNS.DNSAddress(), runtime.DNS.Address())
 	}
