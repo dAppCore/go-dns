@@ -284,6 +284,13 @@ func (service *Service) StartDNSAndHealth(bind string, dnsPort int, healthPort i
 	return service.ServeAll(bind, dnsPort, healthPort)
 }
 
+// ServeDNSAndHealth is the explicit alias for ServeAll.
+//
+//	runtime, err := service.ServeDNSAndHealth("127.0.0.1", 53, 5554)
+func (service *Service) ServeDNSAndHealth(bind string, dnsPort int, httpPort int) (*ServiceRuntime, error) {
+	return service.ServeAll(bind, dnsPort, httpPort)
+}
+
 // ServeAll starts DNS and health together.
 //
 //	runtime, err := service.ServeAll("127.0.0.1", 53, 5554)

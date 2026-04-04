@@ -71,6 +71,14 @@ func TestServiceResolveUsesExactNameBeforeWildcard(t *testing.T) {
 	if len(result.A) != 1 || result.A[0] != "10.10.10.10" {
 		t.Fatalf("unexpected resolve result: %#v", result.A)
 	}
+
+	alias, ok := service.ResolveRecords("gateway.charon.lthn")
+	if !ok {
+		t.Fatal("expected explicit ResolveRecords alias to resolve")
+	}
+	if len(alias.A) != 1 || alias.A[0] != "10.10.10.10" {
+		t.Fatalf("unexpected ResolveRecords result: %#v", alias.A)
+	}
 }
 
 func TestServiceResolveWithMatchIndicatesExactMatch(t *testing.T) {
@@ -781,6 +789,31 @@ func TestServiceServeAllStartsDNSAndHTTPTogether(t *testing.T) {
 	}
 	if len(dnsResponse.Answer) != 1 {
 		t.Fatalf("expected one DNS answer from combined runtime, got %d", len(dnsResponse.Answer))
+	}
+}
+
+func TestServiceServeDNSAndHealthAliasStartsDNSAndHTTPTogether(t *testing.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	runtime, err := service.ServeDNSAndHealth("127.0.0.1", 0, 0)
+	if err != nil {
+		t.Fatalf("expected explicit ServeDNSAndHealth alias to start: %v", err)
+	}
+	defer func() {
+		_ = runtime.Close()
+	}()
+
+	if runtime.DNSAddress() == "" {
+		t.Fatal("expected ServeDNSAndHealth alias to return DNS listener")
+	}
+	if runtime.HealthAddress() == "" {
+		t.Fatal("expected ServeDNSAndHealth alias to return health listener")
 	}
 }
 

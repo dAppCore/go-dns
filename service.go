@@ -872,6 +872,13 @@ func (service *Service) Resolve(name string) (ResolveAllResult, bool) {
 	return resolveResult(record), true
 }
 
+// ResolveRecords is the explicit alias for Resolve.
+//
+//	result, ok := service.ResolveRecords("gateway.charon.lthn")
+func (service *Service) ResolveRecords(name string) (ResolveAllResult, bool) {
+	return service.Resolve(name)
+}
+
 // ResolveWithWildcardMatch returns all record types and whether the match used a wildcard.
 //
 //	result, ok, usedWildcard := service.ResolveWithWildcardMatch("node.charon.lthn")
