@@ -270,6 +270,20 @@ func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
 	return dnsServer, nil
 }
 
+// StartDNSServer is an explicit convenience wrapper around Serve.
+//
+//	dnsServer, err := service.StartDNSServer("127.0.0.1", 53)
+func (service *Service) StartDNSServer(bind string, port int) (*DNSServer, error) {
+	return service.Serve(bind, port)
+}
+
+// StartDNSAndHealth is an explicit convenience wrapper around ServeAll.
+//
+//	runtime, err := service.StartDNSAndHealth("127.0.0.1", 53, 5554)
+func (service *Service) StartDNSAndHealth(bind string, dnsPort int, healthPort int) (*ServiceRuntime, error) {
+	return service.ServeAll(bind, dnsPort, healthPort)
+}
+
 // ServeAll starts DNS and health together.
 //
 //	runtime, err := service.ServeAll("127.0.0.1", 53, 5554)
@@ -316,6 +330,13 @@ func (service *Service) ServeConfigured(bind string) (*ServiceRuntime, error) {
 		return nil, fmt.Errorf("service is required")
 	}
 	return service.ServeAll(bind, service.dnsPort, service.httpPort)
+}
+
+// StartConfigured is an explicit convenience wrapper around ServeConfigured.
+//
+//	runtime, err := service.StartConfigured("127.0.0.1")
+func (service *Service) StartConfigured(bind string) (*ServiceRuntime, error) {
+	return service.ServeConfigured(bind)
 }
 
 type dnsRequestHandler struct {

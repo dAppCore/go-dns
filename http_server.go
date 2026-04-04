@@ -34,6 +34,13 @@ func (server *HealthServer) Address() string {
 	return server.HealthAddress()
 }
 
+// StartHealthServer is an explicit convenience wrapper around ServeHTTPHealth.
+//
+//	health, err := service.StartHealthServer("127.0.0.1", 5554)
+func (service *Service) StartHealthServer(bind string, port int) (*HealthServer, error) {
+	return service.ServeHTTPHealth(bind, port)
+}
+
 func (server *HealthServer) Close() error {
 	if server == nil {
 		return nil
