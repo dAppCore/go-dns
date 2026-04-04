@@ -2767,6 +2767,57 @@ func TestServiceHandleActionServeDefaultsToConfiguredHTTPPort(t *testing.T) {
 	}
 }
 
+func TestServiceHandleActionServeCamelCaseAliases(t *testing.T) {
+	dnsPort := pickFreeTCPPort(t)
+	healthPort := pickFreeTCPPort(t)
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				A: []string{"10.10.10.10"},
+			},
+		},
+	})
+
+	payload, ok, err := service.HandleAction(ActionServe, map[string]any{
+		"bindAddress": "127.0.0.1",
+		"dnsPort":     dnsPort,
+		"healthPort":  healthPort,
+	})
+	if err != nil {
+		t.Fatalf("expected serve action to start runtime with camelCase args: %v", err)
+	}
+	if !ok {
+		t.Fatal("expected serve action to succeed with camelCase args")
+	}
+
+	runtime, ok := payload.(*ServiceRuntime)
+	if !ok {
+		t.Fatalf("expected ServiceRuntime payload, got %T", payload)
+	}
+	if runtime == nil {
+		t.Fatal("expected service runtime from serve action")
+	}
+	defer func() {
+		_ = runtime.Close()
+	}()
+
+	_, runtimeDNSPort, err := net.SplitHostPort(runtime.DNSAddress())
+	if err != nil {
+		t.Fatalf("expected dns address to include port: %v", err)
+	}
+	if runtimeDNSPort != strconv.Itoa(dnsPort) {
+		t.Fatalf("expected dns port %d, got %q", dnsPort, runtimeDNSPort)
+	}
+
+	_, runtimeHealthPort, err := net.SplitHostPort(runtime.HealthAddress())
+	if err != nil {
+		t.Fatalf("expected health address to include port: %v", err)
+	}
+	if runtimeHealthPort != strconv.Itoa(healthPort) {
+		t.Fatalf("expected health port %d, got %q", healthPort, runtimeHealthPort)
+	}
+}
+
 func TestServiceResolveServePortDefaultsToStandardDNSPort(t *testing.T) {
 	service := NewService(ServiceOptions{})
 	if service.ResolveDNSPort() != DefaultDNSPort {

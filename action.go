@@ -26,10 +26,13 @@ var (
 
 const (
 	actionArgBind       = "bind"
+	actionArgBindAddress = "bindAddress"
 	actionArgIP         = "ip"
 	actionArgName       = "name"
 	actionArgPort       = "port"
+	actionArgDNSPort    = "dnsPort"
 	actionArgHealthPort = "health_port"
+	actionArgHealthPortCamel = "healthPort"
 )
 
 type ActionDefinition struct {
@@ -294,11 +297,11 @@ func (service *Service) handleReverseLookup(ctx context.Context, values map[stri
 
 func (service *Service) handleServe(ctx context.Context, values map[string]any) (any, bool, error) {
 	_ = ctx
-	bind, err := stringActionValueOptional(values, actionArgBind)
+	bind, _, err := stringActionValueOptionalFromKeys(values, actionArgBind, actionArgBindAddress)
 	if err != nil {
 		return nil, false, err
 	}
-	port, portProvided, err := intActionValueOptional(values, actionArgPort)
+	port, portProvided, err := intActionValueOptionalFromKeys(values, actionArgPort, actionArgDNSPort)
 	if err != nil {
 		return nil, false, err
 	}
@@ -306,7 +309,7 @@ func (service *Service) handleServe(ctx context.Context, values map[string]any) 
 		port = service.ResolveDNSPort()
 	}
 
-	healthPort, healthPortProvided, err := intActionValueOptional(values, actionArgHealthPort)
+	healthPort, healthPortProvided, err := intActionValueOptionalFromKeys(values, actionArgHealthPort, actionArgHealthPortCamel)
 	if err != nil {
 		return nil, false, err
 	}
@@ -363,6 +366,21 @@ func stringActionValueOptional(values map[string]any, key string) (string, error
 		return "", fmt.Errorf("%w: %s", errActionMissingValue, key)
 	}
 	return strings.TrimSpace(value), nil
+}
+
+func stringActionValueOptionalFromKeys(values map[string]any, keys ...string) (string, bool, error) {
+	for _, key := range keys {
+		raw, exists := values[key]
+		if !exists {
+			continue
+		}
+		value, ok := raw.(string)
+		if !ok {
+			return "", false, fmt.Errorf("%w: %s", errActionMissingValue, key)
+		}
+		return strings.TrimSpace(value), true, nil
+	}
+	return "", false, nil
 }
 
 func intActionValue(values map[string]any, key string) (int, error) {
@@ -450,4 +468,17 @@ func intActionValueOptional(values map[string]any, key string) (int, bool, error
 		return 0, false, err
 	}
 	return value, true, nil
+}
+
+func intActionValueOptionalFromKeys(values map[string]any, keys ...string) (int, bool, error) {
+	for _, key := range keys {
+		value, valueProvided, err := intActionValueOptional(values, key)
+		if err != nil {
+			return 0, false, err
+		}
+		if valueProvided {
+			return value, true, nil
+		}
+	}
+	return 0, false, nil
 }
