@@ -28,7 +28,10 @@ const (
 	actionArgBind       = "bind"
 	actionArgBindAddress = "bindAddress"
 	actionArgIP         = "ip"
+	actionArgAddress    = "address"
 	actionArgName       = "name"
+	actionArgHost       = "host"
+	actionArgHostName   = "hostname"
 	actionArgPort       = "port"
 	actionArgDNSPort    = "dnsPort"
 	actionArgHealthPort = "health_port"
@@ -245,7 +248,7 @@ func (service *Service) HandleActionContext(ctx context.Context, name string, va
 
 func (service *Service) handleResolveAddress(ctx context.Context, values map[string]any) (any, bool, error) {
 	_ = ctx
-	host, err := stringActionValue(values, actionArgName)
+	host, err := stringActionValueFromKeys(values, actionArgName, actionArgHost, actionArgHostName)
 	if err != nil {
 		return nil, false, err
 	}
@@ -258,7 +261,7 @@ func (service *Service) handleResolveAddress(ctx context.Context, values map[str
 
 func (service *Service) handleResolveTXTRecords(ctx context.Context, values map[string]any) (any, bool, error) {
 	_ = ctx
-	host, err := stringActionValue(values, actionArgName)
+	host, err := stringActionValueFromKeys(values, actionArgName, actionArgHost, actionArgHostName)
 	if err != nil {
 		return nil, false, err
 	}
@@ -271,7 +274,7 @@ func (service *Service) handleResolveTXTRecords(ctx context.Context, values map[
 
 func (service *Service) handleResolveAll(ctx context.Context, values map[string]any) (any, bool, error) {
 	_ = ctx
-	host, err := stringActionValue(values, actionArgName)
+	host, err := stringActionValueFromKeys(values, actionArgName, actionArgHost, actionArgHostName)
 	if err != nil {
 		return nil, false, err
 	}
@@ -284,7 +287,7 @@ func (service *Service) handleResolveAll(ctx context.Context, values map[string]
 
 func (service *Service) handleReverseLookup(ctx context.Context, values map[string]any) (any, bool, error) {
 	_ = ctx
-	ip, err := stringActionValue(values, actionArgIP)
+	ip, err := stringActionValueFromKeys(values, actionArgIP, actionArgAddress)
 	if err != nil {
 		return nil, false, err
 	}
@@ -350,6 +353,28 @@ func stringActionValue(values map[string]any, key string) (string, error) {
 		}
 		return value, nil
 	}
+	return "", errActionMissingValue
+}
+
+func stringActionValueFromKeys(values map[string]any, keys ...string) (string, error) {
+	for _, key := range keys {
+		value, exists := values[key]
+		if !exists {
+			continue
+		}
+
+		text, ok := value.(string)
+		if !ok {
+			return "", fmt.Errorf("%w: %s", errActionMissingValue, key)
+		}
+
+		text = strings.TrimSpace(text)
+		if text == "" {
+			return "", errActionMissingValue
+		}
+		return text, nil
+	}
+
 	return "", errActionMissingValue
 }
 
