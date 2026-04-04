@@ -119,7 +119,10 @@ func (server *DNSServer) Close() error {
 //	port := service.ResolveDNSPort()
 //	server, err := service.Serve("127.0.0.1", port)
 func (service *Service) ResolveDNSPort() int {
-	if service == nil || service.dnsPort <= 0 {
+	if service == nil {
+		return DefaultDNSPort
+	}
+	if service.dnsPort <= 0 {
 		return DefaultDNSPort
 	}
 	return service.dnsPort
@@ -130,6 +133,9 @@ func (service *Service) ResolveDNSPort() int {
 //	port := service.DNSListenPort()
 //	server, err := service.Serve("127.0.0.1", port)
 func (service *Service) DNSListenPort() int {
+	if service == nil {
+		return DefaultDNSPort
+	}
 	return service.ResolveDNSPort()
 }
 
@@ -138,16 +144,25 @@ func (service *Service) DNSListenPort() int {
 //	port := service.DNSPort()
 //	server, err := service.Serve("127.0.0.1", port)
 func (service *Service) DNSPort() int {
+	if service == nil {
+		return DefaultDNSPort
+	}
 	return service.ResolveDNSPort()
 }
 
 // resolveDNSListenPort keeps internal callers aligned with explicit naming.
 func (service *Service) resolveDNSListenPort() int {
+	if service == nil {
+		return DefaultDNSPort
+	}
 	return service.DNSListenPort()
 }
 
 // resolveServePort is a legacy compatibility helper.
 func (service *Service) resolveServePort() int {
+	if service == nil {
+		return DefaultDNSPort
+	}
 	return service.ResolveDNSPort()
 }
 
@@ -156,7 +171,10 @@ func (service *Service) resolveServePort() int {
 //	port := service.ResolveHTTPPort()
 //	healthServer, err := service.ServeHTTPHealth("127.0.0.1", port)
 func (service *Service) ResolveHTTPPort() int {
-	if service == nil || service.httpPort <= 0 {
+	if service == nil {
+		return DefaultHTTPPort
+	}
+	if service.httpPort <= 0 {
 		return DefaultHTTPPort
 	}
 	return service.httpPort
@@ -167,6 +185,9 @@ func (service *Service) ResolveHTTPPort() int {
 //	port := service.HTTPListenPort()
 //	server, err := service.ServeHTTPHealth("127.0.0.1", port)
 func (service *Service) HTTPListenPort() int {
+	if service == nil {
+		return DefaultHTTPPort
+	}
 	return service.ResolveHTTPPort()
 }
 
@@ -175,16 +196,25 @@ func (service *Service) HTTPListenPort() int {
 //	port := service.HTTPPort()
 //	healthServer, err := service.ServeHTTPHealth("127.0.0.1", port)
 func (service *Service) HTTPPort() int {
+	if service == nil {
+		return DefaultHTTPPort
+	}
 	return service.ResolveHTTPPort()
 }
 
 // resolveHTTPListenPort keeps internal callers aligned with explicit naming.
 func (service *Service) resolveHTTPListenPort() int {
+	if service == nil {
+		return DefaultHTTPPort
+	}
 	return service.HTTPListenPort()
 }
 
 // resolveHTTPPort is a legacy compatibility helper.
 func (service *Service) resolveHTTPPort() int {
+	if service == nil {
+		return DefaultHTTPPort
+	}
 	return service.ResolveHTTPPort()
 }
 
@@ -195,6 +225,9 @@ func (service *Service) resolveHTTPPort() int {
 //	lookup := new(dnsprotocol.Msg)
 //	lookup.SetQuestion("gateway.charon.lthn.", dnsprotocol.TypeA)
 func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
+	if service == nil {
+		return nil, fmt.Errorf("service is required")
+	}
 	if bind == "" {
 		bind = "127.0.0.1"
 	}
@@ -243,6 +276,9 @@ func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
 //	defer func() { _ = runtime.Close() }()
 //	fmt.Println("dns:", runtime.DNSAddress(), "health:", runtime.HealthAddress())
 func (service *Service) ServeAll(bind string, dnsPort int, httpPort int) (*ServiceRuntime, error) {
+	if service == nil {
+		return nil, fmt.Errorf("service is required")
+	}
 	if dnsPort <= 0 {
 		dnsPort = service.resolveDNSListenPort()
 	}
@@ -276,6 +312,9 @@ func (service *Service) ServeAll(bind string, dnsPort int, httpPort int) (*Servi
 //	})
 //	runtime, err := service.ServeConfigured("127.0.0.1")
 func (service *Service) ServeConfigured(bind string) (*ServiceRuntime, error) {
+	if service == nil {
+		return nil, fmt.Errorf("service is required")
+	}
 	return service.ServeAll(bind, service.dnsPort, service.httpPort)
 }
 

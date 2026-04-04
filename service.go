@@ -783,6 +783,9 @@ func (service *Service) RemoveRecord(name string) {
 //
 //	result, ok := service.Resolve("gateway.charon.lthn")
 func (service *Service) Resolve(name string) (ResolveAllResult, bool) {
+	if service == nil {
+		return ResolveAllResult{}, false
+	}
 	record, ok := service.findRecord(name)
 	if !ok {
 		return ResolveAllResult{}, false
@@ -794,6 +797,9 @@ func (service *Service) Resolve(name string) (ResolveAllResult, bool) {
 //
 //	result, ok, usedWildcard := service.ResolveWithWildcardMatch("node.charon.lthn")
 func (service *Service) ResolveWithWildcardMatch(name string) (ResolveAllResult, bool, bool) {
+	if service == nil {
+		return ResolveAllResult{}, false, false
+	}
 	record, ok, usedWildcard := service.findRecordWithMatch(name)
 	if !ok {
 		return ResolveAllResult{}, false, false
@@ -805,6 +811,9 @@ func (service *Service) ResolveWithWildcardMatch(name string) (ResolveAllResult,
 //
 //	result, found, usedWildcard := service.ResolveWithMatch("node.charon.lthn")
 func (service *Service) ResolveWithMatch(name string) (ResolveAllResult, bool, bool) {
+	if service == nil {
+		return ResolveAllResult{}, false, false
+	}
 	record, ok, usedWildcard := service.findRecordWithMatch(name)
 	if !ok {
 		return ResolveAllResult{}, false, false
@@ -816,6 +825,9 @@ func (service *Service) ResolveWithMatch(name string) (ResolveAllResult, bool, b
 //
 //	txt, ok := service.ResolveTXT("gateway.charon.lthn")
 func (service *Service) ResolveTXT(name string) ([]string, bool) {
+	if service == nil {
+		return nil, false
+	}
 	result, ok := service.ResolveTXTRecords(name)
 	if !ok {
 		return nil, false
@@ -827,6 +839,9 @@ func (service *Service) ResolveTXT(name string) ([]string, bool) {
 //
 //	result, ok := service.ResolveTXTRecords("gateway.charon.lthn")
 func (service *Service) ResolveTXTRecords(name string) (ResolveTXTResult, bool) {
+	if service == nil {
+		return ResolveTXTResult{}, false
+	}
 	record, ok := service.findRecord(name)
 	if !ok {
 		return ResolveTXTResult{}, false
@@ -909,6 +924,9 @@ func (service *Service) refreshDerivedStateLocked() {
 //
 //	addresses, ok := service.ResolveAddress("gateway.charon.lthn")
 func (service *Service) ResolveAddress(name string) (ResolveAddressResult, bool) {
+	if service == nil {
+		return ResolveAddressResult{}, false
+	}
 	record, ok := service.findRecord(name)
 	if !ok {
 		return ResolveAddressResult{}, false
@@ -922,6 +940,9 @@ func (service *Service) ResolveAddress(name string) (ResolveAddressResult, bool)
 //
 //	names, ok := service.ResolveReverse("10.10.10.10")
 func (service *Service) ResolveReverse(ip string) ([]string, bool) {
+	if service == nil {
+		return nil, false
+	}
 	service.pruneExpiredRecords()
 
 	service.mu.RLock()
@@ -943,6 +964,9 @@ func (service *Service) ResolveReverse(ip string) ([]string, bool) {
 //
 // Missing names still return empty arrays so the action payload stays stable.
 func (service *Service) ResolveAll(name string) (ResolveAllResult, bool) {
+	if service == nil {
+		return ResolveAllResult{}, false
+	}
 	record, ok := service.findRecord(name)
 	if !ok {
 		if normalizeName(name) == service.ZoneApex() && service.ZoneApex() != "" {
@@ -972,6 +996,11 @@ func (service *Service) ResolveAll(name string) (ResolveAllResult, bool) {
 //	health := service.Health()
 //	fmt.Println(health.Status, health.NamesCached, health.TreeRoot)
 func (service *Service) Health() HealthResult {
+	if service == nil {
+		return HealthResult{
+			Status: "not_ready",
+		}
+	}
 	service.pruneExpiredRecords()
 
 	service.mu.RLock()
@@ -994,6 +1023,9 @@ func (service *Service) Health() HealthResult {
 //	apex := service.ZoneApex()
 //	// "charon.lthn"
 func (service *Service) ZoneApex() string {
+	if service == nil {
+		return ""
+	}
 	service.pruneExpiredRecords()
 
 	service.mu.RLock()
@@ -1005,6 +1037,9 @@ func (service *Service) ZoneApex() string {
 //
 //	result, ok := service.ResolveReverseNames("10.10.10.10")
 func (service *Service) ResolveReverseNames(ip string) (ReverseLookupResult, bool) {
+	if service == nil {
+		return ReverseLookupResult{}, false
+	}
 	names, ok := service.ResolveReverse(ip)
 	if !ok {
 		return ReverseLookupResult{}, false

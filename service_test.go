@@ -3436,6 +3436,45 @@ func TestIntActionValueAcceptsWholeFloat(t *testing.T) {
 	}
 }
 
+func TestServiceMethodsHandleNilReceiverWithoutPanicking(t *testing.T) {
+	var service *Service
+
+	if _, ok := service.Resolve("gateway.charon.lthn"); ok {
+		t.Fatal("expected nil service Resolve to return not found")
+	}
+	if _, _, ok := service.ResolveWithMatch("gateway.charon.lthn"); ok {
+		t.Fatal("expected nil service ResolveWithMatch to return not found")
+	}
+	if _, ok := service.ResolveReverse("10.10.10.10"); ok {
+		t.Fatal("expected nil service ResolveReverse to return not found")
+	}
+	if _, ok := service.ResolveReverseNames("10.10.10.10"); ok {
+		t.Fatal("expected nil service ResolveReverseNames to return not found")
+	}
+	if got := service.ResolveDNSPort(); got != DefaultDNSPort {
+		t.Fatalf("expected default DNS port from nil service, got %d", got)
+	}
+	if got := service.ResolveHTTPPort(); got != DefaultHTTPPort {
+		t.Fatalf("expected default HTTP port from nil service, got %d", got)
+	}
+	if got := service.Health().Status; got != "not_ready" {
+		t.Fatalf("expected nil service health status \"not_ready\", got %q", got)
+	}
+}
+
+func TestServiceServeReturnsErrorOnNilReceiver(t *testing.T) {
+	var service *Service
+	if _, err := service.Serve("127.0.0.1", 0); err == nil {
+		t.Fatal("expected Serve to fail for nil service receiver")
+	}
+	if _, err := service.ServeAll("127.0.0.1", 0, 0); err == nil {
+		t.Fatal("expected ServeAll to fail for nil service receiver")
+	}
+	if _, err := service.ServeConfigured("127.0.0.1"); err == nil {
+		t.Fatal("expected ServeConfigured to fail for nil service receiver")
+	}
+}
+
 type actionRecorder struct {
 	names    []string
 	handlers map[string]func(map[string]any) (any, bool, error)
