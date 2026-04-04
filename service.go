@@ -169,6 +169,15 @@ type ServiceConfiguration = ServiceOptions
 // Deprecated: use ServiceConfiguration instead.
 type ServiceConfig = ServiceOptions
 
+// DNSServiceOptions is the preferred long-form type name for service configuration.
+//
+//	service := dns.NewDNSServiceFromOptions(dns.DNSServiceOptions{
+//		Records: map[string]dns.NameRecords{
+//			"gateway.charon.lthn": {A: []string{"10.10.10.10"}},
+//		},
+//	})
+type DNSServiceOptions = ServiceOptions
+
 // Options is kept for compatibility with older call sites.
 //
 // Deprecated: use ServiceConfiguration instead.
@@ -281,6 +290,24 @@ func NewService(options ServiceOptions) *Service {
 //	})
 func NewDNSService(options ServiceOptions) *Service {
 	return NewService(options)
+}
+
+// NewDNSServiceFromOptions is the explicit long-form constructor name.
+//
+//	service := dns.NewDNSServiceFromOptions(dns.DNSServiceOptions{
+//		Records: map[string]dns.NameRecords{
+//			"gateway.charon.lthn": {A: []string{"10.10.10.10"}},
+//		},
+//	})
+func NewDNSServiceFromOptions(options DNSServiceOptions) *Service {
+	return NewDNSService(options)
+}
+
+// NewDNSServiceWithContextRegistrar is an explicit constructor name for action wiring.
+//
+//	service := dns.NewDNSServiceWithContextRegistrar(dns.DNSServiceOptions{}, actionRegistrar)
+func NewDNSServiceWithContextRegistrar(options DNSServiceOptions, registrar ActionRegistrar) *Service {
+	return NewDNSServiceWithRegistrar(options, registrar)
 }
 
 func (service *Service) resolveHSDClient(client *HSDClient) (*HSDClient, error) {
