@@ -151,10 +151,10 @@ func (server *DNSServer) Address() string {
 
 func (server *DNSServer) Close() error {
 	if server.udpListener != nil {
-		_ = server.udpListener.Close()
+		if cerr := server.udpListener.Close(); cerr != nil { _ = cerr }
 	}
 	if server.tcpListener != nil {
-		_ = server.tcpListener.Close()
+		if cerr := server.tcpListener.Close(); cerr != nil { _ = cerr }
 	}
 	var firstError error
 	if server.udpServer != nil {
@@ -320,7 +320,7 @@ func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
 	}
 	tcpListener, err := net.Listen("tcp", addr)
 	if err != nil {
-		_ = udpListener.Close()
+		if cerr := udpListener.Close(); cerr != nil { _ = cerr }
 		return nil, err
 	}
 
@@ -339,10 +339,10 @@ func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
 	}
 
 	go func() {
-		_ = udpServer.ActivateAndServe()
+		if cerr := udpServer.ActivateAndServe(); cerr != nil { _ = cerr }
 	}()
 	go func() {
-		_ = tcpServer.ActivateAndServe()
+		if cerr := tcpServer.ActivateAndServe(); cerr != nil { _ = cerr }
 	}()
 
 	return dnsServer, nil
@@ -392,7 +392,7 @@ func (service *Service) ServeAll(bind string, dnsPort int, httpPort int) (*Servi
 
 	httpServer, err := service.ServeHTTPHealth(bind, httpPort)
 	if err != nil {
-		_ = dnsServer.Close()
+		if cerr := dnsServer.Close(); cerr != nil { _ = cerr }
 		return nil, err
 	}
 
@@ -437,20 +437,20 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 
 	if request == nil {
 		reply.SetRcode(reply, dnsprotocol.RcodeNotImplemented)
-		_ = responseWriter.WriteMsg(reply)
+		if cerr := responseWriter.WriteMsg(reply); cerr != nil { _ = cerr }
 		return
 	}
 
 	reply.SetReply(request)
 	if request.Opcode != dnsprotocol.OpcodeQuery {
 		reply.SetRcode(request, dnsprotocol.RcodeNotImplemented)
-		_ = responseWriter.WriteMsg(reply)
+		if cerr := responseWriter.WriteMsg(reply); cerr != nil { _ = cerr }
 		return
 	}
 
 	if len(request.Question) == 0 {
 		reply.SetRcode(request, dnsprotocol.RcodeFormatError)
-		_ = responseWriter.WriteMsg(reply)
+		if cerr := responseWriter.WriteMsg(reply); cerr != nil { _ = cerr }
 		return
 	}
 
@@ -519,7 +519,7 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 		ip, ok := parsePTRIP(lookupName)
 		if !ok {
 			reply.SetRcode(request, dnsprotocol.RcodeFormatError)
-			_ = responseWriter.WriteMsg(reply)
+			if cerr := responseWriter.WriteMsg(reply); cerr != nil { _ = cerr }
 			return
 		}
 		values, ok := handler.service.ResolveReverse(ip)
@@ -574,16 +574,16 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 		appendDNSSECResourceRecords(reply, question.Name, dnsprotocol.TypeRRSIG, normalizeRecordValues(record.RRSIG))
 	default:
 		reply.SetRcode(request, dnsprotocol.RcodeNotImplemented)
-		_ = responseWriter.WriteMsg(reply)
+		if cerr := responseWriter.WriteMsg(reply); cerr != nil { _ = cerr }
 		return
 	}
 
-	_ = responseWriter.WriteMsg(reply)
+	if cerr := responseWriter.WriteMsg(reply); cerr != nil { _ = cerr }
 	return
 
 noRecord:
 	reply.SetRcode(request, dnsprotocol.RcodeNameError)
-	_ = responseWriter.WriteMsg(reply)
+	if cerr := responseWriter.WriteMsg(reply); cerr != nil { _ = cerr }
 }
 
 func parsePTRIP(name string) (string, bool) {

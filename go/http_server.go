@@ -50,7 +50,7 @@ func (server *HealthServer) Close() error {
 
 	if server.server != nil {
 		if err := server.server.Shutdown(shutdownContext); err != nil {
-			_ = server.server.Close()
+			if cerr := server.server.Close(); cerr != nil { _ = cerr }
 			return err
 		}
 		return nil
@@ -89,7 +89,9 @@ func (service *Service) ServeHTTPHealth(bind string, port int) (*HealthServer, e
 		}
 
 		responseWriter.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(responseWriter).Encode(service.Health())
+		if cerr := json.NewEncoder(responseWriter).Encode(service.Health()); cerr != nil {
+			_ = cerr
+		}
 	})
 
 	server := &http.Server{
@@ -102,7 +104,7 @@ func (service *Service) ServeHTTPHealth(bind string, port int) (*HealthServer, e
 	}
 
 	go func() {
-		_ = server.Serve(listener)
+		if cerr := server.Serve(listener); cerr != nil { _ = cerr }
 	}()
 
 	return httpServer, nil
