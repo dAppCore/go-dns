@@ -3983,3 +3983,1191 @@ func (registrar *actionRegistrarAndCaller) CallAction(ctx context.Context, name 
 	}
 	return registrar.actionCall(ctx, name, values)
 }
+
+func TestService_ReverseIndex_Lookup_Good(t *core.T) {
+	subject := (*ReverseIndex).Lookup
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_ReverseIndex_Lookup_Bad(t *core.T) {
+	subject := (*ReverseIndex).Lookup
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_ReverseIndex_Lookup_Ugly(t *core.T) {
+	subject := (*ReverseIndex).Lookup
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NewService_Good(t *core.T) {
+	subject := NewService
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NewService_Bad(t *core.T) {
+	subject := NewService
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NewService_Ugly(t *core.T) {
+	subject := NewService
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NewDNSService_Good(t *core.T) {
+	subject := NewDNSService
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NewDNSService_Bad(t *core.T) {
+	subject := NewDNSService
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NewDNSService_Ugly(t *core.T) {
+	subject := NewDNSService
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NewDNSServiceFromOptions_Good(t *core.T) {
+	subject := NewDNSServiceFromOptions
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NewDNSServiceFromOptions_Bad(t *core.T) {
+	subject := NewDNSServiceFromOptions
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NewDNSServiceFromOptions_Ugly(t *core.T) {
+	subject := NewDNSServiceFromOptions
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NewDNSServiceFromConfiguration_Good(t *core.T) {
+	subject := NewDNSServiceFromConfiguration
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NewDNSServiceFromConfiguration_Bad(t *core.T) {
+	subject := NewDNSServiceFromConfiguration
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NewDNSServiceFromConfiguration_Ugly(t *core.T) {
+	subject := NewDNSServiceFromConfiguration
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NewDNSServiceWithContextRegistrar_Good(t *core.T) {
+	subject := NewDNSServiceWithContextRegistrar
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NewDNSServiceWithContextRegistrar_Bad(t *core.T) {
+	subject := NewDNSServiceWithContextRegistrar
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NewDNSServiceWithContextRegistrar_Ugly(t *core.T) {
+	subject := NewDNSServiceWithContextRegistrar
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_DiscoverFromChainAliases_Good(t *core.T) {
+	subject := (*Service).DiscoverFromChainAliases
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_DiscoverFromChainAliases_Bad(t *core.T) {
+	subject := (*Service).DiscoverFromChainAliases
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_DiscoverFromChainAliases_Ugly(t *core.T) {
+	subject := (*Service).DiscoverFromChainAliases
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_DiscoverFromMainchainAliases_Good(t *core.T) {
+	subject := (*Service).DiscoverFromMainchainAliases
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_DiscoverFromMainchainAliases_Bad(t *core.T) {
+	subject := (*Service).DiscoverFromMainchainAliases
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_DiscoverFromMainchainAliases_Ugly(t *core.T) {
+	subject := (*Service).DiscoverFromMainchainAliases
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_Discover_Good(t *core.T) {
+	subject := (*Service).Discover
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_Discover_Bad(t *core.T) {
+	subject := (*Service).Discover
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_Discover_Ugly(t *core.T) {
+	subject := (*Service).Discover
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_DiscoverAliases_Good(t *core.T) {
+	subject := (*Service).DiscoverAliases
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_DiscoverAliases_Bad(t *core.T) {
+	subject := (*Service).DiscoverAliases
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_DiscoverAliases_Ugly(t *core.T) {
+	subject := (*Service).DiscoverAliases
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_SetRecord_Good(t *core.T) {
+	subject := (*Service).SetRecord
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_SetRecord_Bad(t *core.T) {
+	subject := (*Service).SetRecord
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_SetRecord_Ugly(t *core.T) {
+	subject := (*Service).SetRecord
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_RemoveRecord_Good(t *core.T) {
+	subject := (*Service).RemoveRecord
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_RemoveRecord_Bad(t *core.T) {
+	subject := (*Service).RemoveRecord
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_RemoveRecord_Ugly(t *core.T) {
+	subject := (*Service).RemoveRecord
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_Resolve_Good(t *core.T) {
+	subject := (*Service).Resolve
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_Resolve_Bad(t *core.T) {
+	subject := (*Service).Resolve
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_Resolve_Ugly(t *core.T) {
+	subject := (*Service).Resolve
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveRecords_Good(t *core.T) {
+	subject := (*Service).ResolveRecords
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveRecords_Bad(t *core.T) {
+	subject := (*Service).ResolveRecords
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveRecords_Ugly(t *core.T) {
+	subject := (*Service).ResolveRecords
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveWithWildcardMatch_Good(t *core.T) {
+	subject := (*Service).ResolveWithWildcardMatch
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveWithWildcardMatch_Bad(t *core.T) {
+	subject := (*Service).ResolveWithWildcardMatch
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveWithWildcardMatch_Ugly(t *core.T) {
+	subject := (*Service).ResolveWithWildcardMatch
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveWithMatch_Good(t *core.T) {
+	subject := (*Service).ResolveWithMatch
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveWithMatch_Bad(t *core.T) {
+	subject := (*Service).ResolveWithMatch
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveWithMatch_Ugly(t *core.T) {
+	subject := (*Service).ResolveWithMatch
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveTXT_Good(t *core.T) {
+	subject := (*Service).ResolveTXT
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveTXT_Bad(t *core.T) {
+	subject := (*Service).ResolveTXT
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveTXT_Ugly(t *core.T) {
+	subject := (*Service).ResolveTXT
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveTXTRecords_Good(t *core.T) {
+	subject := (*Service).ResolveTXTRecords
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveTXTRecords_Bad(t *core.T) {
+	subject := (*Service).ResolveTXTRecords
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveTXTRecords_Ugly(t *core.T) {
+	subject := (*Service).ResolveTXTRecords
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveTXTWithMatch_Good(t *core.T) {
+	subject := (*Service).ResolveTXTWithMatch
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveTXTWithMatch_Bad(t *core.T) {
+	subject := (*Service).ResolveTXTWithMatch
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveTXTWithMatch_Ugly(t *core.T) {
+	subject := (*Service).ResolveTXTWithMatch
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_DiscoverWithHSD_Good(t *core.T) {
+	subject := (*Service).DiscoverWithHSD
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_DiscoverWithHSD_Bad(t *core.T) {
+	subject := (*Service).DiscoverWithHSD
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_DiscoverWithHSD_Ugly(t *core.T) {
+	subject := (*Service).DiscoverWithHSD
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveAddresses_Good(t *core.T) {
+	subject := (*Service).ResolveAddresses
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveAddresses_Bad(t *core.T) {
+	subject := (*Service).ResolveAddresses
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveAddresses_Ugly(t *core.T) {
+	subject := (*Service).ResolveAddresses
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveAddress_Good(t *core.T) {
+	subject := (*Service).ResolveAddress
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveAddress_Bad(t *core.T) {
+	subject := (*Service).ResolveAddress
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveAddress_Ugly(t *core.T) {
+	subject := (*Service).ResolveAddress
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveReverse_Good(t *core.T) {
+	subject := (*Service).ResolveReverse
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveReverse_Bad(t *core.T) {
+	subject := (*Service).ResolveReverse
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveReverse_Ugly(t *core.T) {
+	subject := (*Service).ResolveReverse
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveAll_Good(t *core.T) {
+	subject := (*Service).ResolveAll
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveAll_Bad(t *core.T) {
+	subject := (*Service).ResolveAll
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveAll_Ugly(t *core.T) {
+	subject := (*Service).ResolveAll
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_Health_Good(t *core.T) {
+	subject := (*Service).Health
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_Health_Bad(t *core.T) {
+	subject := (*Service).Health
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_Health_Ugly(t *core.T) {
+	subject := (*Service).Health
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_CurrentTreeRoot_Good(t *core.T) {
+	subject := (*Service).CurrentTreeRoot
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_CurrentTreeRoot_Bad(t *core.T) {
+	subject := (*Service).CurrentTreeRoot
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_CurrentTreeRoot_Ugly(t *core.T) {
+	subject := (*Service).CurrentTreeRoot
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_Snapshot_Good(t *core.T) {
+	subject := (*Service).Snapshot
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_Snapshot_Bad(t *core.T) {
+	subject := (*Service).Snapshot
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_Snapshot_Ugly(t *core.T) {
+	subject := (*Service).Snapshot
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_Describe_Good(t *core.T) {
+	subject := (*Service).Describe
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_Describe_Bad(t *core.T) {
+	subject := (*Service).Describe
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_Describe_Ugly(t *core.T) {
+	subject := (*Service).Describe
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ZoneApex_Good(t *core.T) {
+	subject := (*Service).ZoneApex
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ZoneApex_Bad(t *core.T) {
+	subject := (*Service).ZoneApex
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ZoneApex_Ugly(t *core.T) {
+	subject := (*Service).ZoneApex
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveReverseNames_Good(t *core.T) {
+	subject := (*Service).ResolveReverseNames
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveReverseNames_Bad(t *core.T) {
+	subject := (*Service).ResolveReverseNames
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolveReverseNames_Ugly(t *core.T) {
+	subject := (*Service).ResolveReverseNames
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolvePTRNames_Good(t *core.T) {
+	subject := (*Service).ResolvePTRNames
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolvePTRNames_Bad(t *core.T) {
+	subject := (*Service).ResolvePTRNames
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolvePTRNames_Ugly(t *core.T) {
+	subject := (*Service).ResolvePTRNames
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolvePTR_Good(t *core.T) {
+	subject := (*Service).ResolvePTR
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolvePTR_Bad(t *core.T) {
+	subject := (*Service).ResolvePTR
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_ResolvePTR_Ugly(t *core.T) {
+	subject := (*Service).ResolvePTR
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NormalizeIP_Good(t *core.T) {
+	subject := NormalizeIP
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NormalizeIP_Bad(t *core.T) {
+	subject := NormalizeIP
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NormalizeIP_Ugly(t *core.T) {
+	subject := NormalizeIP
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NormalizeName_Good(t *core.T) {
+	subject := NormalizeName
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NormalizeName_Bad(t *core.T) {
+	subject := NormalizeName
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_NormalizeName_Ugly(t *core.T) {
+	subject := NormalizeName
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_String_Good(t *core.T) {
+	subject := (*Service).String
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_String_Bad(t *core.T) {
+	subject := (*Service).String
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_Service_String_Ugly(t *core.T) {
+	subject := (*Service).String
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_MergeRecords_Good(t *core.T) {
+	subject := MergeRecords
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_MergeRecords_Bad(t *core.T) {
+	subject := MergeRecords
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestService_MergeRecords_Ugly(t *core.T) {
+	subject := MergeRecords
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}

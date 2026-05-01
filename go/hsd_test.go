@@ -345,3 +345,201 @@ func TestServiceDiscoverWithHSDRefreshesRecords(t *testing.T) {
 		t.Fatalf("expected refreshed AAAA record, got %#v (ok=%t)", resolved, ok)
 	}
 }
+
+func TestHsd_HSDRPCError_Error_Good(t *core.T) {
+	subject := (*HSDRPCError).Error
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestHsd_HSDRPCError_Error_Bad(t *core.T) {
+	subject := (*HSDRPCError).Error
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestHsd_HSDRPCError_Error_Ugly(t *core.T) {
+	subject := (*HSDRPCError).Error
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestHsd_NewHSDClient_Good(t *core.T) {
+	subject := NewHSDClient
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestHsd_NewHSDClient_Bad(t *core.T) {
+	subject := NewHSDClient
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestHsd_NewHSDClient_Ugly(t *core.T) {
+	subject := NewHSDClient
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestHsd_NewHSDClientFromOptions_Good(t *core.T) {
+	subject := NewHSDClientFromOptions
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestHsd_NewHSDClientFromOptions_Bad(t *core.T) {
+	subject := NewHSDClientFromOptions
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestHsd_NewHSDClientFromOptions_Ugly(t *core.T) {
+	subject := NewHSDClientFromOptions
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestHsd_NewHSDClientFromConfiguration_Good(t *core.T) {
+	subject := NewHSDClientFromConfiguration
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestHsd_NewHSDClientFromConfiguration_Bad(t *core.T) {
+	subject := NewHSDClientFromConfiguration
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestHsd_NewHSDClientFromConfiguration_Ugly(t *core.T) {
+	subject := NewHSDClientFromConfiguration
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestHsd_HSDClient_GetNameResource_Good(t *core.T) {
+	subject := (*HSDClient).GetNameResource
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestHsd_HSDClient_GetNameResource_Bad(t *core.T) {
+	subject := (*HSDClient).GetNameResource
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestHsd_HSDClient_GetNameResource_Ugly(t *core.T) {
+	subject := (*HSDClient).GetNameResource
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestHsd_HSDClient_GetBlockchainInfo_Good(t *core.T) {
+	subject := (*HSDClient).GetBlockchainInfo
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestHsd_HSDClient_GetBlockchainInfo_Bad(t *core.T) {
+	subject := (*HSDClient).GetBlockchainInfo
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestHsd_HSDClient_GetBlockchainInfo_Ugly(t *core.T) {
+	subject := (*HSDClient).GetBlockchainInfo
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}

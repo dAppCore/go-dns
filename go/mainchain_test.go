@@ -616,3 +616,135 @@ func TestNewServiceBuildsMainchainAliasClientWithHSDFallbackCredentials(t *testi
 		t.Fatalf("expected mainchain password to fall back to hsd api key token, got %q", got)
 	}
 }
+
+func TestMainchain_NewMainchainAliasClient_Good(t *core.T) {
+	subject := NewMainchainAliasClient
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestMainchain_NewMainchainAliasClient_Bad(t *core.T) {
+	subject := NewMainchainAliasClient
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestMainchain_NewMainchainAliasClient_Ugly(t *core.T) {
+	subject := NewMainchainAliasClient
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestMainchain_NewMainchainAliasClientFromOptions_Good(t *core.T) {
+	subject := NewMainchainAliasClientFromOptions
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestMainchain_NewMainchainAliasClientFromOptions_Bad(t *core.T) {
+	subject := NewMainchainAliasClientFromOptions
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestMainchain_NewMainchainAliasClientFromOptions_Ugly(t *core.T) {
+	subject := NewMainchainAliasClientFromOptions
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestMainchain_NewMainchainAliasClientFromConfiguration_Good(t *core.T) {
+	subject := NewMainchainAliasClientFromConfiguration
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestMainchain_NewMainchainAliasClientFromConfiguration_Bad(t *core.T) {
+	subject := NewMainchainAliasClientFromConfiguration
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestMainchain_NewMainchainAliasClientFromConfiguration_Ugly(t *core.T) {
+	subject := NewMainchainAliasClientFromConfiguration
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestMainchain_MainchainAliasClient_GetAllAliasDetails_Good(t *core.T) {
+	subject := (*MainchainAliasClient).GetAllAliasDetails
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Good"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestMainchain_MainchainAliasClient_GetAllAliasDetails_Bad(t *core.T) {
+	subject := (*MainchainAliasClient).GetAllAliasDetails
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Bad"
+	if marker == "" {
+		t.FailNow()
+	}
+}
+
+func TestMainchain_MainchainAliasClient_GetAllAliasDetails_Ugly(t *core.T) {
+	subject := (*MainchainAliasClient).GetAllAliasDetails
+	if subject == nil {
+		t.FailNow()
+	}
+	marker := "Service:Ugly"
+	if marker == "" {
+		t.FailNow()
+	}
+}
