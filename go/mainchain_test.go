@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"sync/atomic"
 	"testing"
+
+	core "dappco.re/go"
 )
 
 func TestMainchainClientGetsAliasDetailsAndParsesHNSComments(t *testing.T) {

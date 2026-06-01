@@ -15,6 +15,8 @@ import (
 	"time"
 
 	dnsprotocol "github.com/miekg/dns"
+
+	core "dappco.re/go"
 )
 
 func exchangeWithRetry(t *testing.T, client dnsprotocol.Client, request *dnsprotocol.Msg, address string) *dnsprotocol.Msg {
@@ -50,6 +52,39 @@ func pickFreeTCPPort(t *testing.T) int {
 	}
 
 	return tcpAddress.Port
+}
+
+// pickFreeDNSPort reserves an OS-assigned port that is free for both UDP and
+// TCP, so Serve can bind a DNS listener without the privileged port 53.
+//
+//	srv, err := service.Serve("127.0.0.1", pickFreeDNSPort(t))
+func pickFreeDNSPort(t *testing.T) int {
+	t.Helper()
+
+	for attempt := 0; attempt < 64; attempt++ {
+		udpListener, err := net.ListenPacket("udp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatalf("expected free UDP port: %v", err)
+		}
+		udpAddress, ok := udpListener.LocalAddr().(*net.UDPAddr)
+		if !ok {
+			_ = udpListener.Close()
+			t.Fatalf("expected UDP listener address, got %T", udpListener.LocalAddr())
+		}
+		port := udpAddress.Port
+
+		tcpListener, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", strconv.Itoa(port)))
+		_ = udpListener.Close()
+		if err != nil {
+			// TCP holds the same port already; try another draw.
+			continue
+		}
+		_ = tcpListener.Close()
+		return port
+	}
+
+	t.Fatalf("expected a port free for both UDP and TCP after retrying")
+	return 0
 }
 
 func TestServiceResolveUsesExactNameBeforeWildcard(t *testing.T) {
@@ -814,7 +849,7 @@ func TestServiceServeAllStartsDNSAndHTTPTogether(t *testing.T) {
 		},
 	})
 
-	runtime, err := service.ServeAll("127.0.0.1", 0, 0)
+	runtime, err := service.ServeAll("127.0.0.1", pickFreeDNSPort(t), 0)
 	if err != nil {
 		t.Fatalf("expected combined runtime to start: %v", err)
 	}
@@ -872,7 +907,7 @@ func TestServiceServeDNSAndHealthAliasStartsDNSAndHTTPTogether(t *testing.T) {
 		},
 	})
 
-	runtime, err := service.ServeDNSAndHealth("127.0.0.1", 0, 0)
+	runtime, err := service.ServeDNSAndHealth("127.0.0.1", pickFreeDNSPort(t), 0)
 	if err != nil {
 		t.Fatalf("expected explicit ServeDNSAndHealth alias to start: %v", err)
 	}
@@ -928,7 +963,9 @@ func TestServiceServeConfiguredUsesPortsFromServiceOptions(t *testing.T) {
 }
 
 func TestServiceServeDefaultsPortWhenZero(t *testing.T) {
-	const configuredDNSPort = 5353
+	// An OS-assigned free port avoids colliding with the platform mDNS
+	// responder, which already owns the well-known 5353.
+	configuredDNSPort := pickFreeDNSPort(t)
 	service := NewService(ServiceOptions{
 		DNSPort: configuredDNSPort,
 		Records: map[string]NameRecords{
@@ -2193,7 +2230,7 @@ func TestServiceServeResolvesAAndAAAARecords(t *testing.T) {
 		},
 	})
 
-	srv, err := service.Serve("127.0.0.1", 0)
+	srv, err := service.Serve("127.0.0.1", pickFreeDNSPort(t))
 	if err != nil {
 		t.Fatalf("expected server to start: %v", err)
 	}
@@ -2236,7 +2273,7 @@ func TestServiceServeAnswersDSRecords(t *testing.T) {
 		},
 	})
 
-	srv, err := service.Serve("127.0.0.1", 0)
+	srv, err := service.Serve("127.0.0.1", pickFreeDNSPort(t))
 	if err != nil {
 		t.Fatalf("expected server to start: %v", err)
 	}
@@ -2266,7 +2303,7 @@ func TestServiceServeAnswersDNSKEYRecords(t *testing.T) {
 		},
 	})
 
-	srv, err := service.Serve("127.0.0.1", 0)
+	srv, err := service.Serve("127.0.0.1", pickFreeDNSPort(t))
 	if err != nil {
 		t.Fatalf("expected server to start: %v", err)
 	}
@@ -2296,7 +2333,7 @@ func TestServiceServeAnswersRRSIGRecords(t *testing.T) {
 		},
 	})
 
-	srv, err := service.Serve("127.0.0.1", 0)
+	srv, err := service.Serve("127.0.0.1", pickFreeDNSPort(t))
 	if err != nil {
 		t.Fatalf("expected server to start: %v", err)
 	}
@@ -2333,7 +2370,7 @@ func TestServiceServeAnswersANYWithAllRecordTypes(t *testing.T) {
 		},
 	})
 
-	srv, err := service.Serve("127.0.0.1", 0)
+	srv, err := service.Serve("127.0.0.1", pickFreeDNSPort(t))
 	if err != nil {
 		t.Fatalf("expected server to start: %v", err)
 	}
@@ -2385,7 +2422,7 @@ func TestServiceServeResolvesWildcardAndPTRRecords(t *testing.T) {
 		},
 	})
 
-	srv, err := service.Serve("127.0.0.1", 0)
+	srv, err := service.Serve("127.0.0.1", pickFreeDNSPort(t))
 	if err != nil {
 		t.Fatalf("expected server to start: %v", err)
 	}
@@ -2426,7 +2463,7 @@ func TestServiceServeAnswersSOAOnlyForZoneApex(t *testing.T) {
 		},
 	})
 
-	srv, err := service.Serve("127.0.0.1", 0)
+	srv, err := service.Serve("127.0.0.1", pickFreeDNSPort(t))
 	if err != nil {
 		t.Fatalf("expected server to start: %v", err)
 	}
@@ -2469,7 +2506,7 @@ func TestServiceServeAnswersSOAForDerivedZoneApexWithoutExactRecord(t *testing.T
 		},
 	})
 
-	srv, err := service.Serve("127.0.0.1", 0)
+	srv, err := service.Serve("127.0.0.1", pickFreeDNSPort(t))
 	if err != nil {
 		t.Fatalf("expected server to start: %v", err)
 	}
@@ -2499,7 +2536,7 @@ func TestServiceServeAnswersSOAForWildcardOnlyDerivedZoneApex(t *testing.T) {
 		},
 	})
 
-	srv, err := service.Serve("127.0.0.1", 0)
+	srv, err := service.Serve("127.0.0.1", pickFreeDNSPort(t))
 	if err != nil {
 		t.Fatalf("expected server to start: %v", err)
 	}
@@ -2534,7 +2571,7 @@ func TestServiceServeAnswersNSForDerivedZoneApexWithoutExactRecord(t *testing.T)
 		},
 	})
 
-	srv, err := service.Serve("127.0.0.1", 0)
+	srv, err := service.Serve("127.0.0.1", pickFreeDNSPort(t))
 	if err != nil {
 		t.Fatalf("expected server to start: %v", err)
 	}
@@ -2568,7 +2605,7 @@ func TestServiceServeAnswersNSForWildcardOnlyDerivedZoneApex(t *testing.T) {
 		},
 	})
 
-	srv, err := service.Serve("127.0.0.1", 0)
+	srv, err := service.Serve("127.0.0.1", pickFreeDNSPort(t))
 	if err != nil {
 		t.Fatalf("expected server to start: %v", err)
 	}
@@ -2757,7 +2794,7 @@ func TestServiceResolveAllOmitsDNSSECRecords(t *testing.T) {
 func TestServiceServeReturnsNXDOMAINWhenMissing(t *testing.T) {
 	service := NewService(ServiceOptions{})
 
-	srv, err := service.Serve("127.0.0.1", 0)
+	srv, err := service.Serve("127.0.0.1", pickFreeDNSPort(t))
 	if err != nil {
 		t.Fatalf("expected server to start: %v", err)
 	}
@@ -2781,7 +2818,7 @@ func TestServiceServeReturnsNoErrorWhenTypeIsMissing(t *testing.T) {
 		},
 	})
 
-	srv, err := service.Serve("127.0.0.1", 0)
+	srv, err := service.Serve("127.0.0.1", pickFreeDNSPort(t))
 	if err != nil {
 		t.Fatalf("expected server to start: %v", err)
 	}
@@ -2942,6 +2979,7 @@ func TestServiceHandleActionServeHealthPortStartsRuntime(t *testing.T) {
 
 	payload, ok, err := service.HandleAction(ActionServe, map[string]any{
 		"bind":        "127.0.0.1",
+		"dns_port":    pickFreeDNSPort(t),
 		"health_port": desiredHealthPort,
 	})
 	if err != nil {
@@ -3604,7 +3642,7 @@ func TestServiceHandleActionReverseHealthServeAndDiscover(t *testing.T) {
 
 	srvPayload, ok, err := service.HandleAction(ActionServe, map[string]any{
 		"bind": "127.0.0.1",
-		"port": 0,
+		"port": pickFreeDNSPort(t),
 	})
 	if err != nil {
 		t.Fatalf("unexpected serve action error: %v", err)
