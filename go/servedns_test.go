@@ -98,3 +98,73 @@ func TestServeDNS_Ugly(t *core.T) {
 		t.Fatalf("expected no answers for a missing name, got %d", len(missingWriter.written.Answer))
 	}
 }
+
+func TestServeDNS_UnsupportedTypeNotImplemented(t *core.T) {
+	handler := newTestRequestHandler()
+	writer := &captureResponseWriter{}
+
+	request := new(dnsprotocol.Msg)
+	// HINFO is not handled by the switch and must hit the default branch.
+	request.SetQuestion("gateway.charon.lthn.", dnsprotocol.TypeHINFO)
+	handler.ServeDNS(writer, request)
+
+	if writer.written == nil || writer.written.Rcode != dnsprotocol.RcodeNotImplemented {
+		t.Fatalf("expected NotImplemented for an unsupported qtype, got %#v", writer.written)
+	}
+}
+
+func TestServeDNS_PTRFormatError(t *core.T) {
+	handler := newTestRequestHandler()
+	writer := &captureResponseWriter{}
+
+	request := new(dnsprotocol.Msg)
+	// A PTR query whose name is not a valid in-addr.arpa reversal.
+	request.SetQuestion("not-a-reverse-name.", dnsprotocol.TypePTR)
+	handler.ServeDNS(writer, request)
+
+	if writer.written == nil || writer.written.Rcode != dnsprotocol.RcodeFormatError {
+		t.Fatalf("expected FormatError for a malformed PTR name, got %#v", writer.written)
+	}
+}
+
+func TestServeDNS_RecordTypeHits(t *core.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {
+				AAAA:   []string{"fe80::1"},
+				TXT:    []string{"v=lthn1 type=gateway"},
+				DS:     []string{"60485 8 2 A1B2C3D4E5F60718293A4B5C6D7E8F9012345678"},
+				DNSKEY: []string{"257 3 13 AA=="},
+			},
+		},
+	})
+	handler := &dnsRequestHandler{service: service}
+
+	cases := []struct {
+		name  string
+		qtype uint16
+	}{
+		{"AAAA", dnsprotocol.TypeAAAA},
+		{"TXT", dnsprotocol.TypeTXT},
+		{"DS", dnsprotocol.TypeDS},
+		{"DNSKEY", dnsprotocol.TypeDNSKEY},
+		{"ANY", dnsprotocol.TypeANY},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *core.T) {
+			writer := &captureResponseWriter{}
+			request := new(dnsprotocol.Msg)
+			request.SetQuestion("gateway.charon.lthn.", tc.qtype)
+			handler.ServeDNS(writer, request)
+			if writer.written == nil {
+				t.Fatalf("%s: expected a reply", tc.name)
+			}
+			if writer.written.Rcode != dnsprotocol.RcodeSuccess {
+				t.Fatalf("%s: expected success rcode, got %d", tc.name, writer.written.Rcode)
+			}
+			if len(writer.written.Answer) == 0 {
+				t.Fatalf("%s: expected at least one answer", tc.name)
+			}
+		})
+	}
+}
