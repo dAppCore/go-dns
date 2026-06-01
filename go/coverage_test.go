@@ -139,3 +139,122 @@ func TestCoverage_HSDRPCError_Error_Ugly(t *core.T) {
 		t.Fatalf("expected empty string from nil receiver, got %q", got)
 	}
 }
+
+// recordingRegistrar captures the action names a service publishes so the
+// registrar-aware constructors can be exercised without a real Core surface.
+type recordingRegistrar struct {
+	names []string
+}
+
+func (registrar *recordingRegistrar) RegisterAction(name string, _ func(map[string]any) (any, bool, error)) {
+	registrar.names = append(registrar.names, name)
+}
+
+func TestCoverage_NewDNSServiceFromOptions_Good(t *core.T) {
+	service := NewDNSServiceFromOptions(DNSServiceOptions{
+		Records: map[string]NameRecords{
+			"gateway.charon.lthn": {A: []string{"10.10.10.10"}},
+		},
+	})
+	if service == nil {
+		t.Fatal("expected a service")
+	}
+	result, ok := service.Resolve("gateway.charon.lthn")
+	if !ok || len(result.A) != 1 || result.A[0] != "10.10.10.10" {
+		t.Fatalf("unexpected resolve result: %#v (ok=%t)", result, ok)
+	}
+}
+
+func TestCoverage_NewDNSServiceWithContextRegistrar_Good(t *core.T) {
+	registrar := &recordingRegistrar{}
+	service := NewDNSServiceWithContextRegistrar(DNSServiceOptions{}, registrar)
+	if service == nil {
+		t.Fatal("expected a service")
+	}
+	if len(registrar.names) == 0 {
+		t.Fatal("expected the registrar to receive at least one action")
+	}
+}
+
+func TestCoverage_StartHealthServer_Good(t *core.T) {
+	service := NewService(ServiceOptions{})
+	server, err := service.StartHealthServer("127.0.0.1", 0)
+	if err != nil {
+		t.Fatalf("expected health server to start: %v", err)
+	}
+	defer func() { _ = server.Close() }()
+	if server.HealthAddress() == "" {
+		t.Fatal("expected a bound health address")
+	}
+}
+
+func TestCoverage_StartDNSServer_Good(t *core.T) {
+	service := NewService(ServiceOptions{})
+	server, err := service.StartDNSServer("127.0.0.1", pickFreeDNSPort(t))
+	if err != nil {
+		t.Fatalf("expected DNS server to start: %v", err)
+	}
+	defer func() { _ = server.Close() }()
+	if server.DNSAddress() == "" {
+		t.Fatal("expected a bound DNS address")
+	}
+}
+
+func TestCoverage_StartDNSAndHealth_Good(t *core.T) {
+	service := NewService(ServiceOptions{})
+	runtime, err := service.StartDNSAndHealth("127.0.0.1", pickFreeDNSPort(t), 0)
+	if err != nil {
+		t.Fatalf("expected runtime to start: %v", err)
+	}
+	defer func() { _ = runtime.Close() }()
+	if runtime.DNSAddress() == "" || runtime.HealthAddress() == "" {
+		t.Fatalf("expected both addresses, got dns=%q health=%q", runtime.DNSAddress(), runtime.HealthAddress())
+	}
+}
+
+func TestCoverage_StartConfigured_Good(t *core.T) {
+	service := NewService(ServiceOptions{
+		DNSPort:  pickFreeDNSPort(t),
+		HTTPPort: 0,
+	})
+	runtime, err := service.StartConfigured("127.0.0.1")
+	if err != nil {
+		t.Fatalf("expected configured runtime to start: %v", err)
+	}
+	defer func() { _ = runtime.Close() }()
+	if runtime.DNSAddress() == "" {
+		t.Fatal("expected a bound DNS address")
+	}
+}
+
+func TestCoverage_ResolveWithWildcardMatch_Good(t *core.T) {
+	service := NewService(ServiceOptions{
+		Records: map[string]NameRecords{
+			"*.charon.lthn": {A: []string{"10.0.0.1"}},
+		},
+	})
+	result, ok, usedWildcard := service.ResolveWithWildcardMatch("node.charon.lthn")
+	if !ok {
+		t.Fatal("expected a wildcard resolution")
+	}
+	if !usedWildcard {
+		t.Fatal("expected usedWildcard to be true for a wildcard-only match")
+	}
+	if len(result.A) != 1 || result.A[0] != "10.0.0.1" {
+		t.Fatalf("unexpected wildcard result: %#v", result)
+	}
+}
+
+func TestCoverage_ResolveWithWildcardMatch_Bad(t *core.T) {
+	service := NewService(ServiceOptions{})
+	if _, ok, _ := service.ResolveWithWildcardMatch("missing.charon.lthn"); ok {
+		t.Fatal("expected no match for an empty service")
+	}
+}
+
+func TestCoverage_ResolveWithWildcardMatch_Ugly(t *core.T) {
+	var service *Service
+	if _, ok, used := service.ResolveWithWildcardMatch("any.charon.lthn"); ok || used {
+		t.Fatal("expected nil receiver to report no match")
+	}
+}
