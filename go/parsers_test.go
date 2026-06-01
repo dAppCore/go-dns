@@ -178,3 +178,93 @@ func TestParsers_ExtractAliasFromComment_Ugly(t *core.T) {
 		t.Fatalf("expected empty string for an empty comment, got %q", got)
 	}
 }
+
+func TestParsers_ParseHSDNameResource_Good(t *core.T) {
+	// records-wrapper form
+	wrapped, err := parseHSDNameResource(json.RawMessage(`{"records":{"a":["10.10.10.10"],"txt":"v=lthn1"}}`))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(wrapped.A) != 1 || wrapped.A[0] != "10.10.10.10" {
+		t.Fatalf("unexpected A from records wrapper: %#v", wrapped.A)
+	}
+	if len(wrapped.TXT) != 1 || wrapped.TXT[0] != "v=lthn1" {
+		t.Fatalf("unexpected single-string TXT: %#v", wrapped.TXT)
+	}
+
+	// top-level fields form (case-insensitive keys)
+	topLevel, err := parseHSDNameResource(json.RawMessage(`{"A":["10.0.0.1"],"AAAA":["fe80::1"]}`))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(topLevel.A) != 1 || len(topLevel.AAAA) != 1 {
+		t.Fatalf("unexpected top-level parse: %#v", topLevel)
+	}
+}
+
+func TestParsers_ParseHSDNameResource_Bad(t *core.T) {
+	if _, err := parseHSDNameResource(json.RawMessage(`not-json`)); err == nil {
+		t.Fatal("expected malformed JSON to error")
+	}
+	if _, err := parseHSDNameResource(json.RawMessage(`{"records":{"a":12345}}`)); err == nil {
+		t.Fatal("expected an unparseable record value to error")
+	}
+}
+
+func TestParsers_ParseHSDNameResource_Ugly(t *core.T) {
+	if _, err := parseHSDNameResource(json.RawMessage(`{"height":42}`)); err == nil {
+		t.Fatal("expected a payload with no record fields to error")
+	}
+}
+
+func TestParsers_ParseHSDRecordValue_Good(t *core.T) {
+	cases := []struct {
+		name string
+		raw  string
+		want []string
+	}{
+		{"array", `["a","b"]`, []string{"a", "b"}},
+		{"single-string", `"only"`, []string{"only"}},
+		{"empty-string", `""`, nil},
+		{"null", `null`, nil},
+		{"whitespace", "   ", nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *core.T) {
+			got, err := parseHSDRecordValue(json.RawMessage(tc.raw))
+			if err != nil {
+				t.Fatalf("%s: unexpected error: %v", tc.name, err)
+			}
+			if len(got) != len(tc.want) {
+				t.Fatalf("%s: expected %#v, got %#v", tc.name, tc.want, got)
+			}
+			for i := range tc.want {
+				if got[i] != tc.want[i] {
+					t.Fatalf("%s: index %d expected %q, got %q", tc.name, i, tc.want[i], got[i])
+				}
+			}
+		})
+	}
+}
+
+func TestParsers_ParseHSDRecordValue_Bad(t *core.T) {
+	if _, err := parseHSDRecordValue(json.RawMessage(`12345`)); err == nil {
+		t.Fatal("expected a numeric record value to error")
+	}
+}
+
+func TestParsers_HasHSDNameResourceField_Good(t *core.T) {
+	fields := map[string]json.RawMessage{"AAAA": json.RawMessage(`["fe80::1"]`)}
+	if !hasHSDNameResourceField(fields) {
+		t.Fatal("expected case-insensitive AAAA field to be detected")
+	}
+}
+
+func TestParsers_HasHSDNameResourceField_Ugly(t *core.T) {
+	if hasHSDNameResourceField(nil) {
+		t.Fatal("expected nil fields to report no record field")
+	}
+	if hasHSDNameResourceField(map[string]json.RawMessage{"height": json.RawMessage(`1`)}) {
+		t.Fatal("expected a non-record field map to report no record field")
+	}
+}
