@@ -924,7 +924,7 @@ func TestServiceServeDNSAndHealthAliasStartsDNSAndHTTPTogether(t *testing.T) {
 }
 
 func TestServiceServeConfiguredUsesPortsFromServiceOptions(t *testing.T) {
-	dnsPort := pickFreeTCPPort(t)
+	dnsPort := pickFreeDNSPort(t)
 	httpPort := pickFreeTCPPort(t)
 
 	service := NewService(ServiceOptions{
@@ -2901,7 +2901,7 @@ func TestServiceHandleActionResolveAndTXTAndAll(t *testing.T) {
 }
 
 func TestServiceHandleActionServeDefaultsPortFromServiceConfiguration(t *testing.T) {
-	desiredPort := pickFreeTCPPort(t)
+	desiredPort := pickFreeDNSPort(t)
 	service := NewService(ServiceOptions{
 		DNSPort: desiredPort,
 		Records: map[string]NameRecords{
@@ -3047,7 +3047,7 @@ func TestServiceHandleActionServeHealthPortStartsRuntime(t *testing.T) {
 
 func TestServiceHandleActionServeDefaultsToConfiguredHTTPPort(t *testing.T) {
 	httpPort := pickFreeTCPPort(t)
-	dnsPort := pickFreeTCPPort(t)
+	dnsPort := pickFreeDNSPort(t)
 	service := NewService(ServiceOptions{
 		DNSPort:  dnsPort,
 		HTTPPort: httpPort,
@@ -3095,7 +3095,7 @@ func TestServiceHandleActionServeDefaultsToConfiguredHTTPPort(t *testing.T) {
 }
 
 func TestServiceHandleActionServeCamelCaseAliases(t *testing.T) {
-	dnsPort := pickFreeTCPPort(t)
+	dnsPort := pickFreeDNSPort(t)
 	healthPort := pickFreeTCPPort(t)
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{
@@ -3146,7 +3146,7 @@ func TestServiceHandleActionServeCamelCaseAliases(t *testing.T) {
 }
 
 func TestServiceHandleActionServeSnakeCaseAliases(t *testing.T) {
-	dnsPort := pickFreeTCPPort(t)
+	dnsPort := pickFreeDNSPort(t)
 	healthPort := pickFreeTCPPort(t)
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{
@@ -3189,7 +3189,7 @@ func TestServiceHandleActionServeSnakeCaseAliases(t *testing.T) {
 }
 
 func TestServiceHandleActionServeSnakeCaseBindAddress(t *testing.T) {
-	dnsPort := pickFreeTCPPort(t)
+	dnsPort := pickFreeDNSPort(t)
 	service := NewService(ServiceOptions{
 		Records: map[string]NameRecords{
 			"gateway.charon.lthn": {
