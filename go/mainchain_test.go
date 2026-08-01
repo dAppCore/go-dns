@@ -44,7 +44,7 @@ func TestMainchainClientGetsAliasDetailsAndParsesHNSComments(t *testing.T) {
 		URL: server.URL,
 	})
 
-	aliases, err := client.GetAllAliasDetails(context.Background())
+	aliases, err := client.GetAllAliasDetails(t.Context())
 	if err != nil {
 		t.Fatalf("unexpected get_all_alias_details error: %v", err)
 	}
@@ -137,7 +137,7 @@ func TestServiceDiscoverFromMainchainAliasesUsesMainchainThenHSD(t *testing.T) {
 		URL: server.URL,
 	})
 
-	if err := service.DiscoverFromMainchainAliases(context.Background(), chainClient, hsdClient); err != nil {
+	if err := service.DiscoverFromMainchainAliases(t.Context(), chainClient, hsdClient); err != nil {
 		t.Fatalf("expected discover from mainchain aliases: %v", err)
 	}
 
@@ -211,7 +211,7 @@ func TestServiceDiscoverFromMainchainAliasesFallsBackToConfiguredMainchainClient
 		URL: server.URL,
 	})
 
-	if err := service.DiscoverFromMainchainAliases(context.Background(), nil, hsdClient); err != nil {
+	if err := service.DiscoverFromMainchainAliases(t.Context(), nil, hsdClient); err != nil {
 		t.Fatalf("expected discover from configured mainchain client: %v", err)
 	}
 
@@ -285,7 +285,7 @@ func TestServiceDiscoverFromMainchainAliasesUsesActionDiscoverer(t *testing.T) {
 		URL: server.URL,
 	})
 
-	if err := service.DiscoverFromMainchainAliases(context.Background(), nil, hsdClient); err != nil {
+	if err := service.DiscoverFromMainchainAliases(t.Context(), nil, hsdClient); err != nil {
 		t.Fatalf("expected discover from chain alias discoverer: %v", err)
 	}
 
@@ -361,7 +361,7 @@ func TestServiceDiscoverFromMainchainAliasesFallsBackToFallbackChainAliasDiscove
 		URL: server.URL,
 	})
 
-	if err := service.DiscoverFromMainchainAliases(context.Background(), nil, hsdClient); err != nil {
+	if err := service.DiscoverFromMainchainAliases(t.Context(), nil, hsdClient); err != nil {
 		t.Fatalf("expected fallback discover from chain alias discoverer: %v", err)
 	}
 
@@ -456,7 +456,7 @@ func TestServiceDiscoverFromMainchainAliasesFallsBackToChainClientWhenFallbackCh
 		},
 	})
 
-	if err := service.DiscoverFromMainchainAliases(context.Background(), chainClient, hsdClient); err != nil {
+	if err := service.DiscoverFromMainchainAliases(t.Context(), chainClient, hsdClient); err != nil {
 		t.Fatalf("expected fallback chain alias discoverer to fail over to chain client: %v", err)
 	}
 
@@ -553,7 +553,7 @@ func TestServiceDiscoverFromMainchainAliasesFallsBackToChainClientWhenPrimaryDis
 		},
 	})
 
-	if err := service.DiscoverFromMainchainAliases(context.Background(), chainClient, hsdClient); err != nil {
+	if err := service.DiscoverFromMainchainAliases(t.Context(), chainClient, hsdClient); err != nil {
 		t.Fatalf("expected chain alias discover fallback to chain client: %v", err)
 	}
 

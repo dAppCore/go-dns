@@ -22,7 +22,7 @@ import (
 func exchangeWithRetry(t *testing.T, client dnsprotocol.Client, request *dnsprotocol.Msg, address string) *dnsprotocol.Msg {
 	t.Helper()
 
-	for attempt := 0; attempt < 80; attempt++ {
+	for range 80 {
 		response, _, err := client.Exchange(request, address)
 		if err == nil {
 			return response
@@ -61,7 +61,7 @@ func pickFreeTCPPort(t *testing.T) int {
 func pickFreeDNSPort(t *testing.T) int {
 	t.Helper()
 
-	for attempt := 0; attempt < 64; attempt++ {
+	for range 64 {
 		udpListener, err := net.ListenPacket("udp", "127.0.0.1:0")
 		if err != nil {
 			t.Fatalf("expected free UDP port: %v", err)
@@ -656,7 +656,7 @@ func TestServiceHealthUsesChainTreeRootAfterDiscovery(t *testing.T) {
 		HSDClient: NewHSDClient(HSDClientOptions{URL: server.URL}),
 	})
 
-	if err := service.DiscoverAliases(context.Background()); err != nil {
+	if err := service.DiscoverAliases(t.Context()); err != nil {
 		t.Fatalf("expected discover to run for health chain-root assertions: %v", err)
 	}
 
@@ -705,7 +705,7 @@ func TestServiceLocalMutationClearsChainTreeRoot(t *testing.T) {
 		HSDClient: NewHSDClient(HSDClientOptions{URL: server.URL}),
 	})
 
-	if err := service.DiscoverAliases(context.Background()); err != nil {
+	if err := service.DiscoverAliases(t.Context()); err != nil {
 		t.Fatalf("expected discovery to populate chain tree root: %v", err)
 	}
 	if health := service.Health(); health.TreeRoot != "chain-root-1" {
@@ -1083,7 +1083,7 @@ func TestServiceDiscoverAliasesUsesConfiguredAliasDiscovery(t *testing.T) {
 		HSDClient: NewHSDClient(HSDClientOptions{URL: server.URL}),
 	})
 
-	if err := service.DiscoverAliases(context.Background()); err != nil {
+	if err := service.DiscoverAliases(t.Context()); err != nil {
 		t.Fatalf("expected DiscoverAliases action to run: %v", err)
 	}
 
@@ -1161,7 +1161,7 @@ func TestServiceDiscoverAliasesUsesConfiguredActionCaller(t *testing.T) {
 		HSDClient: NewHSDClient(HSDClientOptions{URL: server.URL}),
 	})
 
-	if err := service.DiscoverAliases(context.Background()); err != nil {
+	if err := service.DiscoverAliases(t.Context()); err != nil {
 		t.Fatalf("expected DiscoverAliases to complete through action caller: %v", err)
 	}
 	if !actionCalled {
@@ -1243,7 +1243,7 @@ func TestNewServiceInfersChainAliasActionCallerFromRegistrar(t *testing.T) {
 		}, true, nil
 	}
 
-	if err := service.DiscoverAliases(context.Background()); err != nil {
+	if err := service.DiscoverAliases(t.Context()); err != nil {
 		t.Fatalf("expected discover to use registrar action caller: %v", err)
 	}
 
@@ -1288,7 +1288,7 @@ func TestServiceDiscoverAliasesTreatsNilActionResponseAsNoAliases(t *testing.T) 
 		MainchainURL: server.URL,
 	})
 
-	if err := service.DiscoverAliases(context.Background()); err != nil {
+	if err := service.DiscoverAliases(t.Context()); err != nil {
 		t.Fatalf("expected DiscoverAliases to treat nil action result as empty aliases: %v", err)
 	}
 	if !actionCalled {
@@ -1359,7 +1359,7 @@ func TestServiceDiscoverAliasesUsesConfiguredChainAliasAction(t *testing.T) {
 		HSDClient: NewHSDClient(HSDClientOptions{URL: server.URL}),
 	})
 
-	if err := service.DiscoverAliases(context.Background()); err != nil {
+	if err := service.DiscoverAliases(t.Context()); err != nil {
 		t.Fatalf("expected DiscoverAliases to complete through chain alias action: %v", err)
 	}
 	if !actionCalled {
@@ -1445,7 +1445,7 @@ func TestNewServiceBuildsRPCClientsFromOptions(t *testing.T) {
 		HSDApiKey:    "api-key",
 	})
 
-	if err := service.DiscoverAliases(context.Background()); err != nil {
+	if err := service.DiscoverAliases(t.Context()); err != nil {
 		t.Fatalf("expected configured RPC clients to drive discovery: %v", err)
 	}
 
@@ -1490,7 +1490,7 @@ func TestServiceDiscoverAliasesClearsCacheWhenAliasListBecomesEmpty(t *testing.T
 		HSDClient: NewHSDClient(HSDClientOptions{URL: server.URL}),
 	})
 
-	if err := service.DiscoverAliases(context.Background()); err != nil {
+	if err := service.DiscoverAliases(t.Context()); err != nil {
 		t.Fatalf("expected empty alias discovery to succeed: %v", err)
 	}
 
@@ -1522,7 +1522,7 @@ func TestServiceDiscoverAliasesClearsCacheWhenAliasListIsEmptyWithoutHSDClient(t
 	service.hsdClient = nil
 	service.mainchainAliasClient = nil
 
-	if err := service.DiscoverAliases(context.Background()); err != nil {
+	if err := service.DiscoverAliases(t.Context()); err != nil {
 		t.Fatalf("expected empty alias discovery to succeed without HSD client: %v", err)
 	}
 
@@ -1604,7 +1604,7 @@ func TestServiceDiscoverAliasesParsesAliasDetailRecordsFromActionCaller(t *testi
 		HSDClient: NewHSDClient(HSDClientOptions{URL: server.URL}),
 	})
 
-	if err := service.DiscoverAliases(context.Background()); err != nil {
+	if err := service.DiscoverAliases(t.Context()); err != nil {
 		t.Fatalf("expected DiscoverAliases to parse alias detail records: %v", err)
 	}
 	if !actionCalled {
@@ -1684,14 +1684,14 @@ func TestServiceDiscoverAliasesRefreshesWhenAliasListChangesBeforeTreeRootInterv
 		HSDClient: NewHSDClient(HSDClientOptions{URL: server.URL}),
 	})
 
-	if err := service.DiscoverAliases(context.Background()); err != nil {
+	if err := service.DiscoverAliases(t.Context()); err != nil {
 		t.Fatalf("expected first DiscoverAliases call to succeed: %v", err)
 	}
 	if atomic.LoadInt32(&treeRootCalls) != 1 || atomic.LoadInt32(&nameResourceCalls) != 1 {
 		t.Fatalf("expected first discovery to query tree root and one alias, got treeRoot=%d nameResource=%d", atomic.LoadInt32(&treeRootCalls), atomic.LoadInt32(&nameResourceCalls))
 	}
 
-	if err := service.DiscoverAliases(context.Background()); err != nil {
+	if err := service.DiscoverAliases(t.Context()); err != nil {
 		t.Fatalf("expected second DiscoverAliases call to refresh changed aliases: %v", err)
 	}
 	if atomic.LoadInt32(&treeRootCalls) != 2 || atomic.LoadInt32(&nameResourceCalls) != 3 {
@@ -1873,7 +1873,7 @@ func TestServiceDiscoverFromChainAliasesUsesFallbackWhenPrimaryFails(t *testing.
 	client := NewHSDClient(HSDClientOptions{
 		URL: server.URL,
 	})
-	if err := service.DiscoverFromChainAliases(context.Background(), client); err != nil {
+	if err := service.DiscoverFromChainAliases(t.Context(), client); err != nil {
 		t.Fatalf("expected chain alias discovery to complete: %v", err)
 	}
 	if !primaryCalled {
@@ -1943,7 +1943,7 @@ func TestServiceDiscoverFromChainAliasesUsesConfiguredHSDClient(t *testing.T) {
 		HSDClient: NewHSDClient(HSDClientOptions{URL: server.URL}),
 	})
 
-	if err := service.DiscoverFromChainAliases(context.Background(), nil); err != nil {
+	if err := service.DiscoverFromChainAliases(t.Context(), nil); err != nil {
 		t.Fatalf("expected chain alias discovery to complete: %v", err)
 	}
 
@@ -2031,7 +2031,7 @@ func TestServiceDiscoverFromChainAliasesFallsBackToMainchainClientWhenDiscoverer
 	hsdClient := NewHSDClient(HSDClientOptions{
 		URL: server.URL,
 	})
-	if err := service.DiscoverFromChainAliases(context.Background(), hsdClient); err != nil {
+	if err := service.DiscoverFromChainAliases(t.Context(), hsdClient); err != nil {
 		t.Fatalf("expected chain alias discovery to complete: %v", err)
 	}
 
@@ -2101,10 +2101,10 @@ func TestServiceDiscoverFromChainAliasesSkipsRefreshWhenTreeRootUnchanged(t *tes
 	client := NewHSDClient(HSDClientOptions{
 		URL: server.URL,
 	})
-	if err := service.DiscoverFromChainAliases(context.Background(), client); err != nil {
+	if err := service.DiscoverFromChainAliases(t.Context(), client); err != nil {
 		t.Fatalf("expected first chain alias discovery to run: %v", err)
 	}
-	if err := service.DiscoverFromChainAliases(context.Background(), client); err != nil {
+	if err := service.DiscoverFromChainAliases(t.Context(), client); err != nil {
 		t.Fatalf("expected second chain alias discovery to skip refresh: %v", err)
 	}
 
@@ -2134,7 +2134,7 @@ func TestServiceDiscoverFromChainAliasesIgnoresMissingDiscoverers(t *testing.T) 
 		URL: server.URL,
 	})
 
-	if err := service.DiscoverFromChainAliases(context.Background(), client); err != nil {
+	if err := service.DiscoverFromChainAliases(t.Context(), client); err != nil {
 		t.Fatalf("expected no-op when no alias discoverer configured and no mainchain client: %v", err)
 	}
 
@@ -2168,7 +2168,7 @@ func TestServiceDiscoverAliasesReturnsNilWithoutDiscovererOrHSDClient(t *testing
 	})
 	service.mainchainAliasClient = nil
 
-	if err := service.DiscoverAliases(context.Background()); err != nil {
+	if err := service.DiscoverAliases(t.Context()); err != nil {
 		t.Fatalf("expected discover aliases to no-op without sources or HSD client when no explicit mainchain client: %v", err)
 	}
 
@@ -2192,7 +2192,7 @@ func TestServiceDiscoverFromMainchainAliasesClearsCacheWhenAliasListIsEmptyWitho
 	service.mainchainAliasClient = nil
 	service.hsdClient = nil
 
-	if err := service.DiscoverFromMainchainAliases(context.Background(), nil, nil); err != nil {
+	if err := service.DiscoverFromMainchainAliases(t.Context(), nil, nil); err != nil {
 		t.Fatalf("expected empty mainchain alias discovery to succeed without HSD or mainchain client: %v", err)
 	}
 
@@ -3424,7 +3424,7 @@ func TestServiceRegisterActionsUsesContextAwareRegistrarWhenAvailable(t *testing
 		t.Fatal("expected context-aware registrar to receive discover action")
 	}
 
-	ctx := context.WithValue(context.Background(), ctxKey("discover-token"), "preserved")
+	ctx := context.WithValue(t.Context(), ctxKey("discover-token"), "preserved")
 	payload, succeeded, err := invoke(ctx, nil)
 	if err == nil {
 		t.Fatal("expected discover action to fail without an HSD endpoint")
@@ -3685,7 +3685,7 @@ func TestServiceHandleActionContextPassesThroughToDiscover(t *testing.T) {
 		}),
 	})
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	payload, ok, err := service.HandleActionContext(ctx, ActionDiscover, nil)
@@ -3755,7 +3755,7 @@ func TestServiceDiscoverAliasesFallsBackToMainchainAliasRPCUsingHSDURL(t *testin
 		Records: map[string]NameRecords{},
 	})
 
-	if err := service.DiscoverAliases(context.Background()); err != nil {
+	if err := service.DiscoverAliases(t.Context()); err != nil {
 		t.Fatalf("expected discover to use inferred mainchain URL: %v", err)
 	}
 

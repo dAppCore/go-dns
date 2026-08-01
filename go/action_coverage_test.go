@@ -1,8 +1,6 @@
 package dns
 
 import (
-	"context"
-
 	core "dappco.re/go"
 )
 
@@ -32,7 +30,7 @@ func TestActionCoverage_HandleActionContext_Good(t *core.T) {
 
 func TestActionCoverage_HandleActionContext_Bad(t *core.T) {
 	service := NewService(ServiceOptions{})
-	if _, _, err := service.HandleActionContext(context.Background(), "dns.does-not-exist", nil); err == nil {
+	if _, _, err := service.HandleActionContext(t.Context(), "dns.does-not-exist", nil); err == nil {
 		t.Fatal("expected an unknown action name to error")
 	}
 }
@@ -40,7 +38,7 @@ func TestActionCoverage_HandleActionContext_Bad(t *core.T) {
 func TestActionCoverage_HandleActionContext_Ugly(t *core.T) {
 	service := NewService(ServiceOptions{})
 	// Missing required name argument should surface the helper error.
-	if _, _, err := service.HandleActionContext(context.Background(), ActionResolve, map[string]any{}); err == nil {
+	if _, _, err := service.HandleActionContext(t.Context(), ActionResolve, map[string]any{}); err == nil {
 		t.Fatal("expected a missing name argument to error")
 	}
 }

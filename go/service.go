@@ -1455,8 +1455,8 @@ func computeTreeRoot(records map[string]NameRecords) string {
 func computeZoneApex(records map[string]NameRecords) string {
 	names := make([]string, 0, len(records))
 	for name := range records {
-		if strings.HasPrefix(name, "*.") {
-			suffix := strings.TrimPrefix(name, "*.")
+		if after, ok := strings.CutPrefix(name, "*."); ok {
+			suffix := after
 			if suffix == "" {
 				continue
 			}
@@ -1571,8 +1571,8 @@ func normalizeName(name string) string {
 	if trimmed == "" {
 		return ""
 	}
-	if strings.HasSuffix(trimmed, ".") {
-		trimmed = strings.TrimSuffix(trimmed, ".")
+	if before, ok := strings.CutSuffix(trimmed, "."); ok {
+		trimmed = before
 	}
 	return trimmed
 }

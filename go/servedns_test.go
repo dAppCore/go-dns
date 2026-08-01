@@ -13,8 +13,12 @@ type captureResponseWriter struct {
 	written *dnsprotocol.Msg
 }
 
-func (writer *captureResponseWriter) LocalAddr() net.Addr  { return &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)} }
-func (writer *captureResponseWriter) RemoteAddr() net.Addr { return &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)} }
+func (writer *captureResponseWriter) LocalAddr() net.Addr {
+	return &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)}
+}
+func (writer *captureResponseWriter) RemoteAddr() net.Addr {
+	return &net.UDPAddr{IP: net.IPv4(127, 0, 0, 1)}
+}
 func (writer *captureResponseWriter) WriteMsg(msg *dnsprotocol.Msg) error {
 	writer.written = msg
 	return nil

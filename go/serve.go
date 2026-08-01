@@ -3,6 +3,7 @@ package dns
 import (
 	"fmt"
 	"net"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -151,10 +152,14 @@ func (server *DNSServer) Address() string {
 
 func (server *DNSServer) Close() error {
 	if server.udpListener != nil {
-		if cerr := server.udpListener.Close(); cerr != nil { _ = cerr }
+		if cerr := server.udpListener.Close(); cerr != nil {
+			_ = cerr
+		}
 	}
 	if server.tcpListener != nil {
-		if cerr := server.tcpListener.Close(); cerr != nil { _ = cerr }
+		if cerr := server.tcpListener.Close(); cerr != nil {
+			_ = cerr
+		}
 	}
 	var firstError error
 	if server.udpServer != nil {
@@ -320,7 +325,9 @@ func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
 	}
 	tcpListener, err := net.Listen("tcp", addr)
 	if err != nil {
-		if cerr := udpListener.Close(); cerr != nil { _ = cerr }
+		if cerr := udpListener.Close(); cerr != nil {
+			_ = cerr
+		}
 		return nil, err
 	}
 
@@ -339,10 +346,14 @@ func (service *Service) Serve(bind string, port int) (*DNSServer, error) {
 	}
 
 	go func() {
-		if cerr := udpServer.ActivateAndServe(); cerr != nil { _ = cerr }
+		if cerr := udpServer.ActivateAndServe(); cerr != nil {
+			_ = cerr
+		}
 	}()
 	go func() {
-		if cerr := tcpServer.ActivateAndServe(); cerr != nil { _ = cerr }
+		if cerr := tcpServer.ActivateAndServe(); cerr != nil {
+			_ = cerr
+		}
 	}()
 
 	return dnsServer, nil
@@ -392,7 +403,9 @@ func (service *Service) ServeAll(bind string, dnsPort int, httpPort int) (*Servi
 
 	httpServer, err := service.ServeHTTPHealth(bind, httpPort)
 	if err != nil {
-		if cerr := dnsServer.Close(); cerr != nil { _ = cerr }
+		if cerr := dnsServer.Close(); cerr != nil {
+			_ = cerr
+		}
 		return nil, err
 	}
 
@@ -437,20 +450,26 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 
 	if request == nil {
 		reply.SetRcode(reply, dnsprotocol.RcodeNotImplemented)
-		if cerr := responseWriter.WriteMsg(reply); cerr != nil { _ = cerr }
+		if cerr := responseWriter.WriteMsg(reply); cerr != nil {
+			_ = cerr
+		}
 		return
 	}
 
 	reply.SetReply(request)
 	if request.Opcode != dnsprotocol.OpcodeQuery {
 		reply.SetRcode(request, dnsprotocol.RcodeNotImplemented)
-		if cerr := responseWriter.WriteMsg(reply); cerr != nil { _ = cerr }
+		if cerr := responseWriter.WriteMsg(reply); cerr != nil {
+			_ = cerr
+		}
 		return
 	}
 
 	if len(request.Question) == 0 {
 		reply.SetRcode(request, dnsprotocol.RcodeFormatError)
-		if cerr := responseWriter.WriteMsg(reply); cerr != nil { _ = cerr }
+		if cerr := responseWriter.WriteMsg(reply); cerr != nil {
+			_ = cerr
+		}
 		return
 	}
 
@@ -519,7 +538,9 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 		ip, ok := parsePTRIP(lookupName)
 		if !ok {
 			reply.SetRcode(request, dnsprotocol.RcodeFormatError)
-			if cerr := responseWriter.WriteMsg(reply); cerr != nil { _ = cerr }
+			if cerr := responseWriter.WriteMsg(reply); cerr != nil {
+				_ = cerr
+			}
 			return
 		}
 		values, ok := handler.service.ResolveReverse(ip)
@@ -574,33 +595,37 @@ func (handler *dnsRequestHandler) ServeDNS(responseWriter dnsprotocol.ResponseWr
 		appendDNSSECResourceRecords(reply, question.Name, dnsprotocol.TypeRRSIG, normalizeRecordValues(record.RRSIG))
 	default:
 		reply.SetRcode(request, dnsprotocol.RcodeNotImplemented)
-		if cerr := responseWriter.WriteMsg(reply); cerr != nil { _ = cerr }
+		if cerr := responseWriter.WriteMsg(reply); cerr != nil {
+			_ = cerr
+		}
 		return
 	}
 
-	if cerr := responseWriter.WriteMsg(reply); cerr != nil { _ = cerr }
+	if cerr := responseWriter.WriteMsg(reply); cerr != nil {
+		_ = cerr
+	}
 	return
 
 noRecord:
 	reply.SetRcode(request, dnsprotocol.RcodeNameError)
-	if cerr := responseWriter.WriteMsg(reply); cerr != nil { _ = cerr }
+	if cerr := responseWriter.WriteMsg(reply); cerr != nil {
+		_ = cerr
+	}
 }
 
 func parsePTRIP(name string) (string, bool) {
 	lookup := strings.TrimSuffix(strings.ToLower(name), ".")
-	if strings.HasSuffix(lookup, ".in-addr.arpa") {
-		base := strings.TrimSuffix(strings.TrimSuffix(lookup, ".in-addr.arpa"), ".")
+	if before, ok := strings.CutSuffix(lookup, ".in-addr.arpa"); ok {
+		base := strings.TrimSuffix(before, ".")
 		labels := strings.Split(base, ".")
 		if len(labels) != 4 {
 			return "", false
 		}
-		for _, label := range labels {
-			if label == "" {
-				return "", false
-			}
+		if slices.Contains(labels, "") {
+			return "", false
 		}
 		reversed := make([]string, 4)
-		for i := 0; i < 4; i++ {
+		for i := range 4 {
 			reversed[i] = labels[3-i]
 		}
 		candidate := strings.Join(reversed, ".")
@@ -610,8 +635,8 @@ func parsePTRIP(name string) (string, bool) {
 		}
 		return parsed.String(), true
 	}
-	if strings.HasSuffix(lookup, ".ip6.arpa") {
-		base := strings.TrimSuffix(strings.TrimSuffix(lookup, ".ip6.arpa"), ".")
+	if before, ok := strings.CutSuffix(lookup, ".ip6.arpa"); ok {
+		base := strings.TrimSuffix(before, ".")
 		labels := strings.Split(base, ".")
 		if len(labels) != 32 {
 			return "", false
@@ -622,11 +647,11 @@ func parsePTRIP(name string) (string, bool) {
 			}
 		}
 		reversed := make([]string, 32)
-		for i := 0; i < 32; i++ {
+		for i := range 32 {
 			reversed[i] = labels[31-i]
 		}
 		blocks := make([]string, 8)
-		for i := 0; i < 8; i++ {
+		for i := range 8 {
 			block := strings.Join(reversed[i*4:(i+1)*4], "")
 			if len(block) != 4 {
 				return "", false

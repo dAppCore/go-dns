@@ -1,7 +1,6 @@
 package dns
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -42,7 +41,7 @@ func TestHSDClientGetNameResourceCallsRPCAndParsesResult(t *testing.T) {
 		URL: server.URL,
 	})
 
-	record, err := client.GetNameResource(context.Background(), "gateway.lthn")
+	record, err := client.GetNameResource(t.Context(), "gateway.lthn")
 	if err != nil {
 		t.Fatalf("unexpected getnameresource error: %v", err)
 	}
@@ -94,7 +93,7 @@ func TestHSDClientGetNameResourceParsesWrappedRecords(t *testing.T) {
 		URL: server.URL,
 	})
 
-	record, err := client.GetNameResource(context.Background(), "node.lthn")
+	record, err := client.GetNameResource(t.Context(), "node.lthn")
 	if err != nil {
 		t.Fatalf("unexpected getnameresource error: %v", err)
 	}
@@ -135,7 +134,7 @@ func TestHSDClientGetNameResourceParsesCaseInsensitiveFields(t *testing.T) {
 		URL: server.URL,
 	})
 
-	record, err := client.GetNameResource(context.Background(), "case.lthn")
+	record, err := client.GetNameResource(t.Context(), "case.lthn")
 	if err != nil {
 		t.Fatalf("unexpected getnameresource error: %v", err)
 	}
@@ -177,7 +176,7 @@ func TestHSDClientGetNameResourceParsesDSRecords(t *testing.T) {
 		URL: server.URL,
 	})
 
-	record, err := client.GetNameResource(context.Background(), "charon.lthn")
+	record, err := client.GetNameResource(t.Context(), "charon.lthn")
 	if err != nil {
 		t.Fatalf("unexpected getnameresource error: %v", err)
 	}
@@ -214,7 +213,7 @@ func TestHSDClientGetNameResourceParsesDNSSECRecords(t *testing.T) {
 		URL: server.URL,
 	})
 
-	record, err := client.GetNameResource(context.Background(), "gateway.lthn")
+	record, err := client.GetNameResource(t.Context(), "gateway.lthn")
 	if err != nil {
 		t.Fatalf("unexpected getnameresource error: %v", err)
 	}
@@ -253,7 +252,7 @@ func TestHSDClientGetNameResourceParsesSingleValueDNSSECRecords(t *testing.T) {
 		URL: server.URL,
 	})
 
-	record, err := client.GetNameResource(context.Background(), "gateway.lthn")
+	record, err := client.GetNameResource(t.Context(), "gateway.lthn")
 	if err != nil {
 		t.Fatalf("unexpected getnameresource error: %v", err)
 	}
@@ -293,7 +292,7 @@ func TestHSDClientGetBlockchainInfo(t *testing.T) {
 		URL: server.URL,
 	})
 
-	info, err := client.GetBlockchainInfo(context.Background())
+	info, err := client.GetBlockchainInfo(t.Context())
 	if err != nil {
 		t.Fatalf("unexpected getblockchaininfo error: %v", err)
 	}
@@ -336,7 +335,7 @@ func TestServiceDiscoverWithHSDRefreshesRecords(t *testing.T) {
 		URL: server.URL,
 	})
 
-	if err := service.DiscoverWithHSD(context.Background(), []string{"gateway.lthn", "node.lthn"}, client); err != nil {
+	if err := service.DiscoverWithHSD(t.Context(), []string{"gateway.lthn", "node.lthn"}, client); err != nil {
 		t.Fatalf("expected discovery via hsd to succeed: %v", err)
 	}
 

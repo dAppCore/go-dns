@@ -50,7 +50,9 @@ func (server *HealthServer) Close() error {
 
 	if server.server != nil {
 		if err := server.server.Shutdown(shutdownContext); err != nil {
-			if cerr := server.server.Close(); cerr != nil { _ = cerr }
+			if cerr := server.server.Close(); cerr != nil {
+				_ = cerr
+			}
 			return err
 		}
 		return nil
@@ -104,7 +106,9 @@ func (service *Service) ServeHTTPHealth(bind string, port int) (*HealthServer, e
 	}
 
 	go func() {
-		if cerr := server.Serve(listener); cerr != nil { _ = cerr }
+		if cerr := server.Serve(listener); cerr != nil {
+			_ = cerr
+		}
 	}()
 
 	return httpServer, nil
