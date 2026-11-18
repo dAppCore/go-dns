@@ -3,7 +3,7 @@ package dns
 import (
 	"net"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 	dnsprotocol "github.com/miekg/dns"
 )
 

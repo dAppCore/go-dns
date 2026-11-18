@@ -1,5 +1,5 @@
-dappco.re/go v0.12.0 h1:lotJop5nvhrIQ1J2L5IP37H72ihnQnIjNzFT0iMEfx0=
-dappco.re/go v0.12.0/go.mod h1:xapr7fLK4/9Pu2iSCr4qZuIuatmtx1j56zS/oPDbGyQ=
+github.com/dappcore/go v0.13.0 h1:h2YjSxiLJV1A3FjoS0601Wv4m/AiwpFosw3qszl4muM=
+github.com/dappcore/go v0.13.0/go.mod h1:0wbxM1oMhcDWzFXP8iOuC90oW8/xt4mqJjElZ+cOVWI=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/miekg/dns v1.1.72 h1:vhmr+TF2A3tuoGNkLDFK9zi36F2LS+hKTRW0Uf8kbzI=

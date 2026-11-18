@@ -8,6 +8,6 @@ project:
   type: go
 
 go:
-  module: dappco.re/go/dns
+  module: github.com/dappcore/go-dns/go
   subtree: go
   go_version: "1.22"

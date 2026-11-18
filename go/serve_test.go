@@ -1,7 +1,7 @@
 package dns
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestServe_ServiceRuntime_Address_Good(t *core.T) {

@@ -1,7 +1,7 @@
 package dns
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // Coverage for the action dispatch edges and the port-resolver nil-receiver
