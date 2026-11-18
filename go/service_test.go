@@ -16,7 +16,7 @@ import (
 
 	dnsprotocol "github.com/miekg/dns"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func exchangeWithRetry(t *testing.T, client dnsprotocol.Client, request *dnsprotocol.Msg, address string) *dnsprotocol.Msg {

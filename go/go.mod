@@ -1,9 +1,9 @@
-module dappco.re/go/dns
+module github.com/dappcore/go-dns/go
 
 go 1.26.0
 
 require (
-	dappco.re/go v0.12.0
+	github.com/dappcore/go v0.13.0
 	github.com/miekg/dns v1.1.72
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 )

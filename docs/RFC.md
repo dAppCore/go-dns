@@ -1,5 +1,5 @@
 ---
-module: dappco.re/go/dns
+module: github.com/dappcore/go-dns/go
 repo: core/go-dns
 lang: go
 tier: lib
@@ -99,7 +99,7 @@ Not blocking beta.1. The current implementation serves unsigned records which is
 
 ## Existing Implementation
 
-The LNS at `~/Code/lthn/lns/` (672 lines Go, `dappco.re/go/core@v0.8.0-alpha.1`) already implements:
+The LNS at `~/Code/lthn/lns/` (672 lines Go, `github.com/dappcore/go@v0.8.0-alpha.1`) already implements:
 - DNS over UDP+TCP (A, AAAA, TXT, NS, SOA, PTR)
 - Chain-based discovery via `get_all_alias_details`
 - Tree-root invalidation via `getblockchaininfo`

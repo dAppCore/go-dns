@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestMainchainClientGetsAliasDetailsAndParsesHNSComments(t *testing.T) {

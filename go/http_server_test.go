@@ -1,7 +1,7 @@
 package dns
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestHttpServer_HealthServer_HealthAddress_Good(t *core.T) {

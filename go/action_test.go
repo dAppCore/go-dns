@@ -1,7 +1,7 @@
 package dns
 
 import (
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 func TestAction_Service_ActionDefinitions_Good(t *core.T) {

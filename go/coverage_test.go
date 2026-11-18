@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 
-	core "dappco.re/go"
+	core "github.com/dappcore/go"
 )
 
 // These tests exercise real behaviour for helpers and thin wrappers that the
